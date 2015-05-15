@@ -2,3 +2,6 @@
 name = "rustboycolor"
 version = "0.1.0"
 authors = ["pierreyoda <pierreyoda@users.noreply.github.com>"]
+
+[dependencies]
+sdl2 = "0.2.3"
