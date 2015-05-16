@@ -4,6 +4,9 @@ struct MemTest { i: u32 }
 impl rustboylib::memory::Memory for MemTest {
     fn read_byte(&mut self, address: u16) -> u8 {
         self.i += 1;
+        match self.i {
+            1 => 0x51, // ldrr_dc
+            2 => 0x62, // ldrr_hd
             _ => 0x10, // stop
         }
     }
