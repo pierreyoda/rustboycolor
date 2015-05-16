@@ -8,10 +8,10 @@ pub struct MMU;
 // MMU implements the Memory trait to provide transparent interfacing
 // with the CPU.
 impl Memory for MMU {
-    fn read_byte(address: u16, byte: u8) {
-
-    }
-    fn write_byte(address: u16) -> u8 {
+    fn read_byte(&mut self, address: u16) -> u8 {
         0x0
+    }
+    fn write_byte(&mut self, address: u16, byte: u8) {
+
     }
 }
