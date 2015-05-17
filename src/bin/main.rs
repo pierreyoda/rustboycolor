@@ -7,6 +7,8 @@ impl rustboylib::memory::Memory for MemTest {
         match self.i {
             1 => 0x51, // ldrr_dc
             2 => 0x62, // ldrr_hd
+            3 => 0xCB,
+            4 => 0x31, // SWAP rC
             _ => 0x10, // stop
         }
     }
@@ -25,5 +27,7 @@ fn main() {
     cpu.step();
     cpu.step();
     println!("cpu regs : {:?}", cpu.registers());
+    //cpu.regs.c = 0x0; // Z flag test
     cpu.step();
+    println!("cpu regs : {:?}", cpu.registers());
 }

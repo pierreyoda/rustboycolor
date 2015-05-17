@@ -21,6 +21,9 @@ pub struct Cpu<M> {
     opcode: u8,
     /// The dispatching array used for instruction decoding.
     dispatch_array: [CpuInstruction<M>; 256],
+    /// The dispatching array used for decoding the CB-prefixed additional
+    /// instructions.
+    cb_dispatch_array: [CpuInstruction<M>; 256],
 }
 
 impl<M> Cpu<M> where M: Memory {
@@ -33,7 +36,8 @@ impl<M> Cpu<M> where M: Memory {
             regs: Registers::new(),
             mem: mem,
             opcode: 0x0,
-            dispatch_array: dispatch_array()
+            dispatch_array: dispatch_array(),
+            cb_dispatch_array: cb_dispatch_array(),
         }
     }
 
@@ -50,10 +54,26 @@ impl<M> Cpu<M> where M: Memory {
         self.cycles += self.dispatch_array[self.opcode as usize](self);
     }
 
+    /// Called when encountering the '0xCB' prefix.
+    pub fn call_cb(&mut self) -> CycleType {
+        self.opcode = self.mem.read_byte(self.regs.pc);
+        self.regs.pc += 1;
+        // TO CHECK : cycles overhead of 'CB' prefix = 0 ?
+        self.cb_dispatch_array[self.opcode as usize](self)
+    }
+
     /// Called when an unknown opcode is encountered.
     /// TODO improved behavior
     pub fn opcode_unknown(&mut self) -> CycleType {
         println!("CPU : unknown opcode 0x{:0>2X} ; stopping",
+                 self.opcode);
+        self.stop = true;
+        0
+    }
+    /// Called when an unknown CB-prefixed opcode is encountered.
+    /// TODO improved behavior
+    pub fn cb_opcode_unknown(&mut self) -> CycleType {
+        println!("CPU : unknown opcode 0xCB{:0>2X} ; stopping",
                  self.opcode);
         self.stop = true;
         0
@@ -175,6 +195,8 @@ fn dispatch_array<M: Memory>() -> [CpuInstruction<M>; 256] {
     dispatch_array[0x7E] = cpu_instruction!(LD_r_HLm_a);
     dispatch_array[0x7F] = cpu_instruction!(LD_rr_aa);
 
+    dispatch_array[0xCB] = cpu_instruction!(call_cb);
+
     dispatch_array[0xE0] = cpu_instruction!(LDH_n_A);
     dispatch_array[0xE2] = cpu_instruction!(LDH_C_A);
     dispatch_array[0xEA] = cpu_instruction!(LD_NNm_A);
@@ -188,3 +210,20 @@ fn dispatch_array<M: Memory>() -> [CpuInstruction<M>; 256] {
     dispatch_array
 }
 
+/// Same as 'dispatch_array()' but for the additional, CB-prefixed instructions.
+fn cb_dispatch_array<M: Memory>() -> [CpuInstruction<M>; 256] {
+    // the default value is the method cb_opcode_unknown
+    let mut cb_dispatch_array = [Cpu::<M>::cb_opcode_unknown
+        as CpuInstruction<M>; 256];
+
+    cb_dispatch_array[0x30] = cpu_instruction!(SWAP_r_b);
+    cb_dispatch_array[0x31] = cpu_instruction!(SWAP_r_c);
+    cb_dispatch_array[0x32] = cpu_instruction!(SWAP_r_d);
+    cb_dispatch_array[0x33] = cpu_instruction!(SWAP_r_e);
+    cb_dispatch_array[0x34] = cpu_instruction!(SWAP_r_h);
+    cb_dispatch_array[0x35] = cpu_instruction!(SWAP_r_l);
+    cb_dispatch_array[0x36] = cpu_instruction!(SWAP_HLm);
+    cb_dispatch_array[0x37] = cpu_instruction!(SWAP_r_a);
+
+    cb_dispatch_array
+}
