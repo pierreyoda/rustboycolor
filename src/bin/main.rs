@@ -12,6 +12,8 @@ impl rustboylib::memory::Memory for MemTest {
     }
     fn write_byte(&mut self, address: u16, byte: u8) {
     }
+    fn read_word(&mut self, address: u16) -> u16 { 0 }
+    fn write_word(&mut self, address: u16, word: u16) { }
 }
 
 fn main() {
@@ -23,4 +25,5 @@ fn main() {
     cpu.step();
     cpu.step();
     println!("cpu regs : {:?}", cpu.registers());
+    cpu.step();
 }

@@ -25,13 +25,26 @@ macro_rules! impl_LD_HLm_r_x {
     )
 }
 
+macro_rules! impl_LD_r_n_x {
+    ($s: ident, $x: ident) => (
+        $s.regs.$x = $s.mem.read_byte($s.regs.pc);
+        $s.regs.pc += 1;
+        return 2;
+    )
+}
+
 // The opcodes are implemented in this crate for better clarity in the code.
 // Notations used :
-// - (HL) means the value stored in memory at the HL address
+// - (X) means the value stored in memory at the X address
 #[allow(non_snake_case)]
 impl<M> Cpu<M> where M: Memory {
 
     pub fn nop(&mut self) -> CycleType {
+        1
+    }
+
+    pub fn stop(&mut self) -> CycleType {
+        self.stop = true;
         1
     }
 
@@ -118,4 +131,168 @@ impl<M> Cpu<M> where M: Memory {
     pub fn LD_HLm_r_h(&mut self) -> CycleType { impl_LD_HLm_r_x!(self,h); }
     pub fn LD_HLm_r_l(&mut self) -> CycleType { impl_LD_HLm_r_x!(self,l); }
     pub fn LD_HLm_r_a(&mut self) -> CycleType { impl_LD_HLm_r_x!(self,a); }
+
+    // LD_r_n_x : load immediate byte into register x
+    pub fn LD_r_n_b(&mut self) -> CycleType { impl_LD_r_n_x!(self,b); }
+    pub fn LD_r_n_c(&mut self) -> CycleType { impl_LD_r_n_x!(self,c); }
+    pub fn LD_r_n_d(&mut self) -> CycleType { impl_LD_r_n_x!(self,d); }
+    pub fn LD_r_n_e(&mut self) -> CycleType { impl_LD_r_n_x!(self,e); }
+    pub fn LD_r_n_h(&mut self) -> CycleType { impl_LD_r_n_x!(self,h); }
+    pub fn LD_r_n_l(&mut self) -> CycleType { impl_LD_r_n_x!(self,l); }
+    pub fn LD_r_n_a(&mut self) -> CycleType { impl_LD_r_n_x!(self,a); }
+
+    // LD_HLm_n : load immediate byte into (HL)
+    pub fn LD_HLm_n(&mut self) -> CycleType {
+        let n = self.mem.read_byte(self.regs.pc);
+        self.mem.write_byte((self.regs.h as u16) << 8 + self.regs.l as u16, n);
+        self.regs.pc += 1;
+        3
+    }
+
+    // LD_XYm_A : load A into (rXrY)
+    pub fn LD_BCm_A(&mut self) -> CycleType {
+        self.mem.write_byte((self.regs.b as u16) << 8 + self.regs.c as u16,
+                            self.regs.a);
+        2
+    }
+    pub fn LD_DEm_A(&mut self) -> CycleType {
+        self.mem.write_byte((self.regs.d as u16) << 8 + self.regs.e as u16,
+                            self.regs.a);
+        2
+    }
+
+    // LD_A_XYm : load (rXrY) into A
+    pub fn LD_A_BCm(&mut self) -> CycleType {
+        self.regs.a = self.mem.read_byte(
+            (self.regs.b as u16) << 8 + self.regs.c as u16);
+        2
+    }
+    pub fn LD_A_DEm(&mut self) -> CycleType {
+        self.regs.a = self.mem.read_byte(
+            (self.regs.d as u16) << 8 + self.regs.e as u16);
+        2
+    }
+
+    // LD_XY_nn : load immediate word (16 bits) into XY
+    pub fn LD_BC_nn(&mut self) -> CycleType {
+        self.regs.c = self.mem.read_byte(self.regs.pc);
+        self.regs.pc += 1;
+        self.regs.b = self.mem.read_byte(self.regs.pc);
+        self.regs.pc += 1;
+        3
+    }
+    pub fn LD_DE_nn(&mut self) -> CycleType {
+        self.regs.e = self.mem.read_byte(self.regs.pc);
+        self.regs.pc += 1;
+        self.regs.d = self.mem.read_byte(self.regs.pc);
+        self.regs.pc += 1;
+        3
+    }
+    pub fn LD_HL_nn(&mut self) -> CycleType {
+        self.regs.l = self.mem.read_byte(self.regs.pc);
+        self.regs.pc += 1;
+        self.regs.h = self.mem.read_byte(self.regs.pc);
+        self.regs.pc += 1;
+        3
+    }
+    pub fn LD_SP_nn(&mut self) -> CycleType {
+        self.regs.sp = self.mem.read_word(self.regs.pc);
+        self.regs.pc += 2;
+        3
+    }
+
+    // LD_NNm_A / LD_A_NNm : load A into (nn) / load (nn) into A
+    pub fn LD_NNm_A(&mut self) -> CycleType {
+        let nn = self.mem.read_word(self.regs.pc);
+        self.regs.pc += 2;
+        self.mem.write_byte(nn, self.regs.a);
+        4
+    }
+    pub fn LD_A_NNm(&mut self) -> CycleType {
+        let nn = self.mem.read_word(self.regs.pc);
+        self.regs.pc += 2;
+        self.regs.a = self.mem.read_byte(nn);
+        4
+    }
+
+    // LDI_HLm_A / LDD_HLm_A : load A into (HL) and increment/decrement HL
+    pub fn LDI_HLm_A(&mut self) -> CycleType {
+        let hl = (self.regs.h as u16) << 8 + self.regs.l as u16;
+        self.mem.write_byte(hl, self.regs.a);
+        self.regs.set_hl(hl+1);
+        2
+    }
+    pub fn LDD_HLm_A(&mut self) -> CycleType {
+        let hl = (self.regs.h as u16) << 8 + self.regs.l as u16;
+        self.mem.write_byte(hl, self.regs.a);
+        self.regs.set_hl(hl-1);
+        2
+    }
+
+    // LDI_A_HLm / LDD_A_HLm : load (HL) into A and increment/decrement HL
+    pub fn LDI_A_HLm(&mut self) -> CycleType {
+        let hl = (self.regs.h as u16) << 8 + self.regs.l as u16;
+        self.regs.a = self.mem.read_byte(hl);
+        self.regs.set_hl(hl+1);
+        2
+    }
+    pub fn LDD_A_HLm(&mut self) -> CycleType {
+        let hl = (self.regs.h as u16) << 8 + self.regs.l as u16;
+        self.regs.a = self.mem.read_byte(hl);
+        self.regs.set_hl(hl-1);
+        2
+    }
+
+    // LDH_n_A : load A into (0xFF00 + offset = 8-bit immediate)
+    pub fn LDH_n_A(&mut self) -> CycleType {
+        let n = self.mem.read_byte(self.regs.pc);
+        self.regs.pc += 1;
+        self.mem.write_byte(0xFF00 + n as u16, self.regs.a);
+        3
+    }
+    // LDH_A_n : load (0xFF00 + offset = 8-bit immediate) into A
+    pub fn LDH_A_n(&mut self) -> CycleType {
+        let n = self.mem.read_byte(self.regs.pc);
+        self.regs.pc += 1;
+        self.regs.a = self.mem.read_byte(0xFF00 + n as u16);
+        3
+    }
+
+    // LDH_C_A : load A into (0xFF00 + offset = C)
+    pub fn LDH_C_A(&mut self) -> CycleType {
+        self.mem.write_byte(0xFF00 + self.regs.c as u16, self.regs.a);
+        2
+    }
+    // LDH_A_C : load (0xFF00 + offset = C) into A
+    pub fn LDH_A_C(&mut self) -> CycleType {
+        self.regs.a = self.mem.read_byte(0xFF00 + self.regs.c as u16);
+        2
+    }
+
+    // LDHL_SP_n : add signed 8-bit immediate to SP and save the result in HL
+    pub fn LDHL_SP_n(&mut self) -> CycleType {
+        let mut n = self.mem.read_byte(self.regs.pc) as i8 as i16 as u16;
+        self.regs.pc += 1;
+        n += self.regs.sp;
+        self.regs.set_hl(n);
+        3
+    }
+
+    // LD_SP_HL : load HL into SP
+    pub fn LD_SP_HL(&mut self) -> CycleType {
+        self.regs.sp = (self.regs.h as u16) << 8 + self.regs.l as u16;
+        2
+    }
+
+    // LD_NNm_SP : load SP into (NN) where NN = immediate word
+    pub fn LD_NNm_SP(&mut self) -> CycleType {
+        let nn = self.mem.read_word(self.regs.pc);
+        self.regs.pc += 2;
+        self.mem.write_word(nn, self.regs.sp);
+        5
+    }
+
+    //
+    // --- Arithmetic Operations ---
+    //
 }

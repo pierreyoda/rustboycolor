@@ -50,6 +50,11 @@ impl Registers {
             sp: 0,
         }
     }
+
+    pub fn set_hl(&mut self, hl: u16) {
+        self.h = (hl >> 8) as u8;
+        self.l = (hl & 0x00FF) as u8;
+    }
 }
 
 impl fmt::Debug for Registers {

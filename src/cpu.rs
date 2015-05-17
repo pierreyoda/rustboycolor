@@ -53,7 +53,7 @@ impl<M> Cpu<M> where M: Memory {
     /// Called when an unknown opcode is encountered.
     /// TODO improved behavior
     pub fn opcode_unknown(&mut self) -> CycleType {
-        println!("CPU : unknown opcode {:0>2x} ; stopping",
+        println!("CPU : unknown opcode 0x{:0>2X} ; stopping",
                  self.opcode);
         self.stop = true;
         0
@@ -73,13 +73,39 @@ macro_rules! cpu_instruction {
 /// to the opcode the hexadecimal value of I.
 /// The downside is that all the instructions must be public.
 /// Could also work for a Disassembler.
-/// Main source for the opcodes :
+/// Main sources for the opcodes :
+/// http://www.pastraiser.com/cpu/gameboy/gameboy_opcodes.html
 /// http://imrannazar.com/Gameboy-Z80-Opcode-Map
 fn dispatch_array<M: Memory>() -> [CpuInstruction<M>; 256] {
     // the default value is the method opcode_unknown
     let mut dispatch_array = [Cpu::<M>::opcode_unknown as CpuInstruction<M>; 256];
 
     dispatch_array[0x00] = cpu_instruction!(nop);
+    dispatch_array[0x01] = cpu_instruction!(LD_BC_nn);
+    dispatch_array[0x02] = cpu_instruction!(LD_BCm_A);
+    dispatch_array[0x06] = cpu_instruction!(LD_r_n_b);
+    dispatch_array[0x08] = cpu_instruction!(LD_NNm_SP);
+    dispatch_array[0x0A] = cpu_instruction!(LD_A_BCm);
+    dispatch_array[0x0E] = cpu_instruction!(LD_r_n_c);
+
+    dispatch_array[0x10] = cpu_instruction!(stop);
+    dispatch_array[0x11] = cpu_instruction!(LD_DE_nn);
+    dispatch_array[0x12] = cpu_instruction!(LD_DEm_A);
+    dispatch_array[0x16] = cpu_instruction!(LD_r_n_d);
+    dispatch_array[0x1A] = cpu_instruction!(LD_A_DEm);
+    dispatch_array[0x1E] = cpu_instruction!(LD_r_n_e);
+
+    dispatch_array[0x21] = cpu_instruction!(LD_HL_nn);
+    dispatch_array[0x22] = cpu_instruction!(LDI_HLm_A);
+    dispatch_array[0x26] = cpu_instruction!(LD_r_n_h);
+    dispatch_array[0x2A] = cpu_instruction!(LDI_A_HLm);
+    dispatch_array[0x2E] = cpu_instruction!(LD_r_n_l);
+
+    dispatch_array[0x31] = cpu_instruction!(LD_SP_nn);
+    dispatch_array[0x32] = cpu_instruction!(LDD_HLm_A);
+    dispatch_array[0x36] = cpu_instruction!(LD_HLm_n);
+    dispatch_array[0x3A] = cpu_instruction!(LDD_A_HLm);
+    dispatch_array[0x3E] = cpu_instruction!(LD_r_n_a);
 
     dispatch_array[0x40] = cpu_instruction!(LD_rr_bb);
     dispatch_array[0x41] = cpu_instruction!(LD_rr_bc);
@@ -148,6 +174,16 @@ fn dispatch_array<M: Memory>() -> [CpuInstruction<M>; 256] {
     dispatch_array[0x7D] = cpu_instruction!(LD_rr_al);
     dispatch_array[0x7E] = cpu_instruction!(LD_r_HLm_a);
     dispatch_array[0x7F] = cpu_instruction!(LD_rr_aa);
+
+    dispatch_array[0xE0] = cpu_instruction!(LDH_n_A);
+    dispatch_array[0xE2] = cpu_instruction!(LDH_C_A);
+    dispatch_array[0xEA] = cpu_instruction!(LD_NNm_A);
+
+    dispatch_array[0xF0] = cpu_instruction!(LDH_A_n);
+    dispatch_array[0xF2] = cpu_instruction!(LDH_A_C);
+    dispatch_array[0xF8] = cpu_instruction!(LDHL_SP_n);
+    dispatch_array[0xF9] = cpu_instruction!(LD_SP_HL);
+    dispatch_array[0xFA] = cpu_instruction!(LD_A_NNm);
 
     dispatch_array
 }

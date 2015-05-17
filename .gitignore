@@ -12,3 +12,5 @@
 *.sublime-workspace
 rustboycolor.sublime-project
 *.lock
+*.xlsx
+*.zip

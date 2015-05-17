@@ -14,4 +14,10 @@ impl Memory for MMU {
     fn write_byte(&mut self, address: u16, byte: u8) {
 
     }
+    fn read_word(&mut self, address: u16) -> u16 {
+        0x0
+    }
+    fn write_word(&mut self, address: u16, word: u16) {
+
+    }
 }
