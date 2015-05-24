@@ -225,5 +225,73 @@ fn cb_dispatch_array<M: Memory>() -> [CpuInstruction<M>; 256] {
     cb_dispatch_array[0x36] = cpu_instruction!(SWAP_HLm);
     cb_dispatch_array[0x37] = cpu_instruction!(SWAP_r_a);
 
+    cb_dispatch_array[0xC0] = cpu_instruction!(SET_0_r_b);
+    cb_dispatch_array[0xC1] = cpu_instruction!(SET_0_r_c);
+    cb_dispatch_array[0xC2] = cpu_instruction!(SET_0_r_d);
+    cb_dispatch_array[0xC3] = cpu_instruction!(SET_0_r_e);
+    cb_dispatch_array[0xC4] = cpu_instruction!(SET_0_r_h);
+    cb_dispatch_array[0xC5] = cpu_instruction!(SET_0_r_l);
+    cb_dispatch_array[0xC6] = cpu_instruction!(SET_0_HLm);
+    cb_dispatch_array[0xC7] = cpu_instruction!(SET_0_r_a);
+    cb_dispatch_array[0xC8] = cpu_instruction!(SET_1_r_b);
+    cb_dispatch_array[0xC9] = cpu_instruction!(SET_1_r_c);
+    cb_dispatch_array[0xCA] = cpu_instruction!(SET_1_r_d);
+    cb_dispatch_array[0xCB] = cpu_instruction!(SET_1_r_e);
+    cb_dispatch_array[0xCC] = cpu_instruction!(SET_1_r_h);
+    cb_dispatch_array[0xCD] = cpu_instruction!(SET_1_r_l);
+    cb_dispatch_array[0xCE] = cpu_instruction!(SET_1_HLm);
+    cb_dispatch_array[0xCF] = cpu_instruction!(SET_1_r_a);
+
+    cb_dispatch_array[0xD0] = cpu_instruction!(SET_2_r_b);
+    cb_dispatch_array[0xD1] = cpu_instruction!(SET_2_r_c);
+    cb_dispatch_array[0xD2] = cpu_instruction!(SET_2_r_d);
+    cb_dispatch_array[0xD3] = cpu_instruction!(SET_2_r_e);
+    cb_dispatch_array[0xD4] = cpu_instruction!(SET_2_r_h);
+    cb_dispatch_array[0xD5] = cpu_instruction!(SET_2_r_l);
+    cb_dispatch_array[0xD6] = cpu_instruction!(SET_2_HLm);
+    cb_dispatch_array[0xD7] = cpu_instruction!(SET_2_r_a);
+    cb_dispatch_array[0xD8] = cpu_instruction!(SET_3_r_b);
+    cb_dispatch_array[0xD9] = cpu_instruction!(SET_3_r_c);
+    cb_dispatch_array[0xDA] = cpu_instruction!(SET_3_r_d);
+    cb_dispatch_array[0xDB] = cpu_instruction!(SET_3_r_e);
+    cb_dispatch_array[0xDC] = cpu_instruction!(SET_3_r_h);
+    cb_dispatch_array[0xDD] = cpu_instruction!(SET_3_r_l);
+    cb_dispatch_array[0xDE] = cpu_instruction!(SET_3_HLm);
+    cb_dispatch_array[0xDF] = cpu_instruction!(SET_3_r_a);
+
+    cb_dispatch_array[0xE0] = cpu_instruction!(SET_4_r_b);
+    cb_dispatch_array[0xE1] = cpu_instruction!(SET_4_r_c);
+    cb_dispatch_array[0xE2] = cpu_instruction!(SET_4_r_d);
+    cb_dispatch_array[0xE3] = cpu_instruction!(SET_4_r_e);
+    cb_dispatch_array[0xE4] = cpu_instruction!(SET_4_r_h);
+    cb_dispatch_array[0xE5] = cpu_instruction!(SET_4_r_l);
+    cb_dispatch_array[0xE6] = cpu_instruction!(SET_4_HLm);
+    cb_dispatch_array[0xE7] = cpu_instruction!(SET_4_r_a);
+    cb_dispatch_array[0xE8] = cpu_instruction!(SET_5_r_b);
+    cb_dispatch_array[0xE9] = cpu_instruction!(SET_5_r_c);
+    cb_dispatch_array[0xEA] = cpu_instruction!(SET_5_r_d);
+    cb_dispatch_array[0xEB] = cpu_instruction!(SET_5_r_e);
+    cb_dispatch_array[0xEC] = cpu_instruction!(SET_5_r_h);
+    cb_dispatch_array[0xED] = cpu_instruction!(SET_5_r_l);
+    cb_dispatch_array[0xEE] = cpu_instruction!(SET_5_HLm);
+    cb_dispatch_array[0xEF] = cpu_instruction!(SET_5_r_a);
+
+    cb_dispatch_array[0xF0] = cpu_instruction!(SET_6_r_b);
+    cb_dispatch_array[0xF1] = cpu_instruction!(SET_6_r_c);
+    cb_dispatch_array[0xF2] = cpu_instruction!(SET_6_r_d);
+    cb_dispatch_array[0xF3] = cpu_instruction!(SET_6_r_e);
+    cb_dispatch_array[0xF4] = cpu_instruction!(SET_6_r_h);
+    cb_dispatch_array[0xF5] = cpu_instruction!(SET_6_r_l);
+    cb_dispatch_array[0xF6] = cpu_instruction!(SET_6_HLm);
+    cb_dispatch_array[0xF7] = cpu_instruction!(SET_6_r_a);
+    cb_dispatch_array[0xF8] = cpu_instruction!(SET_7_r_b);
+    cb_dispatch_array[0xF9] = cpu_instruction!(SET_7_r_c);
+    cb_dispatch_array[0xFA] = cpu_instruction!(SET_7_r_d);
+    cb_dispatch_array[0xFB] = cpu_instruction!(SET_7_r_e);
+    cb_dispatch_array[0xFC] = cpu_instruction!(SET_7_r_h);
+    cb_dispatch_array[0xFD] = cpu_instruction!(SET_7_r_l);
+    cb_dispatch_array[0xFE] = cpu_instruction!(SET_7_HLm);
+    cb_dispatch_array[0xFF] = cpu_instruction!(SET_7_r_a);
+
     cb_dispatch_array
 }
