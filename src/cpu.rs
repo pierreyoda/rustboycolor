@@ -216,6 +216,40 @@ fn cb_dispatch_array<M: Memory>() -> [CpuInstruction<M>; 256] {
     let mut cb_dispatch_array = [Cpu::<M>::cb_opcode_unknown
         as CpuInstruction<M>; 256];
 
+    cb_dispatch_array[0x00] = cpu_instruction!(RLC_r_b);
+    cb_dispatch_array[0x01] = cpu_instruction!(RLC_r_c);
+    cb_dispatch_array[0x02] = cpu_instruction!(RLC_r_d);
+    cb_dispatch_array[0x03] = cpu_instruction!(RLC_r_e);
+    cb_dispatch_array[0x04] = cpu_instruction!(RLC_r_h);
+    cb_dispatch_array[0x05] = cpu_instruction!(RLC_r_l);
+    cb_dispatch_array[0x06] = cpu_instruction!(RLC_HLm);
+    cb_dispatch_array[0x07] = cpu_instruction!(RLC_r_a);
+    cb_dispatch_array[0x08] = cpu_instruction!(RRC_r_b);
+    cb_dispatch_array[0x09] = cpu_instruction!(RRC_r_c);
+    cb_dispatch_array[0x0A] = cpu_instruction!(RRC_r_d);
+    cb_dispatch_array[0x0B] = cpu_instruction!(RRC_r_e);
+    cb_dispatch_array[0x0C] = cpu_instruction!(RRC_r_h);
+    cb_dispatch_array[0x0D] = cpu_instruction!(RRC_r_l);
+    cb_dispatch_array[0x0E] = cpu_instruction!(RRC_HLm);
+    cb_dispatch_array[0x0F] = cpu_instruction!(RRC_r_a);
+
+    cb_dispatch_array[0x10] = cpu_instruction!(RL_r_b);
+    cb_dispatch_array[0x11] = cpu_instruction!(RL_r_c);
+    cb_dispatch_array[0x12] = cpu_instruction!(RL_r_d);
+    cb_dispatch_array[0x13] = cpu_instruction!(RL_r_e);
+    cb_dispatch_array[0x14] = cpu_instruction!(RL_r_h);
+    cb_dispatch_array[0x15] = cpu_instruction!(RL_r_l);
+    cb_dispatch_array[0x16] = cpu_instruction!(RL_HLm);
+    cb_dispatch_array[0x17] = cpu_instruction!(RL_r_a);
+    cb_dispatch_array[0x18] = cpu_instruction!(RR_r_b);
+    cb_dispatch_array[0x19] = cpu_instruction!(RR_r_c);
+    cb_dispatch_array[0x1A] = cpu_instruction!(RR_r_d);
+    cb_dispatch_array[0x1B] = cpu_instruction!(RR_r_e);
+    cb_dispatch_array[0x1C] = cpu_instruction!(RR_r_h);
+    cb_dispatch_array[0x1D] = cpu_instruction!(RR_r_l);
+    cb_dispatch_array[0x1E] = cpu_instruction!(RR_HLm);
+    cb_dispatch_array[0x1F] = cpu_instruction!(RR_r_a);
+
     cb_dispatch_array[0x30] = cpu_instruction!(SWAP_r_b);
     cb_dispatch_array[0x31] = cpu_instruction!(SWAP_r_c);
     cb_dispatch_array[0x32] = cpu_instruction!(SWAP_r_d);

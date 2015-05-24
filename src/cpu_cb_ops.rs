@@ -7,6 +7,49 @@ use super::registers::{Registers, Z_FLAG_MASK, N_FLAG_MASK, H_FLAG_MASK,
 // --- Helper macros ---
 //
 
+macro_rules! rlc {
+    ($s: ident, $v: expr) => ({
+        let carry  = ($v & 0x80) == 0x80;
+        let result = ($v << 1) | (if carry { 0x01 } else { 0x00 });
+        $s.regs.set_flag(Z_FLAG_MASK, result == 0x0);
+        $s.regs.set_flag(N_FLAG_MASK | H_FLAG_MASK, false);
+        $s.regs.set_flag(C_FLAG_MASK, carry);
+        $v = result;
+    })
+}
+macro_rules! rl {
+    ($s: ident, $v: expr) => ({
+        let carry  = ($v & 0x80) == 0x80;
+        let result = ($v << 1) |
+            (if $s.regs.get_flag(C_FLAG_MASK) { 0x01 } else { 0x00 });
+        $s.regs.set_flag(Z_FLAG_MASK, result == 0x0);
+        $s.regs.set_flag(N_FLAG_MASK | H_FLAG_MASK, false);
+        $s.regs.set_flag(C_FLAG_MASK, carry);
+        $v = result;
+    })
+}
+macro_rules! rrc {
+    ($s: ident, $v: expr) => ({
+        let carry  = ($v & 0x01) == 0x01;
+        let result = ($v >> 1) | (if carry { 0x80 } else { 0x00 });
+        $s.regs.set_flag(Z_FLAG_MASK, result == 0x0);
+        $s.regs.set_flag(N_FLAG_MASK | H_FLAG_MASK, false);
+        $s.regs.set_flag(C_FLAG_MASK, carry);
+        $v = result;
+    })
+}
+macro_rules! rr {
+    ($s: ident, $v: expr) => ({
+        let carry  = ($v & 0x01) == 0x01;
+        let result = ($v >> 1) |
+            (if $s.regs.get_flag(C_FLAG_MASK) { 0x80 } else { 0x0 });
+        $s.regs.set_flag(Z_FLAG_MASK, result == 0x0);
+        $s.regs.set_flag(N_FLAG_MASK | H_FLAG_MASK, false);
+        $s.regs.set_flag(C_FLAG_MASK, carry);
+        $v = result;
+    })
+}
+
 // Swap the byte's nibbles, reset the NHC flags and set the Z flag.
 macro_rules! swap {
     ($s: ident, $x: expr) => ({
@@ -75,6 +118,67 @@ macro_rules! impl_SET_b_HLm {
 // - (X) means the value stored in memory at the X address
 #[allow(non_snake_case)]
 impl<M> Cpu<M> where M: Memory {
+
+    //
+    // --- ROTATE ---
+    //
+
+    // RLC : rotate left with carry
+    pub fn RLC_r_b(&mut self) -> CycleType { rlc!(self, self.regs.b); 2 }
+    pub fn RLC_r_c(&mut self) -> CycleType { rlc!(self, self.regs.c); 2 }
+    pub fn RLC_r_d(&mut self) -> CycleType { rlc!(self, self.regs.d); 2 }
+    pub fn RLC_r_e(&mut self) -> CycleType { rlc!(self, self.regs.e); 2 }
+    pub fn RLC_r_h(&mut self) -> CycleType { rlc!(self, self.regs.h); 2 }
+    pub fn RLC_r_l(&mut self) -> CycleType { rlc!(self, self.regs.l); 2 }
+    pub fn RLC_r_a(&mut self) -> CycleType { rlc!(self, self.regs.a); 2 }
+    pub fn RLC_HLm(&mut self) -> CycleType {
+        let hl = (self.regs.h as u16) << 8 + self.regs.l as u16;
+        let mut temp_byte = self.mem.read_byte(hl);
+        rlc!(self, temp_byte);
+        4
+    }
+    // RL : rotate left
+    pub fn RL_r_b(&mut self) -> CycleType { rl!(self, self.regs.b); 2 }
+    pub fn RL_r_c(&mut self) -> CycleType { rl!(self, self.regs.c); 2 }
+    pub fn RL_r_d(&mut self) -> CycleType { rl!(self, self.regs.d); 2 }
+    pub fn RL_r_e(&mut self) -> CycleType { rl!(self, self.regs.e); 2 }
+    pub fn RL_r_h(&mut self) -> CycleType { rl!(self, self.regs.h); 2 }
+    pub fn RL_r_l(&mut self) -> CycleType { rl!(self, self.regs.l); 2 }
+    pub fn RL_r_a(&mut self) -> CycleType { rl!(self, self.regs.a); 2 }
+    pub fn RL_HLm(&mut self) -> CycleType {
+        let hl = (self.regs.h as u16) << 8 + self.regs.l as u16;
+        let mut temp_byte = self.mem.read_byte(hl);
+        rl!(self, temp_byte);
+        4
+    }
+    // RRC : rotate right with carry
+    pub fn RRC_r_b(&mut self) -> CycleType { rrc!(self, self.regs.b); 2 }
+    pub fn RRC_r_c(&mut self) -> CycleType { rrc!(self, self.regs.c); 2 }
+    pub fn RRC_r_d(&mut self) -> CycleType { rrc!(self, self.regs.d); 2 }
+    pub fn RRC_r_e(&mut self) -> CycleType { rrc!(self, self.regs.e); 2 }
+    pub fn RRC_r_h(&mut self) -> CycleType { rrc!(self, self.regs.h); 2 }
+    pub fn RRC_r_l(&mut self) -> CycleType { rrc!(self, self.regs.l); 2 }
+    pub fn RRC_r_a(&mut self) -> CycleType { rrc!(self, self.regs.a); 2 }
+    pub fn RRC_HLm(&mut self) -> CycleType {
+        let hl = (self.regs.h as u16) << 8 + self.regs.l as u16;
+        let mut temp_byte = self.mem.read_byte(hl);
+        rrc!(self, temp_byte);
+        4
+    }
+    // RR : rotate right
+    pub fn RR_r_b(&mut self) -> CycleType { rr!(self, self.regs.b); 2 }
+    pub fn RR_r_c(&mut self) -> CycleType { rr!(self, self.regs.c); 2 }
+    pub fn RR_r_d(&mut self) -> CycleType { rr!(self, self.regs.d); 2 }
+    pub fn RR_r_e(&mut self) -> CycleType { rr!(self, self.regs.e); 2 }
+    pub fn RR_r_h(&mut self) -> CycleType { rr!(self, self.regs.h); 2 }
+    pub fn RR_r_l(&mut self) -> CycleType { rr!(self, self.regs.l); 2 }
+    pub fn RR_r_a(&mut self) -> CycleType { rr!(self, self.regs.a); 2 }
+    pub fn RR_HLm(&mut self) -> CycleType {
+        let hl = (self.regs.h as u16) << 8 + self.regs.l as u16;
+        let mut temp_byte = self.mem.read_byte(hl);
+        rr!(self, temp_byte);
+        4
+    }
 
     //
     // --- SWAP ---

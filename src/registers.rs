@@ -62,6 +62,10 @@ impl Registers {
             false => self.f &= !mask,
         }
     }
+
+    pub fn get_flag(&mut self, mask: u8) -> bool {
+        self.f & mask != 0
+    }
 }
 
 impl fmt::Debug for Registers {

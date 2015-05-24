@@ -1,4 +1,5 @@
 extern crate rustboylib;
+use rustboylib::{cpu, memory};
 
 /// Simple CPU instruction testing facility leveraging the 'Memory' trait to
 /// sequentially feed an array of opcodes to a 'Cpu' instance.
@@ -6,7 +7,7 @@ struct MemCpuTest {
     ic           : usize,
     instructions : Vec<u8>,
 }
-impl rustboylib::memory::Memory for MemCpuTest {
+impl memory::Memory for MemCpuTest {
     fn read_byte(&mut self, address: u16) -> u8 {
         if self.ic < self.instructions.len() {
             let opcode = self.instructions[self.ic];
@@ -22,7 +23,7 @@ impl rustboylib::memory::Memory for MemCpuTest {
     fn write_word(&mut self, address: u16, word: u16) { }
 }
 
-fn print_cpu_registers<M: rustboylib::memory::Memory>(cpu: &rustboylib::cpu::Cpu<M>) {
+fn print_cpu_registers<M: rustboylib::memory::Memory>(cpu: &cpu::Cpu<M>) {
     println!("cpu regs : {:?}", cpu.registers());
 }
 
@@ -39,9 +40,10 @@ fn main() {
         0xCB, 0xA1, // RES 4,rC
         0xCB, 0x79, // BIT 7,rC
         0xCB, 0x72, // BIT 6,rD
+        0xCB, 0x02, // RLC rD
     ];
     let test_memory = MemCpuTest {ic: 0, instructions: test_opcodes};
-    let mut cpu = rustboylib::cpu::Cpu::new(test_memory);
+    let mut cpu = cpu::Cpu::new(test_memory);
     cpu.regs.c = 0xAB;
     print_cpu_registers(&cpu);
     cpu.step();
@@ -67,6 +69,10 @@ fn main() {
     cpu.step();
     print_cpu_registers(&cpu);
     println!("BIT 6,D");
+    cpu.step();
+    print_cpu_registers(&cpu);
+
+    println!("RLC D");
     cpu.step();
     print_cpu_registers(&cpu);
 }
