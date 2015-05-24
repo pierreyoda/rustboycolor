@@ -55,6 +55,13 @@ impl Registers {
         self.h = (hl >> 8) as u8;
         self.l = (hl & 0x00FF) as u8;
     }
+
+    pub fn set_flag(&mut self, mask: u8, value: bool) {
+        match value {
+            true  => self.f |= mask,
+            false => self.f &= !mask,
+        }
+    }
 }
 
 impl fmt::Debug for Registers {

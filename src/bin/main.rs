@@ -22,6 +22,10 @@ impl rustboylib::memory::Memory for MemCpuTest {
     fn write_word(&mut self, address: u16, word: u16) { }
 }
 
+fn print_cpu_registers<M: rustboylib::memory::Memory>(cpu: &rustboylib::cpu::Cpu<M>) {
+    println!("cpu regs : {:?}", cpu.registers());
+}
+
 fn main() {
     // CPU crude test
     let test_opcodes = vec![
@@ -33,27 +37,36 @@ fn main() {
         0xCB, 0xA7, // RES 4,rA
         0xCB, 0x80, // RES 0,rB
         0xCB, 0xA1, // RES 4,rC
+        0xCB, 0x79, // BIT 7,rC
+        0xCB, 0x72, // BIT 6,rD
     ];
     let test_memory = MemCpuTest {ic: 0, instructions: test_opcodes};
     let mut cpu = rustboylib::cpu::Cpu::new(test_memory);
     cpu.regs.c = 0xAB;
-    println!("cpu regs : {:?}", cpu.registers());
+    print_cpu_registers(&cpu);
     cpu.step();
     cpu.step();
-    println!("cpu regs : {:?}", cpu.registers());
+    print_cpu_registers(&cpu);
 
-    println!("SWAP");
+    println!("SWAP C");
     cpu.step();
-    println!("cpu regs : {:?}", cpu.registers());
+    print_cpu_registers(&cpu);
 
     println!("SET");
     cpu.step();
     cpu.step();
-    println!("cpu regs : {:?}", cpu.registers());
+    print_cpu_registers(&cpu);
 
     println!("RES");
     cpu.step();
     cpu.step();
     cpu.step();
-    println!("cpu regs : {:?}", cpu.registers());
+    print_cpu_registers(&cpu);
+
+    println!("BIT 7,C");
+    cpu.step();
+    print_cpu_registers(&cpu);
+    println!("BIT 6,D");
+    cpu.step();
+    print_cpu_registers(&cpu);
 }
