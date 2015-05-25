@@ -5,6 +5,10 @@ use super::registers::{Registers, Z_FLAG_MASK, N_FLAG_MASK, H_FLAG_MASK,
 
 //
 // --- Helper macros ---
+// TODO : use more methods instead ?
+// the problem is that the borrow checker does not allow the compact way
+// 'self.regs.X = self.rlc(self.regs.X)' for instance
+// => maybe working on a copy of Registers ?
 //
 
 macro_rules! rlc {
@@ -43,6 +47,37 @@ macro_rules! rr {
         let carry  = ($v & 0x01) == 0x01;
         let result = ($v >> 1) |
             (if $s.regs.get_flag(C_FLAG_MASK) { 0x80 } else { 0x0 });
+        $s.regs.set_flag(Z_FLAG_MASK, result == 0x0);
+        $s.regs.set_flag(N_FLAG_MASK | H_FLAG_MASK, false);
+        $s.regs.set_flag(C_FLAG_MASK, carry);
+        $v = result;
+    })
+}
+
+macro_rules! sla {
+    ($s: ident, $v: expr) => ({
+        let carry  = ($v & 0x80) == 0x80;
+        let result = $v << 1;
+        $s.regs.set_flag(Z_FLAG_MASK, result == 0x0);
+        $s.regs.set_flag(N_FLAG_MASK | H_FLAG_MASK, false);
+        $s.regs.set_flag(C_FLAG_MASK, carry);
+        $v = result;
+    })
+}
+macro_rules! sra {
+    ($s: ident, $v: expr) => ({
+        let carry  = ($v & 0x01) == 0x01;
+        let result = ($v >> 1) | ($v & 0x80);
+        $s.regs.set_flag(Z_FLAG_MASK, result == 0x0);
+        $s.regs.set_flag(N_FLAG_MASK | H_FLAG_MASK, false);
+        $s.regs.set_flag(C_FLAG_MASK, carry);
+        $v = result;
+    })
+}
+macro_rules! srl {
+    ($s: ident, $v: expr) => ({
+        let carry  = ($v & 0x01) == 0x01;
+        let result = $v >> 1;
         $s.regs.set_flag(Z_FLAG_MASK, result == 0x0);
         $s.regs.set_flag(N_FLAG_MASK | H_FLAG_MASK, false);
         $s.regs.set_flag(C_FLAG_MASK, carry);
@@ -135,6 +170,7 @@ impl<M> Cpu<M> where M: Memory {
         let hl = (self.regs.h as u16) << 8 + self.regs.l as u16;
         let mut temp_byte = self.mem.read_byte(hl);
         rlc!(self, temp_byte);
+        self.mem.write_byte(hl, temp_byte);
         4
     }
     // RL : rotate left
@@ -149,6 +185,7 @@ impl<M> Cpu<M> where M: Memory {
         let hl = (self.regs.h as u16) << 8 + self.regs.l as u16;
         let mut temp_byte = self.mem.read_byte(hl);
         rl!(self, temp_byte);
+        self.mem.write_byte(hl, temp_byte);
         4
     }
     // RRC : rotate right with carry
@@ -163,6 +200,7 @@ impl<M> Cpu<M> where M: Memory {
         let hl = (self.regs.h as u16) << 8 + self.regs.l as u16;
         let mut temp_byte = self.mem.read_byte(hl);
         rrc!(self, temp_byte);
+        self.mem.write_byte(hl, temp_byte);
         4
     }
     // RR : rotate right
@@ -177,6 +215,57 @@ impl<M> Cpu<M> where M: Memory {
         let hl = (self.regs.h as u16) << 8 + self.regs.l as u16;
         let mut temp_byte = self.mem.read_byte(hl);
         rr!(self, temp_byte);
+        self.mem.write_byte(hl, temp_byte);
+        4
+    }
+
+    //
+    // --- SHIFT ---
+    //
+
+    // SLA : shift left preserving the sign
+    pub fn SLA_r_b(&mut self) -> CycleType { sla!(self, self.regs.b); 2 }
+    pub fn SLA_r_c(&mut self) -> CycleType { sla!(self, self.regs.c); 2 }
+    pub fn SLA_r_d(&mut self) -> CycleType { sla!(self, self.regs.d); 2 }
+    pub fn SLA_r_e(&mut self) -> CycleType { sla!(self, self.regs.e); 2 }
+    pub fn SLA_r_h(&mut self) -> CycleType { sla!(self, self.regs.h); 2 }
+    pub fn SLA_r_l(&mut self) -> CycleType { sla!(self, self.regs.l); 2 }
+    pub fn SLA_r_a(&mut self) -> CycleType { sla!(self, self.regs.a); 2 }
+    pub fn SLA_HLm(&mut self) -> CycleType {
+        let hl = (self.regs.h as u16) << 8 + self.regs.l as u16;
+        let mut temp_byte = self.mem.read_byte(hl);
+        sla!(self, temp_byte);
+        self.mem.write_byte(hl, temp_byte);
+        4
+    }
+    // SRA : shift right preserving the sign
+    pub fn SRA_r_b(&mut self) -> CycleType { sra!(self, self.regs.b); 2 }
+    pub fn SRA_r_c(&mut self) -> CycleType { sra!(self, self.regs.c); 2 }
+    pub fn SRA_r_d(&mut self) -> CycleType { sra!(self, self.regs.d); 2 }
+    pub fn SRA_r_e(&mut self) -> CycleType { sra!(self, self.regs.e); 2 }
+    pub fn SRA_r_h(&mut self) -> CycleType { sra!(self, self.regs.h); 2 }
+    pub fn SRA_r_l(&mut self) -> CycleType { sra!(self, self.regs.l); 2 }
+    pub fn SRA_r_a(&mut self) -> CycleType { sra!(self, self.regs.a); 2 }
+    pub fn SRA_HLm(&mut self) -> CycleType {
+        let hl = (self.regs.h as u16) << 8 + self.regs.l as u16;
+        let mut temp_byte = self.mem.read_byte(hl);
+        sra!(self, temp_byte);
+        self.mem.write_byte(hl, temp_byte);
+        4
+    }
+    // SRL : shift right
+    pub fn SRL_r_b(&mut self) -> CycleType { srl!(self, self.regs.b); 2 }
+    pub fn SRL_r_c(&mut self) -> CycleType { srl!(self, self.regs.c); 2 }
+    pub fn SRL_r_d(&mut self) -> CycleType { srl!(self, self.regs.d); 2 }
+    pub fn SRL_r_e(&mut self) -> CycleType { srl!(self, self.regs.e); 2 }
+    pub fn SRL_r_h(&mut self) -> CycleType { srl!(self, self.regs.h); 2 }
+    pub fn SRL_r_l(&mut self) -> CycleType { srl!(self, self.regs.l); 2 }
+    pub fn SRL_r_a(&mut self) -> CycleType { srl!(self, self.regs.a); 2 }
+    pub fn SRL_HLm(&mut self) -> CycleType {
+        let hl = (self.regs.h as u16) << 8 + self.regs.l as u16;
+        let mut temp_byte = self.mem.read_byte(hl);
+        srl!(self, temp_byte);
+        self.mem.write_byte(hl, temp_byte);
         4
     }
 
@@ -271,7 +360,7 @@ impl<M> Cpu<M> where M: Memory {
     pub fn BIT_7_r_l(&mut self) -> CycleType { impl_BIT_b_r_x!(self, 7, l); }
     pub fn BIT_7_r_a(&mut self) -> CycleType { impl_BIT_b_r_x!(self, 7, a); }
 
-    // BIT b, X : set the Z flag against the byte of index b in (HL)
+    // BIT b, (HL) : set the Z flag against the byte of index b in (HL)
     // also set the H flag to 1 and the N flag to 0
     pub fn BIT_0_HLm(&mut self) -> CycleType { impl_BIT_b_HLm!(self, 0); }
     pub fn BIT_1_HLm(&mut self) -> CycleType { impl_BIT_b_HLm!(self, 1); }
