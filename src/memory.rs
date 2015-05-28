@@ -3,7 +3,11 @@
 /// allowing an interface independent of the nature of such a device.
 pub trait Memory {
     fn read_byte(&mut self, address: u16) -> u8;
-    fn read_word(&mut self, address: u16) -> u16;
+    fn read_word(&mut self, address: u16) -> u16 {
+        self.read_byte(address) as u16 | (self.read_byte(address+1) as u16) << 8
+    }
+
     fn write_byte(&mut self, address: u16, byte: u8);
-    fn write_word(&mut self, address: u16, word: u16);
+    fn write_word(&mut self, address: u16, word: u16) {
+    }
 }

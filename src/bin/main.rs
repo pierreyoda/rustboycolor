@@ -1,5 +1,10 @@
+use std::error::Error;
+#[macro_use]
+extern crate log;
 extern crate rustboylib;
 use rustboylib::{cpu, memory};
+
+mod logger;
 
 /// Simple CPU instruction testing facility leveraging the 'Memory' trait to
 /// sequentially feed an array of opcodes to a 'Cpu' instance.
@@ -19,8 +24,6 @@ impl memory::Memory for MemCpuTest {
         }
     }
     fn write_byte(&mut self, address: u16, byte: u8) {}
-    fn read_word(&mut self, address: u16) -> u16 { 0 }
-    fn write_word(&mut self, address: u16, word: u16) { }
 }
 
 fn print_cpu_registers<M: rustboylib::memory::Memory>(cpu: &cpu::Cpu<M>) {
@@ -28,6 +31,13 @@ fn print_cpu_registers<M: rustboylib::memory::Memory>(cpu: &cpu::Cpu<M>) {
 }
 
 fn main() {
+    // Logger initialization
+    match logger::init_console_logger() {
+        Err(error) => panic!(format!("Logging setup error : {}",
+                                     error.description())),
+        _ => (),
+    }
+
     // CPU crude test
     let test_opcodes = vec![
         0x51, // ldrr_dc

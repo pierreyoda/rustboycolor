@@ -14,3 +14,4 @@ rustboycolor.sublime-project
 *.lock
 *.xlsx
 *.zip
+*.bin
