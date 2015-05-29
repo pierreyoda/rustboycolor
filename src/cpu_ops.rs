@@ -337,8 +337,35 @@ impl<M> Cpu<M> where M: Memory {
         3
     }
 
+    // INC_XY / INC_XY : increment/decrement XY
+    pub fn INC_BC(&mut self) -> CycleType {
+        let v = self.regs.bc().wrapping_add(1); self.regs.set_bc(v); 2
+    }
+    pub fn INC_DE(&mut self) -> CycleType {
+        let v = self.regs.de().wrapping_add(1); self.regs.set_de(v); 2
+    }
+    pub fn INC_HL(&mut self) -> CycleType {
+        let v = self.regs.hl().wrapping_add(1); self.regs.set_hl(v); 2
+    }
+    pub fn INC_SP(&mut self) -> CycleType {
+        self.regs.sp = self.regs.sp.wrapping_add(1); 2
+    }
+
+    pub fn DEC_BC(&mut self) -> CycleType {
+        let v = self.regs.bc().wrapping_sub(1); self.regs.set_bc(v); 2
+    }
+    pub fn DEC_DE(&mut self) -> CycleType {
+        let v = self.regs.de().wrapping_sub(1); self.regs.set_de(v); 2
+    }
+    pub fn DEC_HL(&mut self) -> CycleType {
+        let v = self.regs.hl().wrapping_sub(1); self.regs.set_hl(v); 2
+    }
+    pub fn DEC_SP(&mut self) -> CycleType {
+        self.regs.sp = self.regs.sp.wrapping_sub(1); 2
+    }
+
     //
-    // --- JP ---
+    // --- Jumps / calls ---
     //
 
     // JP_nn : absolute jump to 16-bit address
@@ -375,17 +402,98 @@ impl<M> Cpu<M> where M: Memory {
     // JR_n : relative jump by signed immediate byte
     pub fn JR_n(&mut self) -> CycleType {
         let b = self.fetch_byte();
-        self.jump_relative(b);
+        self.cpu_jr(b);
         3
     }
+
     // JR_Z_n : relative jump by signed immediate byte if the zero flag is set
     pub fn JR_Z_n(&mut self) -> CycleType {
         let b = self.fetch_byte();
-        if self.regs.flag(Z_FLAG) { self.jump_relative(b); 3 } else { 2 }
+        if self.regs.flag(Z_FLAG) { self.cpu_jr(b); 3 } else { 2 }
     }
+    // JR_NZ_n : relative jump by signed immediate byte if the zero flag is not set
+    pub fn JR_NZ_n(&mut self) -> CycleType {
+        let b = self.fetch_byte();
+        if !self.regs.flag(Z_FLAG) { self.cpu_jr(b); 3 } else { 2 }
+    }
+
     // JR_C_n : relative jump by signed immediate byte if the carry flag is set
     pub fn JR_C_n(&mut self) -> CycleType {
         let b = self.fetch_byte();
-        if self.regs.flag(C_FLAG) { self.jump_relative(b); 3 } else { 2 }
+        if self.regs.flag(C_FLAG) { self.cpu_jr(b); 3 } else { 2 }
     }
+    // JR_NC_n : relative jump by signed immediate byte if the carry flag is not set
+    pub fn JR_NC_n(&mut self) -> CycleType {
+        let b = self.fetch_byte();
+        if !self.regs.flag(C_FLAG) { self.cpu_jr(b); 3 } else { 2 }
+    }
+
+    // CALL_nn : call routine at 16-bit address
+    pub fn CALL_nn(&mut self) -> CycleType {
+        let nn = self.fetch_word();
+        self.cpu_call(nn);
+        6
+    }
+
+    // CALL_Z_nn : call routine at 16-bit address if the zero flag is set
+    pub fn CALL_Z_nn(&mut self) -> CycleType {
+        let nn = self.fetch_word();
+        if self.regs.flag(Z_FLAG) { self.cpu_call(nn); 6 } else { 3 }
+    }
+    // CALL_NZ_nn : call routine at 16-bit address if the zero flag is not set
+    pub fn CALL_NZ_nn(&mut self) -> CycleType {
+        let nn = self.fetch_word();
+        if !self.regs.flag(Z_FLAG) { self.cpu_call(nn); 6 } else { 3 }
+    }
+
+    // CALL_C_nn : call routine at 16-bit address if the carry flag is set
+    pub fn CALL_C_nn(&mut self) -> CycleType {
+        let nn = self.fetch_word();
+        if self.regs.flag(C_FLAG) { self.cpu_call(nn); 6 } else { 3 }
+    }
+    // CALL_NC_nn : call routine at 16-bit address if the carry flag is not set
+    pub fn CALL_NC_nn(&mut self) -> CycleType {
+        let nn = self.fetch_word();
+        if !self.regs.flag(C_FLAG) { self.cpu_call(nn); 6 } else { 3 }
+    }
+
+    // RET : return to calling routine
+    pub fn RET(&mut self) -> CycleType {
+        self.regs.pc = self.stack_pop();
+        4
+    }
+    // RETI : enable interrupts and return to calling routine
+    pub fn RETI(&mut self) -> CycleType {
+        self.regs.pc = self.stack_pop();
+        self.ime = true;
+        4
+    }
+
+    // RET_Z : return if the zero flag is set
+    pub fn RET_Z(&mut self) -> CycleType {
+        if self.regs.flag(Z_FLAG) { self.regs.pc = self.stack_pop(); 5 } else { 2 }
+    }
+    // RET_NZ : return if the zero flag is not set
+    pub fn RET_NZ(&mut self) -> CycleType {
+        if !self.regs.flag(Z_FLAG) { self.regs.pc = self.stack_pop(); 5 } else { 2 }
+    }
+
+    // RET_C : return if the carry flag is set
+    pub fn RET_C(&mut self) -> CycleType {
+        if self.regs.flag(C_FLAG) { self.regs.pc = self.stack_pop(); 5 } else { 2 }
+    }
+    // RET_NC : return if the carry flag is not set
+    pub fn RET_NC(&mut self) -> CycleType {
+        if !self.regs.flag(C_FLAG) { self.regs.pc = self.stack_pop(); 5 } else { 2 }
+    }
+
+    // RST_xxH : call routine at address 0x00XX
+    pub fn RST_00H(&mut self) -> CycleType { self.cpu_jr(0x0000); 4 }
+    pub fn RST_08H(&mut self) -> CycleType { self.cpu_jr(0x0008); 4 }
+    pub fn RST_10H(&mut self) -> CycleType { self.cpu_jr(0x0010); 4 }
+    pub fn RST_18H(&mut self) -> CycleType { self.cpu_jr(0x0018); 4 }
+    pub fn RST_20H(&mut self) -> CycleType { self.cpu_jr(0x0020); 4 }
+    pub fn RST_28H(&mut self) -> CycleType { self.cpu_jr(0x0028); 4 }
+    pub fn RST_30H(&mut self) -> CycleType { self.cpu_jr(0x0030); 4 }
+    pub fn RST_38H(&mut self) -> CycleType { self.cpu_jr(0x0038); 4 }
 }

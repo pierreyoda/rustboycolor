@@ -55,6 +55,7 @@ fn main() {
         0x14,       // INC rD
         0x25,       // DEC rH
         0x25,       // DEC rH
+        0x03,       // INC BC
     ];
     let test_memory = MemCpuTest {ic: 0, instructions: test_opcodes};
     let mut cpu = cpu::Cpu::new(test_memory);
@@ -95,6 +96,10 @@ fn main() {
     print_cpu_registers(&cpu);
     println!("DEC H * 2");
     cpu.step();
+    cpu.step();
+    print_cpu_registers(&cpu);
+
+    println!("INC BC");
     cpu.step();
     print_cpu_registers(&cpu);
 }
