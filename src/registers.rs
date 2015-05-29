@@ -2,16 +2,16 @@ use std::fmt;
 
 /// Zero flag : set if the last operation evaluates to zero, otherwise
 /// is cleared.
-pub const Z_FLAG_MASK: u8 = 0b_1000_0000;
+pub const Z_FLAG: u8 = 0b_1000_0000;
 /// Substraction flag : set if the last operation was a substraction, otherwise
 /// is cleared.
-pub const N_FLAG_MASK: u8 = 0b_0100_0000;
+pub const N_FLAG: u8 = 0b_0100_0000;
 /// Half-carry flag : set if the last operation had an overflow from the 3rd
 /// into the 4th bit, otherwise is cleared.
-pub const H_FLAG_MASK: u8 = 0b_0010_0000;
+pub const H_FLAG: u8 = 0b_0010_0000;
 /// Carry flag : set if the last operation had an overflow from the 7th into
 /// the 8th bits, otherwise is cleared.
-pub const C_FLAG_MASK: u8 = 0b_0001_0000;
+pub const C_FLAG: u8 = 0b_0001_0000;
 
 /// Holds the state of the Game Boy CPU's internal registers.
 /// The A,F,B,C,D,E,H,L registers can be paired to produce 16 bit values as so :
@@ -51,11 +51,27 @@ impl Registers {
         }
     }
 
+    pub fn af(&mut self) -> u16 {
+        ((self.a as u16) << 8) | (self.f as u16)
+    }
+    pub fn bc(&mut self) -> u16 {
+        ((self.b as u16) << 8) | (self.c as u16)
+    }
+    pub fn de(&mut self) -> u16 {
+        ((self.d as u16) << 8) | (self.e as u16)
+    }
+    pub fn hl(&mut self) -> u16 {
+        ((self.h as u16) << 8) | (self.l as u16)
+    }
+
     pub fn set_hl(&mut self, hl: u16) {
         self.h = (hl >> 8) as u8;
         self.l = (hl & 0x00FF) as u8;
     }
 
+    pub fn flag(&mut self, mask: u8) -> bool {
+        self.f & mask != 0
+    }
     pub fn set_flag(&mut self, mask: u8, value: bool) {
         match value {
             true  => self.f |= mask,
@@ -63,9 +79,6 @@ impl Registers {
         }
     }
 
-    pub fn get_flag(&mut self, mask: u8) -> bool {
-        self.f & mask != 0
-    }
 }
 
 impl fmt::Debug for Registers {

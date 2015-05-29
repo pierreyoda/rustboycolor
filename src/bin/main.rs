@@ -26,7 +26,7 @@ impl memory::Memory for MemCpuTest {
     fn write_byte(&mut self, address: u16, byte: u8) {}
 }
 
-fn print_cpu_registers<M: rustboylib::memory::Memory>(cpu: &cpu::Cpu<M>) {
+fn print_cpu_registers<M: memory::Memory>(cpu: &cpu::Cpu<M>) {
     println!("cpu regs : {:?}", cpu.registers());
 }
 
@@ -40,8 +40,9 @@ fn main() {
 
     // CPU crude test
     let test_opcodes = vec![
-        0x51, // ldrr_dc
-        0x62, // ldrr_hd
+        0x0E, 0xAB, // LD C, 0xAB
+        0x51,       // LD D, C
+        0x62,       // LD H, D
         0xCB, 0x31, // SWAP rC
         0xCB, 0xE7, // SET 4,rA
         0xCB, 0xC0, // SET 0,rB
@@ -54,8 +55,8 @@ fn main() {
     ];
     let test_memory = MemCpuTest {ic: 0, instructions: test_opcodes};
     let mut cpu = cpu::Cpu::new(test_memory);
-    cpu.regs.c = 0xAB;
     print_cpu_registers(&cpu);
+    cpu.step();
     cpu.step();
     cpu.step();
     print_cpu_registers(&cpu);

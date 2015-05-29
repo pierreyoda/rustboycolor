@@ -46,6 +46,19 @@ impl<M> Cpu<M> where M: Memory {
         &self.regs
     }
 
+    /// Fetch the next byte in memory.
+    pub fn fetch_byte(&mut self) -> u8 {
+        let b = self.mem.read_byte(self.regs.pc);
+        self.regs.pc += 1;
+        b
+    }
+    /// Fetch the next word in memory.
+    pub fn fetch_word(&mut self) -> u16 {
+        let w = self.mem.read_word(self.regs.pc);
+        self.regs.pc += 2;
+        w
+    }
+
     /// Fetch, decode and execute a new instruction.
     pub fn step(&mut self) {
         self.opcode = self.mem.read_byte(self.regs.pc);
@@ -195,17 +208,35 @@ fn dispatch_array<M: Memory>() -> [CpuInstruction<M>; 256] {
     dispatch_array[0x7E] = cpu_instruction!(LD_r_HLm_a);
     dispatch_array[0x7F] = cpu_instruction!(LD_rr_aa);
 
+    dispatch_array[0xC2] = cpu_instruction!(JP_NZ_nn);
+    dispatch_array[0xC3] = cpu_instruction!(JP_nn);
+    dispatch_array[0xCA] = cpu_instruction!(JP_Z_nn);
     dispatch_array[0xCB] = cpu_instruction!(call_cb);
+
+    dispatch_array[0xD2] = cpu_instruction!(JP_NC_nn);
+    dispatch_array[0xD3] = cpu_instruction!(opcode_unknown);
+    dispatch_array[0xDA] = cpu_instruction!(JP_C_nn);
+    dispatch_array[0xDB] = cpu_instruction!(opcode_unknown);
+    dispatch_array[0xDD] = cpu_instruction!(opcode_unknown);
 
     dispatch_array[0xE0] = cpu_instruction!(LDH_n_A);
     dispatch_array[0xE2] = cpu_instruction!(LDH_C_A);
+    dispatch_array[0xE3] = cpu_instruction!(opcode_unknown);
+    dispatch_array[0xE4] = cpu_instruction!(opcode_unknown);
+    dispatch_array[0xE9] = cpu_instruction!(JP_HLm);
     dispatch_array[0xEA] = cpu_instruction!(LD_NNm_A);
+    dispatch_array[0xEB] = cpu_instruction!(opcode_unknown);
+    dispatch_array[0xEC] = cpu_instruction!(opcode_unknown);
+    dispatch_array[0xED] = cpu_instruction!(opcode_unknown);
 
     dispatch_array[0xF0] = cpu_instruction!(LDH_A_n);
     dispatch_array[0xF2] = cpu_instruction!(LDH_A_C);
+    dispatch_array[0xF4] = cpu_instruction!(opcode_unknown);
     dispatch_array[0xF8] = cpu_instruction!(LDHL_SP_n);
     dispatch_array[0xF9] = cpu_instruction!(LD_SP_HL);
     dispatch_array[0xFA] = cpu_instruction!(LD_A_NNm);
+    dispatch_array[0xFC] = cpu_instruction!(opcode_unknown);
+    dispatch_array[0xFD] = cpu_instruction!(opcode_unknown);
 
     dispatch_array
 }
