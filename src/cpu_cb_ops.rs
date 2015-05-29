@@ -3,53 +3,15 @@ use super::memory::Memory;
 use super::registers::{Z_FLAG, N_FLAG, H_FLAG, C_FLAG};
 
 //
-// --- Helper macros ---
-// TODO : use more methods instead ?
-// the problem is that the borrow checker does not allow the compact way
-// 'self.regs.X = self.rlc(self.regs.X)' for instance
-// => maybe working on a copy of Registers ?
+// --- Helper and implementation macros ---
+// TODO : use more methods
 //
 
-macro_rules! rlc {
-    ($s: ident, $v: expr) => ({
-        let carry  = ($v & 0x80) == 0x80;
-        let result = ($v << 1) | (if carry { 0x01 } else { 0x00 });
-        $s.regs.set_flag(Z_FLAG, result == 0x0);
-        $s.regs.set_flag(N_FLAG | H_FLAG, false);
-        $s.regs.set_flag(C_FLAG, carry);
-        $v = result;
-    })
-}
-macro_rules! rl {
-    ($s: ident, $v: expr) => ({
-        let carry  = ($v & 0x80) == 0x80;
-        let result = ($v << 1) |
-            (if $s.regs.flag(C_FLAG) { 0x01 } else { 0x00 });
-        $s.regs.set_flag(Z_FLAG, result == 0x0);
-        $s.regs.set_flag(N_FLAG | H_FLAG, false);
-        $s.regs.set_flag(C_FLAG, carry);
-        $v = result;
-    })
-}
-macro_rules! rrc {
-    ($s: ident, $v: expr) => ({
-        let carry  = ($v & 0x01) == 0x01;
-        let result = ($v >> 1) | (if carry { 0x80 } else { 0x00 });
-        $s.regs.set_flag(Z_FLAG, result == 0x0);
-        $s.regs.set_flag(N_FLAG | H_FLAG, false);
-        $s.regs.set_flag(C_FLAG, carry);
-        $v = result;
-    })
-}
-macro_rules! rr {
-    ($s: ident, $v: expr) => ({
-        let carry  = ($v & 0x01) == 0x01;
-        let result = ($v >> 1) |
-            (if $s.regs.flag(C_FLAG) { 0x80 } else { 0x0 });
-        $s.regs.set_flag(Z_FLAG, result == 0x0);
-        $s.regs.set_flag(N_FLAG | H_FLAG, false);
-        $s.regs.set_flag(C_FLAG, carry);
-        $v = result;
+macro_rules! impl_rot_reg {
+    ($s: ident, $rotate_method: ident, $x: ident) => ({
+        let v = $s.regs.$x;
+        $s.regs.$x = $s.$rotate_method(v);
+        return 2;
     })
 }
 
@@ -157,62 +119,62 @@ impl<M> Cpu<M> where M: Memory {
     //
 
     // RLC : rotate left with carry
-    pub fn RLC_r_b(&mut self) -> CycleType { rlc!(self, self.regs.b); 2 }
-    pub fn RLC_r_c(&mut self) -> CycleType { rlc!(self, self.regs.c); 2 }
-    pub fn RLC_r_d(&mut self) -> CycleType { rlc!(self, self.regs.d); 2 }
-    pub fn RLC_r_e(&mut self) -> CycleType { rlc!(self, self.regs.e); 2 }
-    pub fn RLC_r_h(&mut self) -> CycleType { rlc!(self, self.regs.h); 2 }
-    pub fn RLC_r_l(&mut self) -> CycleType { rlc!(self, self.regs.l); 2 }
-    pub fn RLC_r_a(&mut self) -> CycleType { rlc!(self, self.regs.a); 2 }
+    pub fn RLC_r_b(&mut self) -> CycleType { impl_rot_reg!(self, alu_rlc, b); }
+    pub fn RLC_r_c(&mut self) -> CycleType { impl_rot_reg!(self, alu_rlc, c); }
+    pub fn RLC_r_d(&mut self) -> CycleType { impl_rot_reg!(self, alu_rlc, d); }
+    pub fn RLC_r_e(&mut self) -> CycleType { impl_rot_reg!(self, alu_rlc, e); }
+    pub fn RLC_r_h(&mut self) -> CycleType { impl_rot_reg!(self, alu_rlc, h); }
+    pub fn RLC_r_l(&mut self) -> CycleType { impl_rot_reg!(self, alu_rlc, l); }
+    pub fn RLC_r_a(&mut self) -> CycleType { impl_rot_reg!(self, alu_rlc, a); }
     pub fn RLC_HLm(&mut self) -> CycleType {
         let hl = self.regs.hl();
         let mut temp_byte = self.mem.read_byte(hl);
-        rlc!(self, temp_byte);
+        temp_byte = self.alu_rlc(temp_byte);
         self.mem.write_byte(hl, temp_byte);
         4
     }
     // RL : rotate left
-    pub fn RL_r_b(&mut self) -> CycleType { rl!(self, self.regs.b); 2 }
-    pub fn RL_r_c(&mut self) -> CycleType { rl!(self, self.regs.c); 2 }
-    pub fn RL_r_d(&mut self) -> CycleType { rl!(self, self.regs.d); 2 }
-    pub fn RL_r_e(&mut self) -> CycleType { rl!(self, self.regs.e); 2 }
-    pub fn RL_r_h(&mut self) -> CycleType { rl!(self, self.regs.h); 2 }
-    pub fn RL_r_l(&mut self) -> CycleType { rl!(self, self.regs.l); 2 }
-    pub fn RL_r_a(&mut self) -> CycleType { rl!(self, self.regs.a); 2 }
+    pub fn RL_r_b(&mut self) -> CycleType { impl_rot_reg!(self, alu_rl, b); }
+    pub fn RL_r_c(&mut self) -> CycleType { impl_rot_reg!(self, alu_rl, c); }
+    pub fn RL_r_d(&mut self) -> CycleType { impl_rot_reg!(self, alu_rl, d); }
+    pub fn RL_r_e(&mut self) -> CycleType { impl_rot_reg!(self, alu_rl, e); }
+    pub fn RL_r_h(&mut self) -> CycleType { impl_rot_reg!(self, alu_rl, h); }
+    pub fn RL_r_l(&mut self) -> CycleType { impl_rot_reg!(self, alu_rl, l); }
+    pub fn RL_r_a(&mut self) -> CycleType { impl_rot_reg!(self, alu_rl, a); }
     pub fn RL_HLm(&mut self) -> CycleType {
         let hl = self.regs.hl();
         let mut temp_byte = self.mem.read_byte(hl);
-        rl!(self, temp_byte);
+        temp_byte = self.alu_rl(temp_byte);
         self.mem.write_byte(hl, temp_byte);
         4
     }
     // RRC : rotate right with carry
-    pub fn RRC_r_b(&mut self) -> CycleType { rrc!(self, self.regs.b); 2 }
-    pub fn RRC_r_c(&mut self) -> CycleType { rrc!(self, self.regs.c); 2 }
-    pub fn RRC_r_d(&mut self) -> CycleType { rrc!(self, self.regs.d); 2 }
-    pub fn RRC_r_e(&mut self) -> CycleType { rrc!(self, self.regs.e); 2 }
-    pub fn RRC_r_h(&mut self) -> CycleType { rrc!(self, self.regs.h); 2 }
-    pub fn RRC_r_l(&mut self) -> CycleType { rrc!(self, self.regs.l); 2 }
-    pub fn RRC_r_a(&mut self) -> CycleType { rrc!(self, self.regs.a); 2 }
+    pub fn RRC_r_b(&mut self) -> CycleType { impl_rot_reg!(self, alu_rrc, b); }
+    pub fn RRC_r_c(&mut self) -> CycleType { impl_rot_reg!(self, alu_rrc, c); }
+    pub fn RRC_r_d(&mut self) -> CycleType { impl_rot_reg!(self, alu_rrc, d); }
+    pub fn RRC_r_e(&mut self) -> CycleType { impl_rot_reg!(self, alu_rrc, e); }
+    pub fn RRC_r_h(&mut self) -> CycleType { impl_rot_reg!(self, alu_rrc, h); }
+    pub fn RRC_r_l(&mut self) -> CycleType { impl_rot_reg!(self, alu_rrc, l); }
+    pub fn RRC_r_a(&mut self) -> CycleType { impl_rot_reg!(self, alu_rrc, a); }
     pub fn RRC_HLm(&mut self) -> CycleType {
         let hl = self.regs.hl();
         let mut temp_byte = self.mem.read_byte(hl);
-        rrc!(self, temp_byte);
+        temp_byte = self.alu_rrc(temp_byte);
         self.mem.write_byte(hl, temp_byte);
         4
     }
     // RR : rotate right
-    pub fn RR_r_b(&mut self) -> CycleType { rr!(self, self.regs.b); 2 }
-    pub fn RR_r_c(&mut self) -> CycleType { rr!(self, self.regs.c); 2 }
-    pub fn RR_r_d(&mut self) -> CycleType { rr!(self, self.regs.d); 2 }
-    pub fn RR_r_e(&mut self) -> CycleType { rr!(self, self.regs.e); 2 }
-    pub fn RR_r_h(&mut self) -> CycleType { rr!(self, self.regs.h); 2 }
-    pub fn RR_r_l(&mut self) -> CycleType { rr!(self, self.regs.l); 2 }
-    pub fn RR_r_a(&mut self) -> CycleType { rr!(self, self.regs.a); 2 }
+    pub fn RR_r_b(&mut self) -> CycleType { impl_rot_reg!(self, alu_rr, b); }
+    pub fn RR_r_c(&mut self) -> CycleType { impl_rot_reg!(self, alu_rr, c); }
+    pub fn RR_r_d(&mut self) -> CycleType { impl_rot_reg!(self, alu_rr, d); }
+    pub fn RR_r_e(&mut self) -> CycleType { impl_rot_reg!(self, alu_rr, e); }
+    pub fn RR_r_h(&mut self) -> CycleType { impl_rot_reg!(self, alu_rr, h); }
+    pub fn RR_r_l(&mut self) -> CycleType { impl_rot_reg!(self, alu_rr, l); }
+    pub fn RR_r_a(&mut self) -> CycleType { impl_rot_reg!(self, alu_rr, a); }
     pub fn RR_HLm(&mut self) -> CycleType {
         let hl = self.regs.hl();
         let mut temp_byte = self.mem.read_byte(hl);
-        rr!(self, temp_byte);
+        temp_byte = self.alu_rr(temp_byte);
         self.mem.write_byte(hl, temp_byte);
         4
     }

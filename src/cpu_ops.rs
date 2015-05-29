@@ -63,25 +63,46 @@ macro_rules! dec_byte {
 impl<M> Cpu<M> where M: Memory {
 
     //
-    // --- Control intructions ---
+    // --- Misc/control instructions ---
     //
 
-    pub fn nop(&mut self) -> CycleType {
+    pub fn NOP(&mut self) -> CycleType {
         1
     }
 
-    pub fn stop(&mut self) -> CycleType {
+    pub fn STOP(&mut self) -> CycleType {
+        // The correct instruction seems to be 'STOP 0'
+        self.regs.pc += 1;
         self.stop = true;
         1
     }
 
-    pub fn halt(&mut self) -> CycleType {
+    pub fn HALT(&mut self) -> CycleType {
         self.halt = true;
         1
     }
 
+    // DI : disable interrupts
+    pub fn DI(&mut self) -> CycleType { self.ime = false; 1 }
+    // EI : enable interrupts
+    pub fn EI(&mut self) -> CycleType { self.ime = true; 1 }
+
+    // SCF : set the carry flag and also clear the N and H flags.
+    pub fn SCF(&mut self) -> CycleType {
+        self.regs.set_flag(C_FLAG, true);
+        self.regs.set_flag(N_FLAG | H_FLAG, false);
+        1
+    }
+    // CCF : toggle the carry flag and also clear the N and H flags.
+    pub fn CCF(&mut self) -> CycleType {
+        let c = self.regs.flag(C_FLAG);
+        self.regs.set_flag(C_FLAG, !c);
+        self.regs.set_flag(N_FLAG | H_FLAG, false);
+        1
+    }
+
     //
-    // --- LD ---
+    // --- Load/store/move instructions ---
     //
 
     // LDrr_xy : load register y in register x
@@ -300,9 +321,190 @@ impl<M> Cpu<M> where M: Memory {
         5
     }
 
+    // POP_XX : pop from the stack into XX
+    pub fn POP_BC(&mut self) -> CycleType { let v = self.stack_pop(); self.regs.set_bc(v); 3 }
+    pub fn POP_DE(&mut self) -> CycleType { let v = self.stack_pop(); self.regs.set_de(v); 3 }
+    pub fn POP_HL(&mut self) -> CycleType { let v = self.stack_pop(); self.regs.set_hl(v); 3 }
+    pub fn POP_AF(&mut self) -> CycleType { let v = self.stack_pop(); self.regs.set_af(v); 3 }
+    // POP_XX : push XX to the stack
+    pub fn PUSH_BC(&mut self) -> CycleType { let v = self.regs.bc(); self.stack_push(v); 4 }
+    pub fn PUSH_DE(&mut self) -> CycleType { let v = self.regs.de(); self.stack_push(v); 4 }
+    pub fn PUSH_HL(&mut self) -> CycleType { let v = self.regs.hl(); self.stack_push(v); 4 }
+    pub fn PUSH_AF(&mut self) -> CycleType { let v = self.regs.af(); self.stack_push(v); 4 }
+
     //
     // --- Arithmetic Operations ---
     //
+
+    // ADD_r_x : add register X to register A
+    pub fn ADD_r_b(&mut self) -> CycleType { let v = self.regs.b; self.alu_add(v, false); 1 }
+    pub fn ADD_r_c(&mut self) -> CycleType { let v = self.regs.c; self.alu_add(v, false); 1 }
+    pub fn ADD_r_d(&mut self) -> CycleType { let v = self.regs.d; self.alu_add(v, false); 1 }
+    pub fn ADD_r_e(&mut self) -> CycleType { let v = self.regs.e; self.alu_add(v, false); 1 }
+    pub fn ADD_r_h(&mut self) -> CycleType { let v = self.regs.h; self.alu_add(v, false); 1 }
+    pub fn ADD_r_l(&mut self) -> CycleType { let v = self.regs.l; self.alu_add(v, false); 1 }
+    pub fn ADD_r_a(&mut self) -> CycleType { let v = self.regs.a; self.alu_add(v, false); 1 }
+    // ADD_HLm : add (HL) to register A
+    pub fn ADD_HLm(&mut self) -> CycleType {
+        let v = self.mem.read_byte(self.regs.hl());
+        self.alu_add(v, false);
+        2
+    }
+
+    // ADC_r_x : add register X and carry flag to register A
+    pub fn ADC_r_b(&mut self) -> CycleType { let v = self.regs.b; self.alu_add(v, true); 1 }
+    pub fn ADC_r_c(&mut self) -> CycleType { let v = self.regs.c; self.alu_add(v, true); 1 }
+    pub fn ADC_r_d(&mut self) -> CycleType { let v = self.regs.d; self.alu_add(v, true); 1 }
+    pub fn ADC_r_e(&mut self) -> CycleType { let v = self.regs.e; self.alu_add(v, true); 1 }
+    pub fn ADC_r_h(&mut self) -> CycleType { let v = self.regs.h; self.alu_add(v, true); 1 }
+    pub fn ADC_r_l(&mut self) -> CycleType { let v = self.regs.l; self.alu_add(v, true); 1 }
+    pub fn ADC_r_a(&mut self) -> CycleType { let v = self.regs.a; self.alu_add(v, true); 1 }
+    // ADC_HLm : add (HL) and carry flag to register A
+    pub fn ADC_HLm(&mut self) -> CycleType {
+        let v = self.mem.read_byte(self.regs.hl());
+        self.alu_add(v, true);
+        2
+    }
+
+    // SUB_r_x : substract register X from register A
+    pub fn SUB_r_b(&mut self) -> CycleType { let v = self.regs.b; self.alu_sub(v, false); 1 }
+    pub fn SUB_r_c(&mut self) -> CycleType { let v = self.regs.c; self.alu_sub(v, false); 1 }
+    pub fn SUB_r_d(&mut self) -> CycleType { let v = self.regs.d; self.alu_sub(v, false); 1 }
+    pub fn SUB_r_e(&mut self) -> CycleType { let v = self.regs.e; self.alu_sub(v, false); 1 }
+    pub fn SUB_r_h(&mut self) -> CycleType { let v = self.regs.h; self.alu_sub(v, false); 1 }
+    pub fn SUB_r_l(&mut self) -> CycleType { let v = self.regs.l; self.alu_sub(v, false); 1 }
+    pub fn SUB_r_a(&mut self) -> CycleType { let v = self.regs.a; self.alu_sub(v, false); 1 }
+    // SUB_HLm : substract (HL) from register A
+    pub fn SUB_HLm(&mut self) -> CycleType {
+        let v = self.mem.read_byte(self.regs.hl());
+        self.alu_add(v, false);
+        2
+    }
+
+    // SBC_r_x : substract register X and carry flag from register A
+    pub fn SBC_r_b(&mut self) -> CycleType { let v = self.regs.b; self.alu_sub(v, true); 1 }
+    pub fn SBC_r_c(&mut self) -> CycleType { let v = self.regs.c; self.alu_sub(v, true); 1 }
+    pub fn SBC_r_d(&mut self) -> CycleType { let v = self.regs.d; self.alu_sub(v, true); 1 }
+    pub fn SBC_r_e(&mut self) -> CycleType { let v = self.regs.e; self.alu_sub(v, true); 1 }
+    pub fn SBC_r_h(&mut self) -> CycleType { let v = self.regs.h; self.alu_sub(v, true); 1 }
+    pub fn SBC_r_l(&mut self) -> CycleType { let v = self.regs.l; self.alu_sub(v, true); 1 }
+    pub fn SBC_r_a(&mut self) -> CycleType { let v = self.regs.a; self.alu_sub(v, true); 1 }
+    // SBC_HLm : substract (HL) and carry flag from register A
+    pub fn SBC_HLm(&mut self) -> CycleType {
+        let v = self.mem.read_byte(self.regs.hl());
+        self.alu_add(v, true);
+        2
+    }
+
+    // ADD_n / SUB_n : add/substract 8-bit immediate to/from register A
+    pub fn ADD_n(&mut self) -> CycleType { let v = self.fetch_byte(); self.alu_add(v, false); 2 }
+    pub fn SUB_n(&mut self) -> CycleType { let v = self.fetch_byte(); self.alu_sub(v, false); 2 }
+    // ADC_n / SBC_n : add/substract 8-bit immediate and carry flag to/from register A
+    pub fn ADC_n(&mut self) -> CycleType { let v = self.fetch_byte(); self.alu_add(v, true); 2 }
+    pub fn SBC_n(&mut self) -> CycleType { let v = self.fetch_byte(); self.alu_sub(v, true); 2 }
+
+    // AND_n / OR_n : logical AND/OR 8-bit immediate against register A
+    pub fn AND_n(&mut self) -> CycleType { let v = self.fetch_byte(); self.alu_and(v); 2 }
+    pub fn OR_n(&mut self) -> CycleType { let v = self.fetch_byte(); self.alu_or(v); 2 }
+    // XOR_n / CP_n : logical XOR /comparison 8-bit immediate against register A
+    pub fn XOR_n(&mut self) -> CycleType { let v = self.fetch_byte(); self.alu_xor(v); 2 }
+    pub fn CP_n(&mut self) -> CycleType { let v = self.fetch_byte(); self.alu_cp(v); 2 }
+
+    // CPL : complement register A, i.e. logical NOT against register A
+    pub fn CPL(&mut self) -> CycleType {
+        self.regs.a = !self.regs.a;
+        self.regs.set_flag(N_FLAG | H_FLAG, true);
+        1
+    }
+
+    // RL : rotate register A left
+    pub fn RL(&mut self) -> CycleType {
+        let a = self.regs.a;
+        self.regs.a = self.alu_rl(a);
+        self.regs.set_flag(Z_FLAG, false);
+        1
+    }
+    // RLC : rotate register A left with carry
+    pub fn RLC(&mut self) -> CycleType {
+        let a = self.regs.a;
+        self.regs.a = self.alu_rlc(a);
+        self.regs.set_flag(Z_FLAG, false);
+        1
+    }
+    // RR : rotate register A right
+    pub fn RR(&mut self) -> CycleType {
+        let a = self.regs.a;
+        self.regs.a = self.alu_rr(a);
+        self.regs.set_flag(Z_FLAG, false);
+        1
+    }
+    // RRC : rotate register A right with carry
+    pub fn RRC(&mut self) -> CycleType {
+        let a = self.regs.a;
+        self.regs.a = self.alu_rrc(a);
+        self.regs.set_flag(Z_FLAG, false);
+        1
+    }
+
+    // AND_r_x : logical AND rX against rA
+    pub fn AND_r_b(&mut self) -> CycleType { let v = self.regs.b; self.alu_and(v); 1 }
+    pub fn AND_r_c(&mut self) -> CycleType { let v = self.regs.c; self.alu_and(v); 1 }
+    pub fn AND_r_d(&mut self) -> CycleType { let v = self.regs.d; self.alu_and(v); 1 }
+    pub fn AND_r_e(&mut self) -> CycleType { let v = self.regs.e; self.alu_and(v); 1 }
+    pub fn AND_r_h(&mut self) -> CycleType { let v = self.regs.h; self.alu_and(v); 1 }
+    pub fn AND_r_l(&mut self) -> CycleType { let v = self.regs.l; self.alu_and(v); 1 }
+    pub fn AND_r_a(&mut self) -> CycleType { let v = self.regs.a; self.alu_and(v); 1 }
+    // AND_HLm : logical AND (HL) against rA
+    pub fn AND_HLm(&mut self) -> CycleType {
+        let v = self.mem.read_byte(self.regs.hl());
+        self.alu_and(v);
+        2
+    }
+
+    // OR_r_x : logical OR rX against rA
+    pub fn OR_r_b(&mut self) -> CycleType { let v = self.regs.b; self.alu_or(v); 1 }
+    pub fn OR_r_c(&mut self) -> CycleType { let v = self.regs.c; self.alu_or(v); 1 }
+    pub fn OR_r_d(&mut self) -> CycleType { let v = self.regs.d; self.alu_or(v); 1 }
+    pub fn OR_r_e(&mut self) -> CycleType { let v = self.regs.e; self.alu_or(v); 1 }
+    pub fn OR_r_h(&mut self) -> CycleType { let v = self.regs.h; self.alu_or(v); 1 }
+    pub fn OR_r_l(&mut self) -> CycleType { let v = self.regs.l; self.alu_or(v); 1 }
+    pub fn OR_r_a(&mut self) -> CycleType { let v = self.regs.a; self.alu_or(v); 1 }
+    // OR_HLm : logical OR (HL) against rA
+    pub fn OR_HLm(&mut self) -> CycleType {
+        let v = self.mem.read_byte(self.regs.hl());
+        self.alu_or(v);
+        2
+    }
+
+    // XOR_r_x : logical XOR rX against rA
+    pub fn XOR_r_b(&mut self) -> CycleType { let v = self.regs.b; self.alu_xor(v); 1 }
+    pub fn XOR_r_c(&mut self) -> CycleType { let v = self.regs.c; self.alu_xor(v); 1 }
+    pub fn XOR_r_d(&mut self) -> CycleType { let v = self.regs.d; self.alu_xor(v); 1 }
+    pub fn XOR_r_e(&mut self) -> CycleType { let v = self.regs.e; self.alu_xor(v); 1 }
+    pub fn XOR_r_h(&mut self) -> CycleType { let v = self.regs.h; self.alu_xor(v); 1 }
+    pub fn XOR_r_l(&mut self) -> CycleType { let v = self.regs.l; self.alu_xor(v); 1 }
+    pub fn XOR_r_a(&mut self) -> CycleType { let v = self.regs.a; self.alu_xor(v); 1 }
+    // XOR_HLm : logical XOR (HL) against rA
+    pub fn XOR_HLm(&mut self) -> CycleType {
+        let v = self.mem.read_byte(self.regs.hl());
+        self.alu_xor(v);
+        2
+    }
+
+    // CP_r_x : logical OR rX against rA
+    pub fn CP_r_b(&mut self) -> CycleType { let v = self.regs.b; self.alu_cp(v); 1 }
+    pub fn CP_r_c(&mut self) -> CycleType { let v = self.regs.c; self.alu_cp(v); 1 }
+    pub fn CP_r_d(&mut self) -> CycleType { let v = self.regs.d; self.alu_cp(v); 1 }
+    pub fn CP_r_e(&mut self) -> CycleType { let v = self.regs.e; self.alu_cp(v); 1 }
+    pub fn CP_r_h(&mut self) -> CycleType { let v = self.regs.h; self.alu_cp(v); 1 }
+    pub fn CP_r_l(&mut self) -> CycleType { let v = self.regs.l; self.alu_cp(v); 1 }
+    pub fn CP_r_a(&mut self) -> CycleType { let v = self.regs.a; self.alu_cp(v); 1 }
+    // OR_HLm : logical OR (HL) against rA
+    pub fn CP_HLm(&mut self) -> CycleType {
+        let v = self.mem.read_byte(self.regs.hl());
+        self.alu_cp(v);
+        2
+    }
 
     // INC_r_x / DEC_r_x : increment/decrement register X
     pub fn INC_r_b(&mut self) -> CycleType { inc_byte!(self, self.regs.b); 1 }
@@ -365,7 +567,7 @@ impl<M> Cpu<M> where M: Memory {
     }
 
     //
-    // --- Jumps / calls ---
+    // --- Jumps / calls instructions ---
     //
 
     // JP_nn : absolute jump to 16-bit address

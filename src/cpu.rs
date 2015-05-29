@@ -2,7 +2,7 @@
 /// Game Boy (Color).
 
 use super::memory::Memory;
-use super::registers::Registers;
+use super::registers::{Registers, Z_FLAG, N_FLAG, H_FLAG, C_FLAG};
 
 /// The type used to count the CPU's machine cycles.
 pub type CycleType = u64;
@@ -71,8 +71,8 @@ impl<M> Cpu<M> where M: Memory {
     /// Called when encountering the '0xCB' prefix.
     pub fn call_cb(&mut self) -> CycleType {
         self.opcode = self.fetch_byte();
-        // TO CHECK : cycles overhead of 'CB' prefix = 0 ?
-        self.cb_dispatch_array[self.opcode as usize](self)
+        // TO CHECK : cycles overhead of 'CB' prefix = 1 ?
+        1 + self.cb_dispatch_array[self.opcode as usize](self)
     }
 
     /// Called when an unknown opcode is encountered.
@@ -118,6 +118,99 @@ impl<M> Cpu<M> where M: Memory {
         self.regs.pc = ((self.regs.pc as usize) + (n as usize)) as u16;
         3
     }
+
+    /// Add 'b' (and C if add_c is true) to register A.
+    pub fn alu_add(&mut self, b: u8, add_c: bool) {
+        let a = self.regs.a;
+        let c = if add_c && self.regs.flag(C_FLAG) { 1 } else { 0 };
+        let r = (a as u16) + (b as u16) + (c as u16);
+        self.regs.set_flag(Z_FLAG, r == 0x0);
+        self.regs.set_flag(N_FLAG, false);
+        self.regs.set_flag(H_FLAG, (a & 0x0F) + (b & 0x0F) + c > 0x0F);
+        self.regs.set_flag(C_FLAG, r > 0xFF);
+        self.regs.a = r as u8;
+    }
+
+    /// Substract 'b' (and C if sub_c is true) from register A.
+    pub fn alu_sub(&mut self, b: u8, sub_c: bool) {
+        let a = self.regs.a;
+        let c = if sub_c && self.regs.flag(C_FLAG) { 1 } else { 0 };
+        let r = a.wrapping_sub(b).wrapping_sub(c);
+        self.regs.set_flag(Z_FLAG, r == 0x0);
+        self.regs.set_flag(N_FLAG, true);
+        self.regs.set_flag(H_FLAG, (a & 0x0F) < (b & 0x0F) + c);
+        self.regs.set_flag(C_FLAG, (a  as u16) < (b as u16) + (c as u16));
+        self.regs.a = r;
+    }
+
+    /// Logical AND against register A.
+    pub fn alu_and(&mut self, b: u8) {
+        let r = self.regs.a & b;
+        self.regs.set_flag(Z_FLAG, r == 0x0);
+        self.regs.set_flag(H_FLAG, true);
+        self.regs.set_flag(N_FLAG | C_FLAG, false);
+        self.regs.a = r;
+    }
+    /// Logical OR against register A.
+    pub fn alu_or(&mut self, b: u8) {
+        let r = self.regs.a | b;
+        self.regs.set_flag(Z_FLAG, r == 0x0);
+        self.regs.set_flag(N_FLAG | H_FLAG | C_FLAG, false);
+        self.regs.a = r;
+    }
+    /// Logical XOR against register A.
+    pub fn alu_xor(&mut self, b: u8) {
+        let r = self.regs.a ^ b;
+        self.regs.set_flag(Z_FLAG, r == 0x0);
+        self.regs.set_flag(N_FLAG | H_FLAG | C_FLAG, false);
+        self.regs.a = r;
+    }
+    /// Compare against register A.
+    pub fn alu_cp(&mut self, b: u8) {
+        let a = self.regs.a;
+        // use alu_sub to set the flags properly
+        self.alu_sub(b, false);
+        // and restore the value of register A
+        self.regs.a = a;
+    }
+
+    /// Rotate left.
+    pub fn alu_rl(&mut self, v: u8) -> u8 {
+        let c  = (v & 0x80) == 0x80;
+        let r = (v << 1) | (if self.regs.flag(C_FLAG) { 0x01 } else { 0x00 });
+        self.regs.set_flag(Z_FLAG, r == 0x0);
+        self.regs.set_flag(N_FLAG | H_FLAG, false);
+        self.regs.set_flag(C_FLAG, c);
+        r
+    }
+    /// Rotate left with carry.
+    pub fn alu_rlc(&mut self, v: u8) -> u8 {
+        let c  = (v & 0x80) == 0x80;
+        let r = (v << 1) | (if c { 0x01 } else { 0x00 });
+        self.regs.set_flag(Z_FLAG, r == 0x0);
+        self.regs.set_flag(N_FLAG | H_FLAG, false);
+        self.regs.set_flag(C_FLAG, c);
+        r
+    }
+
+    /// Rotate right.
+    pub fn alu_rr(&mut self, v: u8) -> u8 {
+        let c  = (v & 0x01) == 0x01;
+        let r = (v >> 1) | (if self.regs.flag(C_FLAG) { 0x80 } else { 0x00 });
+        self.regs.set_flag(Z_FLAG, r == 0x0);
+        self.regs.set_flag(N_FLAG | H_FLAG, false);
+        self.regs.set_flag(C_FLAG, c);
+        r
+    }
+    /// Rotate right with carry.
+    pub fn alu_rrc(&mut self, v: u8) -> u8 {
+        let c  = (v & 0x01) == 0x01;
+        let r = (v >> 1) | (if c { 0x80 } else { 0x00 });
+        self.regs.set_flag(Z_FLAG, r == 0x0);
+        self.regs.set_flag(N_FLAG | H_FLAG, false);
+        self.regs.set_flag(C_FLAG, c);
+        r
+    }
 }
 
 /// The type of the methods used to execute a CPU instruction.
@@ -140,26 +233,29 @@ fn dispatch_array<M: Memory>() -> [CpuInstruction<M>; 256] {
     // the default value is the method opcode_unknown
     let mut dispatch_array = [Cpu::<M>::opcode_unknown as CpuInstruction<M>; 256];
 
-    dispatch_array[0x00] = cpu_instruction!(nop);
+    dispatch_array[0x00] = cpu_instruction!(NOP);
     dispatch_array[0x01] = cpu_instruction!(LD_BC_nn);
     dispatch_array[0x02] = cpu_instruction!(LD_BCm_A);
     dispatch_array[0x03] = cpu_instruction!(INC_BC);
     dispatch_array[0x04] = cpu_instruction!(INC_r_b);
     dispatch_array[0x05] = cpu_instruction!(DEC_r_b);
     dispatch_array[0x06] = cpu_instruction!(LD_r_n_b);
+    dispatch_array[0x07] = cpu_instruction!(RLC);
     dispatch_array[0x08] = cpu_instruction!(LD_NNm_SP);
     dispatch_array[0x0A] = cpu_instruction!(LD_A_BCm);
     dispatch_array[0x0B] = cpu_instruction!(DEC_BC);
     dispatch_array[0x0C] = cpu_instruction!(INC_r_c);
     dispatch_array[0x0D] = cpu_instruction!(DEC_r_c);
     dispatch_array[0x0E] = cpu_instruction!(LD_r_n_c);
+    dispatch_array[0x0F] = cpu_instruction!(RRC);
 
-    dispatch_array[0x10] = cpu_instruction!(stop);
+    dispatch_array[0x10] = cpu_instruction!(STOP);
     dispatch_array[0x11] = cpu_instruction!(LD_DE_nn);
     dispatch_array[0x12] = cpu_instruction!(LD_DEm_A);
     dispatch_array[0x13] = cpu_instruction!(INC_DE);
     dispatch_array[0x14] = cpu_instruction!(INC_r_d);
     dispatch_array[0x15] = cpu_instruction!(DEC_r_d);
+    dispatch_array[0x17] = cpu_instruction!(RL);
     dispatch_array[0x16] = cpu_instruction!(LD_r_n_d);
     dispatch_array[0x18] = cpu_instruction!(JR_n);
     dispatch_array[0x1A] = cpu_instruction!(LD_A_DEm);
@@ -167,6 +263,7 @@ fn dispatch_array<M: Memory>() -> [CpuInstruction<M>; 256] {
     dispatch_array[0x1C] = cpu_instruction!(INC_r_e);
     dispatch_array[0x1D] = cpu_instruction!(DEC_r_e);
     dispatch_array[0x1E] = cpu_instruction!(LD_r_n_e);
+    dispatch_array[0x1F] = cpu_instruction!(RR);
 
     dispatch_array[0x20] = cpu_instruction!(JR_NZ_n);
     dispatch_array[0x21] = cpu_instruction!(LD_HL_nn);
@@ -181,6 +278,7 @@ fn dispatch_array<M: Memory>() -> [CpuInstruction<M>; 256] {
     dispatch_array[0x2C] = cpu_instruction!(INC_r_l);
     dispatch_array[0x2D] = cpu_instruction!(DEC_r_l);
     dispatch_array[0x2E] = cpu_instruction!(LD_r_n_l);
+    dispatch_array[0x2F] = cpu_instruction!(CPL);
 
     dispatch_array[0x30] = cpu_instruction!(JR_NC_n);
     dispatch_array[0x31] = cpu_instruction!(LD_SP_nn);
@@ -189,12 +287,14 @@ fn dispatch_array<M: Memory>() -> [CpuInstruction<M>; 256] {
     dispatch_array[0x34] = cpu_instruction!(INC_HLm);
     dispatch_array[0x35] = cpu_instruction!(DEC_HLm);
     dispatch_array[0x36] = cpu_instruction!(LD_HLm_n);
+    dispatch_array[0x37] = cpu_instruction!(SCF);
     dispatch_array[0x38] = cpu_instruction!(JR_C_n);
     dispatch_array[0x3A] = cpu_instruction!(LDD_A_HLm);
     dispatch_array[0x3B] = cpu_instruction!(DEC_SP);
     dispatch_array[0x3C] = cpu_instruction!(INC_r_a);
     dispatch_array[0x3D] = cpu_instruction!(DEC_r_a);
     dispatch_array[0x3E] = cpu_instruction!(LD_r_n_a);
+    dispatch_array[0x3F] = cpu_instruction!(CCF);
 
     dispatch_array[0x40] = cpu_instruction!(LD_rr_bb);
     dispatch_array[0x41] = cpu_instruction!(LD_rr_bc);
@@ -253,7 +353,7 @@ fn dispatch_array<M: Memory>() -> [CpuInstruction<M>; 256] {
     dispatch_array[0x73] = cpu_instruction!(LD_HLm_r_e);
     dispatch_array[0x74] = cpu_instruction!(LD_HLm_r_h);
     dispatch_array[0x75] = cpu_instruction!(LD_HLm_r_l);
-    dispatch_array[0x76] = cpu_instruction!(halt);
+    dispatch_array[0x76] = cpu_instruction!(HALT);
     dispatch_array[0x77] = cpu_instruction!(LD_HLm_r_a);
     dispatch_array[0x78] = cpu_instruction!(LD_rr_ab);
     dispatch_array[0x79] = cpu_instruction!(LD_rr_ac);
@@ -264,10 +364,81 @@ fn dispatch_array<M: Memory>() -> [CpuInstruction<M>; 256] {
     dispatch_array[0x7E] = cpu_instruction!(LD_r_HLm_a);
     dispatch_array[0x7F] = cpu_instruction!(LD_rr_aa);
 
+    dispatch_array[0x80] = cpu_instruction!(ADD_r_b);
+    dispatch_array[0x81] = cpu_instruction!(ADD_r_c);
+    dispatch_array[0x82] = cpu_instruction!(ADD_r_d);
+    dispatch_array[0x83] = cpu_instruction!(ADD_r_e);
+    dispatch_array[0x84] = cpu_instruction!(ADD_r_h);
+    dispatch_array[0x85] = cpu_instruction!(ADD_r_l);
+    dispatch_array[0x86] = cpu_instruction!(ADD_HLm);
+    dispatch_array[0x87] = cpu_instruction!(ADD_r_a);
+    dispatch_array[0x88] = cpu_instruction!(ADC_r_b);
+    dispatch_array[0x89] = cpu_instruction!(ADC_r_c);
+    dispatch_array[0x8A] = cpu_instruction!(ADC_r_d);
+    dispatch_array[0x8B] = cpu_instruction!(ADC_r_e);
+    dispatch_array[0x8C] = cpu_instruction!(ADC_r_h);
+    dispatch_array[0x8D] = cpu_instruction!(ADC_r_l);
+    dispatch_array[0x8E] = cpu_instruction!(ADC_HLm);
+    dispatch_array[0x8F] = cpu_instruction!(ADC_r_a);
+
+    dispatch_array[0x90] = cpu_instruction!(SUB_r_b);
+    dispatch_array[0x91] = cpu_instruction!(SUB_r_c);
+    dispatch_array[0x92] = cpu_instruction!(SUB_r_d);
+    dispatch_array[0x93] = cpu_instruction!(SUB_r_e);
+    dispatch_array[0x94] = cpu_instruction!(SUB_r_h);
+    dispatch_array[0x95] = cpu_instruction!(SUB_r_l);
+    dispatch_array[0x96] = cpu_instruction!(SUB_HLm);
+    dispatch_array[0x97] = cpu_instruction!(SUB_r_a);
+    dispatch_array[0x98] = cpu_instruction!(SBC_r_b);
+    dispatch_array[0x99] = cpu_instruction!(SBC_r_c);
+    dispatch_array[0x9A] = cpu_instruction!(SBC_r_d);
+    dispatch_array[0x9B] = cpu_instruction!(SBC_r_e);
+    dispatch_array[0x9C] = cpu_instruction!(SBC_r_h);
+    dispatch_array[0x9D] = cpu_instruction!(SBC_r_l);
+    dispatch_array[0x9E] = cpu_instruction!(SBC_HLm);
+    dispatch_array[0x9F] = cpu_instruction!(SBC_r_a);
+
+    dispatch_array[0xA0] = cpu_instruction!(AND_r_b);
+    dispatch_array[0xA1] = cpu_instruction!(AND_r_c);
+    dispatch_array[0xA2] = cpu_instruction!(AND_r_d);
+    dispatch_array[0xA3] = cpu_instruction!(AND_r_e);
+    dispatch_array[0xA4] = cpu_instruction!(AND_r_h);
+    dispatch_array[0xA5] = cpu_instruction!(AND_r_l);
+    dispatch_array[0xA6] = cpu_instruction!(AND_HLm);
+    dispatch_array[0xA7] = cpu_instruction!(AND_r_a);
+    dispatch_array[0xA8] = cpu_instruction!(XOR_r_b);
+    dispatch_array[0xA9] = cpu_instruction!(XOR_r_c);
+    dispatch_array[0xAA] = cpu_instruction!(XOR_r_d);
+    dispatch_array[0xAB] = cpu_instruction!(XOR_r_e);
+    dispatch_array[0xAC] = cpu_instruction!(XOR_r_h);
+    dispatch_array[0xAD] = cpu_instruction!(XOR_r_l);
+    dispatch_array[0xAE] = cpu_instruction!(XOR_HLm);
+    dispatch_array[0xAF] = cpu_instruction!(XOR_r_a);
+
+    dispatch_array[0xB0] = cpu_instruction!(OR_r_b);
+    dispatch_array[0xB1] = cpu_instruction!(OR_r_c);
+    dispatch_array[0xB2] = cpu_instruction!(OR_r_d);
+    dispatch_array[0xB3] = cpu_instruction!(OR_r_e);
+    dispatch_array[0xB4] = cpu_instruction!(OR_r_h);
+    dispatch_array[0xB5] = cpu_instruction!(OR_r_l);
+    dispatch_array[0xB6] = cpu_instruction!(OR_HLm);
+    dispatch_array[0xB7] = cpu_instruction!(OR_r_a);
+    dispatch_array[0xB8] = cpu_instruction!(CP_r_b);
+    dispatch_array[0xB9] = cpu_instruction!(CP_r_c);
+    dispatch_array[0xBA] = cpu_instruction!(CP_r_d);
+    dispatch_array[0xBB] = cpu_instruction!(CP_r_e);
+    dispatch_array[0xBC] = cpu_instruction!(CP_r_h);
+    dispatch_array[0xBD] = cpu_instruction!(CP_r_l);
+    dispatch_array[0xBE] = cpu_instruction!(CP_HLm);
+    dispatch_array[0xBF] = cpu_instruction!(CP_r_a);
+
     dispatch_array[0xC0] = cpu_instruction!(RET_NZ);
+    dispatch_array[0xC1] = cpu_instruction!(POP_BC);
     dispatch_array[0xC2] = cpu_instruction!(JP_NZ_nn);
     dispatch_array[0xC3] = cpu_instruction!(JP_nn);
     dispatch_array[0xC4] = cpu_instruction!(CALL_NZ_nn);
+    dispatch_array[0xC5] = cpu_instruction!(PUSH_BC);
+    dispatch_array[0xC6] = cpu_instruction!(ADD_n);
     dispatch_array[0xC7] = cpu_instruction!(RST_00H);
     dispatch_array[0xC8] = cpu_instruction!(RET_Z);
     dispatch_array[0xC9] = cpu_instruction!(RET);
@@ -275,12 +446,16 @@ fn dispatch_array<M: Memory>() -> [CpuInstruction<M>; 256] {
     dispatch_array[0xCB] = cpu_instruction!(call_cb);
     dispatch_array[0xCC] = cpu_instruction!(CALL_Z_nn);
     dispatch_array[0xCD] = cpu_instruction!(CALL_nn);
+    dispatch_array[0xCE] = cpu_instruction!(ADC_n);
     dispatch_array[0xCF] = cpu_instruction!(RST_08H);
 
     dispatch_array[0xD0] = cpu_instruction!(RET_NC);
+    dispatch_array[0xD1] = cpu_instruction!(POP_DE);
     dispatch_array[0xD2] = cpu_instruction!(JP_NC_nn);
     dispatch_array[0xD3] = cpu_instruction!(opcode_unknown);
     dispatch_array[0xD4] = cpu_instruction!(CALL_NC_nn);
+    dispatch_array[0xD5] = cpu_instruction!(PUSH_DE);
+    dispatch_array[0xD6] = cpu_instruction!(SUB_n);
     dispatch_array[0xD7] = cpu_instruction!(RST_10H);
     dispatch_array[0xD8] = cpu_instruction!(RET_C);
     dispatch_array[0xD9] = cpu_instruction!(RETI);
@@ -288,29 +463,40 @@ fn dispatch_array<M: Memory>() -> [CpuInstruction<M>; 256] {
     dispatch_array[0xDB] = cpu_instruction!(opcode_unknown);
     dispatch_array[0xDC] = cpu_instruction!(CALL_C_nn);
     dispatch_array[0xDD] = cpu_instruction!(opcode_unknown);
+    dispatch_array[0xDE] = cpu_instruction!(SBC_n);
     dispatch_array[0xDF] = cpu_instruction!(RST_18H);
 
     dispatch_array[0xE0] = cpu_instruction!(LDH_n_A);
+    dispatch_array[0xE1] = cpu_instruction!(POP_HL);
     dispatch_array[0xE2] = cpu_instruction!(LDH_C_A);
     dispatch_array[0xE3] = cpu_instruction!(opcode_unknown);
     dispatch_array[0xE4] = cpu_instruction!(opcode_unknown);
+    dispatch_array[0xE5] = cpu_instruction!(PUSH_HL);
+    dispatch_array[0xE6] = cpu_instruction!(AND_n);
     dispatch_array[0xE7] = cpu_instruction!(RST_20H);
     dispatch_array[0xE9] = cpu_instruction!(JP_HLm);
     dispatch_array[0xEA] = cpu_instruction!(LD_NNm_A);
     dispatch_array[0xEB] = cpu_instruction!(opcode_unknown);
     dispatch_array[0xEC] = cpu_instruction!(opcode_unknown);
     dispatch_array[0xED] = cpu_instruction!(opcode_unknown);
+    dispatch_array[0xEE] = cpu_instruction!(XOR_n);
     dispatch_array[0xEF] = cpu_instruction!(RST_28H);
 
     dispatch_array[0xF0] = cpu_instruction!(LDH_A_n);
+    dispatch_array[0xF1] = cpu_instruction!(POP_AF);
     dispatch_array[0xF2] = cpu_instruction!(LDH_A_C);
+    dispatch_array[0xF3] = cpu_instruction!(DI);
     dispatch_array[0xF4] = cpu_instruction!(opcode_unknown);
+    dispatch_array[0xF5] = cpu_instruction!(PUSH_AF);
+    dispatch_array[0xF6] = cpu_instruction!(OR_n);
     dispatch_array[0xF7] = cpu_instruction!(RST_30H);
     dispatch_array[0xF8] = cpu_instruction!(LDHL_SP_n);
     dispatch_array[0xF9] = cpu_instruction!(LD_SP_HL);
     dispatch_array[0xFA] = cpu_instruction!(LD_A_NNm);
+    dispatch_array[0xFB] = cpu_instruction!(EI);
     dispatch_array[0xFC] = cpu_instruction!(opcode_unknown);
     dispatch_array[0xFD] = cpu_instruction!(opcode_unknown);
+    dispatch_array[0xFE] = cpu_instruction!(CP_n);
     dispatch_array[0xFF] = cpu_instruction!(RST_38H);
 
     dispatch_array

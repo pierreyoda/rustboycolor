@@ -64,6 +64,11 @@ impl Registers {
         ((self.h as u16) << 8) | (self.l as u16)
     }
 
+    pub fn set_af(&mut self, af: u16) {
+        // filter the provided F value with 0xF0
+        self.a = (af >> 8) as u8;
+        self.f = (af & 0x00F0) as u8;
+    }
     pub fn set_bc(&mut self, bc: u16) {
         self.b = (bc >> 8) as u8;
         self.c = (bc & 0x00FF) as u8;
