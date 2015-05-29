@@ -56,6 +56,10 @@ fn main() {
         0x25,       // DEC rH
         0x25,       // DEC rH
         0x03,       // INC BC
+        // DAA test
+        0x3E, 0x15, // A <- 15 (BCD)
+        0xC6, 0x27, // ADD A, 27 (BCD)
+        0x27,       // DAA
     ];
     let test_memory = MemCpuTest {ic: 0, instructions: test_opcodes};
     let mut cpu = cpu::Cpu::new(test_memory);
@@ -101,5 +105,13 @@ fn main() {
 
     println!("INC BC");
     cpu.step();
+    print_cpu_registers(&cpu);
+
+    println!("\nDAA test : 15+27 = ?");
+    cpu.step();
+    cpu.step();
+    print_cpu_registers(&cpu);
+    cpu.step();
+    println!("after DAA");
     print_cpu_registers(&cpu);
 }

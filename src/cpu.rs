@@ -119,6 +119,15 @@ impl<M> Cpu<M> where M: Memory {
         3
     }
 
+    /// Add a 16-bit value to another one.
+    pub fn alu_add16(&mut self, a: u16, b: u16) -> u16 {
+        let r = (a as u32) + (b as u32);
+        self.regs.set_flag(N_FLAG, false);
+        self.regs.set_flag(H_FLAG, (a & 0x0FFF) + (b & 0x0FFF) > 0x0FFF);
+        self.regs.set_flag(C_FLAG, r > 0xFFFF);
+        r as u16
+    }
+
     /// Add 'b' (and C if add_c is true) to register A.
     pub fn alu_add(&mut self, b: u8, add_c: bool) {
         let a = self.regs.a;
@@ -229,6 +238,8 @@ macro_rules! cpu_instruction {
 /// Main sources for the opcodes :
 /// http://www.pastraiser.com/cpu/gameboy/gameboy_opcodes.html
 /// http://imrannazar.com/Gameboy-Z80-Opcode-Map
+/// http://www.z80.info/index.htm
+/// http://z80-heaven.wikidot.com/
 fn dispatch_array<M: Memory>() -> [CpuInstruction<M>; 256] {
     // the default value is the method opcode_unknown
     let mut dispatch_array = [Cpu::<M>::opcode_unknown as CpuInstruction<M>; 256];
@@ -242,6 +253,7 @@ fn dispatch_array<M: Memory>() -> [CpuInstruction<M>; 256] {
     dispatch_array[0x06] = cpu_instruction!(LD_r_n_b);
     dispatch_array[0x07] = cpu_instruction!(RLC);
     dispatch_array[0x08] = cpu_instruction!(LD_NNm_SP);
+    dispatch_array[0x09] = cpu_instruction!(ADD_HL_BC);
     dispatch_array[0x0A] = cpu_instruction!(LD_A_BCm);
     dispatch_array[0x0B] = cpu_instruction!(DEC_BC);
     dispatch_array[0x0C] = cpu_instruction!(INC_r_c);
@@ -255,9 +267,10 @@ fn dispatch_array<M: Memory>() -> [CpuInstruction<M>; 256] {
     dispatch_array[0x13] = cpu_instruction!(INC_DE);
     dispatch_array[0x14] = cpu_instruction!(INC_r_d);
     dispatch_array[0x15] = cpu_instruction!(DEC_r_d);
-    dispatch_array[0x17] = cpu_instruction!(RL);
     dispatch_array[0x16] = cpu_instruction!(LD_r_n_d);
+    dispatch_array[0x17] = cpu_instruction!(RL);
     dispatch_array[0x18] = cpu_instruction!(JR_n);
+    dispatch_array[0x19] = cpu_instruction!(ADD_HL_DE);
     dispatch_array[0x1A] = cpu_instruction!(LD_A_DEm);
     dispatch_array[0x1B] = cpu_instruction!(DEC_DE);
     dispatch_array[0x1C] = cpu_instruction!(INC_r_e);
@@ -272,7 +285,9 @@ fn dispatch_array<M: Memory>() -> [CpuInstruction<M>; 256] {
     dispatch_array[0x24] = cpu_instruction!(INC_r_h);
     dispatch_array[0x25] = cpu_instruction!(DEC_r_h);
     dispatch_array[0x26] = cpu_instruction!(LD_r_n_h);
+    dispatch_array[0x27] = cpu_instruction!(DAA);
     dispatch_array[0x28] = cpu_instruction!(JR_Z_n);
+    dispatch_array[0x29] = cpu_instruction!(ADD_HL_HL);
     dispatch_array[0x2A] = cpu_instruction!(LDI_A_HLm);
     dispatch_array[0x2B] = cpu_instruction!(DEC_HL);
     dispatch_array[0x2C] = cpu_instruction!(INC_r_l);
@@ -289,6 +304,7 @@ fn dispatch_array<M: Memory>() -> [CpuInstruction<M>; 256] {
     dispatch_array[0x36] = cpu_instruction!(LD_HLm_n);
     dispatch_array[0x37] = cpu_instruction!(SCF);
     dispatch_array[0x38] = cpu_instruction!(JR_C_n);
+    dispatch_array[0x39] = cpu_instruction!(ADD_HL_SP);
     dispatch_array[0x3A] = cpu_instruction!(LDD_A_HLm);
     dispatch_array[0x3B] = cpu_instruction!(DEC_SP);
     dispatch_array[0x3C] = cpu_instruction!(INC_r_a);
@@ -474,6 +490,7 @@ fn dispatch_array<M: Memory>() -> [CpuInstruction<M>; 256] {
     dispatch_array[0xE5] = cpu_instruction!(PUSH_HL);
     dispatch_array[0xE6] = cpu_instruction!(AND_n);
     dispatch_array[0xE7] = cpu_instruction!(RST_20H);
+    dispatch_array[0xE8] = cpu_instruction!(ADD_SP_n);
     dispatch_array[0xE9] = cpu_instruction!(JP_HLm);
     dispatch_array[0xEA] = cpu_instruction!(LD_NNm_A);
     dispatch_array[0xEB] = cpu_instruction!(opcode_unknown);

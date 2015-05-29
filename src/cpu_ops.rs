@@ -336,6 +336,38 @@ impl<M> Cpu<M> where M: Memory {
     // --- Arithmetic Operations ---
     //
 
+    // ADD_HL_XY : add 16-bit XY to HL
+    pub fn ADD_HL_BC(&mut self) -> CycleType {
+        let (hl, bc) = (self.regs.hl(), self.regs.bc());
+        let r = self.alu_add16(hl, bc);
+        self.regs.set_hl(r);
+        2
+    }
+    pub fn ADD_HL_DE(&mut self) -> CycleType {
+        let (hl, de) = (self.regs.hl(), self.regs.de());
+        let r = self.alu_add16(hl, de);
+        self.regs.set_hl(r);
+        2
+    }
+    pub fn ADD_HL_HL(&mut self) -> CycleType {
+        let hl = self.regs.hl();
+        let r = self.alu_add16(hl, hl);
+        self.regs.set_hl(r);
+        2
+    }
+    pub fn ADD_HL_SP(&mut self) -> CycleType {
+        let (hl, sp) = (self.regs.hl(), self.regs.sp);
+        let r = self.alu_add16(hl, sp);
+        self.regs.set_hl(r);
+        2
+    }
+    // ADD_SP_n : add signed 8-bit immediate to SP
+    pub fn ADD_SP_n(&mut self) -> CycleType {
+        let (sp, n) = (self.regs.sp, self.fetch_byte());
+        self.regs.sp = self.alu_add16(sp, n as i8 as i16 as u16);
+        4
+    }
+
     // ADD_r_x : add register X to register A
     pub fn ADD_r_b(&mut self) -> CycleType { let v = self.regs.b; self.alu_add(v, false); 1 }
     pub fn ADD_r_c(&mut self) -> CycleType { let v = self.regs.c; self.alu_add(v, false); 1 }
@@ -409,6 +441,33 @@ impl<M> Cpu<M> where M: Memory {
     // XOR_n / CP_n : logical XOR /comparison 8-bit immediate against register A
     pub fn XOR_n(&mut self) -> CycleType { let v = self.fetch_byte(); self.alu_xor(v); 2 }
     pub fn CP_n(&mut self) -> CycleType { let v = self.fetch_byte(); self.alu_cp(v); 2 }
+
+    // DAA : adjust A for a BCD operation using the content of the flags.
+    // If the least significant nibble of A contains a non-BCD digit
+    // (i. e. if is greater than 9) or if the H flag is set, then 0x06 is added
+    // to the correction factor.
+    // Then if the most significant nibble also happens to be greater than 9 or
+    // if the C flag is set, then 0x60 is added to the correction factor.
+    // Finally the correction factor is added to A if N is not set, or substracted
+    // from A otherwise.
+    // main reference : http://www.worldofspectrum.org/faq/reference/z80reference.htm#DAA
+    pub fn DAA(&mut self) -> CycleType {
+        let mut a = self.regs.a;
+        let mut adjust = if self.regs.flag(C_FLAG) { 0x60 } else { 0x00 };
+        if self.regs.flag(H_FLAG) { adjust |= 0x06; };
+        if !self.regs.flag(N_FLAG) {
+            if a & 0x0F > 0x09 { adjust |= 0x06; };
+            if a > 0x99 { adjust |= 0x60; };
+            a = a.wrapping_add(adjust);
+        } else {
+            a = a.wrapping_sub(adjust);
+        }
+        self.regs.set_flag(Z_FLAG, a == 0);
+        self.regs.set_flag(H_FLAG, false);
+        self.regs.set_flag(C_FLAG, adjust >= 0x60);
+        self.regs.a = a;
+        1
+    }
 
     // CPL : complement register A, i.e. logical NOT against register A
     pub fn CPL(&mut self) -> CycleType {
