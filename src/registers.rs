@@ -64,6 +64,14 @@ impl Registers {
         ((self.h as u16) << 8) | (self.l as u16)
     }
 
+    pub fn set_bc(&mut self, bc: u16) {
+        self.b = (bc >> 8) as u8;
+        self.c = (bc & 0x00FF) as u8;
+    }
+    pub fn set_de(&mut self, de: u16) {
+        self.d = (de >> 8) as u8;
+        self.e = (de & 0x00FF) as u8;
+    }
     pub fn set_hl(&mut self, hl: u16) {
         self.h = (hl >> 8) as u8;
         self.l = (hl & 0x00FF) as u8;

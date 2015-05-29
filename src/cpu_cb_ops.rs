@@ -1,6 +1,6 @@
 use super::cpu::*;
 use super::memory::Memory;
-use super::registers::{Registers, Z_FLAG, N_FLAG, H_FLAG, C_FLAG};
+use super::registers::{Z_FLAG, N_FLAG, H_FLAG, C_FLAG};
 
 //
 // --- Helper macros ---
@@ -108,8 +108,7 @@ macro_rules! impl_BIT_b_r_x {
 }
 macro_rules! impl_BIT_b_HLm {
     ($s: ident, $b: expr) => ({
-        let hl = ($s.regs.h as u16) << 8 + $s.regs.l as u16;
-        let bit = $s.mem.read_byte(hl) & (1 << $b);
+        let bit = $s.mem.read_byte($s.regs.hl()) & (1 << $b);
         $s.regs.set_flag(N_FLAG, false);
         $s.regs.set_flag(H_FLAG, true);
         $s.regs.set_flag(Z_FLAG, bit == 0b0);
@@ -134,7 +133,7 @@ macro_rules! impl_RES_b_HLm {
 
 macro_rules! impl_SET_b_r_x {
     ($s: ident, $b: expr, $x: ident) => (
-        $s.regs.$x |= (1 << $b);
+        $s.regs.$x |= 1 << $b;
         return 2;
     )
 }
@@ -166,7 +165,7 @@ impl<M> Cpu<M> where M: Memory {
     pub fn RLC_r_l(&mut self) -> CycleType { rlc!(self, self.regs.l); 2 }
     pub fn RLC_r_a(&mut self) -> CycleType { rlc!(self, self.regs.a); 2 }
     pub fn RLC_HLm(&mut self) -> CycleType {
-        let hl = (self.regs.h as u16) << 8 + self.regs.l as u16;
+        let hl = self.regs.hl();
         let mut temp_byte = self.mem.read_byte(hl);
         rlc!(self, temp_byte);
         self.mem.write_byte(hl, temp_byte);
@@ -181,7 +180,7 @@ impl<M> Cpu<M> where M: Memory {
     pub fn RL_r_l(&mut self) -> CycleType { rl!(self, self.regs.l); 2 }
     pub fn RL_r_a(&mut self) -> CycleType { rl!(self, self.regs.a); 2 }
     pub fn RL_HLm(&mut self) -> CycleType {
-        let hl = (self.regs.h as u16) << 8 + self.regs.l as u16;
+        let hl = self.regs.hl();
         let mut temp_byte = self.mem.read_byte(hl);
         rl!(self, temp_byte);
         self.mem.write_byte(hl, temp_byte);
@@ -196,7 +195,7 @@ impl<M> Cpu<M> where M: Memory {
     pub fn RRC_r_l(&mut self) -> CycleType { rrc!(self, self.regs.l); 2 }
     pub fn RRC_r_a(&mut self) -> CycleType { rrc!(self, self.regs.a); 2 }
     pub fn RRC_HLm(&mut self) -> CycleType {
-        let hl = (self.regs.h as u16) << 8 + self.regs.l as u16;
+        let hl = self.regs.hl();
         let mut temp_byte = self.mem.read_byte(hl);
         rrc!(self, temp_byte);
         self.mem.write_byte(hl, temp_byte);
@@ -211,7 +210,7 @@ impl<M> Cpu<M> where M: Memory {
     pub fn RR_r_l(&mut self) -> CycleType { rr!(self, self.regs.l); 2 }
     pub fn RR_r_a(&mut self) -> CycleType { rr!(self, self.regs.a); 2 }
     pub fn RR_HLm(&mut self) -> CycleType {
-        let hl = (self.regs.h as u16) << 8 + self.regs.l as u16;
+        let hl = self.regs.hl();
         let mut temp_byte = self.mem.read_byte(hl);
         rr!(self, temp_byte);
         self.mem.write_byte(hl, temp_byte);
@@ -231,7 +230,7 @@ impl<M> Cpu<M> where M: Memory {
     pub fn SLA_r_l(&mut self) -> CycleType { sla!(self, self.regs.l); 2 }
     pub fn SLA_r_a(&mut self) -> CycleType { sla!(self, self.regs.a); 2 }
     pub fn SLA_HLm(&mut self) -> CycleType {
-        let hl = (self.regs.h as u16) << 8 + self.regs.l as u16;
+        let hl = self.regs.hl();
         let mut temp_byte = self.mem.read_byte(hl);
         sla!(self, temp_byte);
         self.mem.write_byte(hl, temp_byte);
@@ -246,7 +245,7 @@ impl<M> Cpu<M> where M: Memory {
     pub fn SRA_r_l(&mut self) -> CycleType { sra!(self, self.regs.l); 2 }
     pub fn SRA_r_a(&mut self) -> CycleType { sra!(self, self.regs.a); 2 }
     pub fn SRA_HLm(&mut self) -> CycleType {
-        let hl = (self.regs.h as u16) << 8 + self.regs.l as u16;
+        let hl = self.regs.hl();
         let mut temp_byte = self.mem.read_byte(hl);
         sra!(self, temp_byte);
         self.mem.write_byte(hl, temp_byte);
@@ -261,7 +260,7 @@ impl<M> Cpu<M> where M: Memory {
     pub fn SRL_r_l(&mut self) -> CycleType { srl!(self, self.regs.l); 2 }
     pub fn SRL_r_a(&mut self) -> CycleType { srl!(self, self.regs.a); 2 }
     pub fn SRL_HLm(&mut self) -> CycleType {
-        let hl = (self.regs.h as u16) << 8 + self.regs.l as u16;
+        let hl = self.regs.hl();
         let mut temp_byte = self.mem.read_byte(hl);
         srl!(self, temp_byte);
         self.mem.write_byte(hl, temp_byte);
@@ -282,7 +281,7 @@ impl<M> Cpu<M> where M: Memory {
     pub fn SWAP_r_a(&mut self) -> CycleType { swap!(self, self.regs.a); 2 }
     // SWAP_HLm : same but for (HL)
     pub fn SWAP_HLm(&mut self) -> CycleType {
-        let address = (self.regs.h as u16) << 8 + self.regs.l as u16;
+        let address = self.regs.hl();
         let mut temp_byte = self.mem.read_byte(address);
         swap!(self, temp_byte);
         self.mem.write_byte(address, temp_byte);

@@ -2,9 +2,11 @@ use super::cpu::*;
 use super::memory::Memory;
 use super::registers::{Z_FLAG, N_FLAG, H_FLAG, C_FLAG};
 
-// avoid boilerplate for the LD[]_xy functions
+// --- Implementation macros ---
+// avoid boilerplate some instructions functions
 // cannot macro the whole function declaration since 'concat_indents!'
 // cannot work (yet) for function declarations
+
 macro_rules! impl_LD_rr_xy {
     ($s: ident, $x: ident, $y: ident) => (
         $s.regs.$x = $s.regs.$y;
@@ -32,11 +34,37 @@ macro_rules! impl_LD_r_n_x {
     )
 }
 
+// --- Helper macros ---
+// TODO : use more methods instead
+
+macro_rules! inc_byte {
+    ($s: ident, $b: expr) => ({
+        let r = $b.wrapping_add(1);
+        $s.regs.set_flag(Z_FLAG, r == 0x0);
+        $s.regs.set_flag(N_FLAG, false);
+        $s.regs.set_flag(H_FLAG, r & 0x0F == 0x00);
+        $b = r;
+    })
+}
+macro_rules! dec_byte {
+    ($s: ident, $b: expr) => ({
+        let r = $b.wrapping_sub(1);
+        $s.regs.set_flag(Z_FLAG, r == 0x0);
+        $s.regs.set_flag(N_FLAG, true);
+        $s.regs.set_flag(H_FLAG, r & 0x0F == 0x0F);
+        $b = r;
+    })
+}
+
 // The opcodes are implemented in this crate for better clarity in the code.
 // Notations used :
 // - (X) means the value stored in memory at the X address
 #[allow(non_snake_case)]
 impl<M> Cpu<M> where M: Memory {
+
+    //
+    // --- Control intructions ---
+    //
 
     pub fn nop(&mut self) -> CycleType {
         1
@@ -276,6 +304,39 @@ impl<M> Cpu<M> where M: Memory {
     // --- Arithmetic Operations ---
     //
 
+    // INC_r_x / DEC_r_x : increment/decrement register X
+    pub fn INC_r_b(&mut self) -> CycleType { inc_byte!(self, self.regs.b); 1 }
+    pub fn INC_r_c(&mut self) -> CycleType { inc_byte!(self, self.regs.c); 1 }
+    pub fn INC_r_d(&mut self) -> CycleType { inc_byte!(self, self.regs.d); 1 }
+    pub fn INC_r_e(&mut self) -> CycleType { inc_byte!(self, self.regs.e); 1 }
+    pub fn INC_r_h(&mut self) -> CycleType { inc_byte!(self, self.regs.h); 1 }
+    pub fn INC_r_l(&mut self) -> CycleType { inc_byte!(self, self.regs.l); 1 }
+    pub fn INC_r_a(&mut self) -> CycleType { inc_byte!(self, self.regs.a); 1 }
+
+    pub fn DEC_r_b(&mut self) -> CycleType { dec_byte!(self, self.regs.b); 1 }
+    pub fn DEC_r_c(&mut self) -> CycleType { dec_byte!(self, self.regs.c); 1 }
+    pub fn DEC_r_d(&mut self) -> CycleType { dec_byte!(self, self.regs.d); 1 }
+    pub fn DEC_r_e(&mut self) -> CycleType { dec_byte!(self, self.regs.e); 1 }
+    pub fn DEC_r_h(&mut self) -> CycleType { dec_byte!(self, self.regs.h); 1 }
+    pub fn DEC_r_l(&mut self) -> CycleType { dec_byte!(self, self.regs.l); 1 }
+    pub fn DEC_r_a(&mut self) -> CycleType { dec_byte!(self, self.regs.a); 1 }
+
+    // INC_HLm / DEC_HLm : increment/decrement (HL)
+    pub fn INC_HLm(&mut self) -> CycleType {
+        let hl = self.regs.hl();
+        let mut temp_byte = self.mem.read_byte(hl);
+        inc_byte!(self, temp_byte);
+        self.mem.write_byte(hl, temp_byte);
+        3
+    }
+    pub fn DEC_HLm(&mut self) -> CycleType {
+        let hl = self.regs.hl();
+        let mut temp_byte = self.mem.read_byte(hl);
+        dec_byte!(self, temp_byte);
+        self.mem.write_byte(hl, temp_byte);
+        3
+    }
+
     //
     // --- JP ---
     //
@@ -309,5 +370,22 @@ impl<M> Cpu<M> where M: Memory {
     pub fn JP_HLm(&mut self) -> CycleType {
         self.regs.pc = self.regs.hl();
         1
+    }
+
+    // JR_n : relative jump by signed immediate byte
+    pub fn JR_n(&mut self) -> CycleType {
+        let b = self.fetch_byte();
+        self.jump_relative(b);
+        3
+    }
+    // JR_Z_n : relative jump by signed immediate byte if the zero flag is set
+    pub fn JR_Z_n(&mut self) -> CycleType {
+        let b = self.fetch_byte();
+        if self.regs.flag(Z_FLAG) { self.jump_relative(b); 3 } else { 2 }
+    }
+    // JR_C_n : relative jump by signed immediate byte if the carry flag is set
+    pub fn JR_C_n(&mut self) -> CycleType {
+        let b = self.fetch_byte();
+        if self.regs.flag(C_FLAG) { self.jump_relative(b); 3 } else { 2 }
     }
 }

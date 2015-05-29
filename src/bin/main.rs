@@ -35,7 +35,7 @@ fn main() {
     match logger::init_console_logger() {
         Err(error) => panic!(format!("Logging setup error : {}",
                                      error.description())),
-        _ => (),
+        _          => (),
     }
 
     // CPU crude test
@@ -52,6 +52,9 @@ fn main() {
         0xCB, 0x79, // BIT 7,rC
         0xCB, 0x72, // BIT 6,rD
         0xCB, 0x02, // RLC rD
+        0x14,       // INC rD
+        0x25,       // DEC rH
+        0x25,       // DEC rH
     ];
     let test_memory = MemCpuTest {ic: 0, instructions: test_opcodes};
     let mut cpu = cpu::Cpu::new(test_memory);
@@ -84,6 +87,14 @@ fn main() {
     print_cpu_registers(&cpu);
 
     println!("RLC D");
+    cpu.step();
+    print_cpu_registers(&cpu);
+
+    println!("INC D");
+    cpu.step();
+    print_cpu_registers(&cpu);
+    println!("DEC H * 2");
+    cpu.step();
     cpu.step();
     print_cpu_registers(&cpu);
 }
