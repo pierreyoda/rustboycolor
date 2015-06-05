@@ -1,8 +1,11 @@
 /// Crate emulating the behavior of the Sharp LR35902 processor powering the
 /// Game Boy (Color).
 
-use super::memory::Memory;
-use super::registers::{Registers, Z_FLAG, N_FLAG, H_FLAG, C_FLAG};
+mod ops;
+mod cb_ops;
+
+use memory::Memory;
+use registers::{Registers, Z_FLAG, N_FLAG, H_FLAG, C_FLAG};
 
 /// The type used to count the CPU's machine cycles.
 pub type CycleType = u64;
@@ -50,13 +53,13 @@ impl<M> Cpu<M> where M: Memory {
     }
 
     /// Fetch the next byte in memory.
-    pub fn fetch_byte(&mut self) -> u8 {
+    fn fetch_byte(&mut self) -> u8 {
         let b = self.mem.read_byte(self.regs.pc);
         self.regs.pc += 1;
         b
     }
     /// Fetch the next word in memory.
-    pub fn fetch_word(&mut self) -> u16 {
+    fn fetch_word(&mut self) -> u16 {
         let w = self.mem.read_word(self.regs.pc);
         self.regs.pc += 2;
         w
@@ -94,33 +97,33 @@ impl<M> Cpu<M> where M: Memory {
 
     /// Push a 16-bit value to the stack.
     /// NB : on this Z80-derived CPU, the stack grows from top down
-    pub fn stack_push(&mut self, value: u16) {
+    fn stack_push(&mut self, value: u16) {
         self.regs.sp -= 2;
         self.mem.write_word(self.regs.sp, value);
     }
     /// Pop a 16-bit value from the stack.
-    pub fn stack_pop(&mut self) -> u16 {
+    fn stack_pop(&mut self) -> u16 {
         let value = self.mem.read_word(self.regs.sp);
         self.regs.sp += 2;
         value
     }
 
     /// Call the subroutine at the given address.
-    pub fn cpu_call(&mut self, address: u16) {
+    fn cpu_call(&mut self, address: u16) {
         let pc = self.regs.pc;
         self.stack_push(pc);
         self.regs.pc = address;
     }
 
     /// Perform a relative jump by the signed immediate byte.
-    pub fn cpu_jr(&mut self, b: u8) -> CycleType {
+    fn cpu_jr(&mut self, b: u8) -> CycleType {
         let n = b as i8 as i16 as u16;
         self.regs.pc = ((self.regs.pc as usize) + (n as usize)) as u16;
         3
     }
 
     /// Add a 16-bit value to another one.
-    pub fn alu_add16(&mut self, a: u16, b: u16) -> u16 {
+    fn alu_add16(&mut self, a: u16, b: u16) -> u16 {
         let r = (a as u32) + (b as u32);
         self.regs.set_flag(N_FLAG, false);
         self.regs.set_flag(H_FLAG, (a & 0x0FFF) + (b & 0x0FFF) > 0x0FFF);
@@ -129,7 +132,7 @@ impl<M> Cpu<M> where M: Memory {
     }
 
     /// Add 'b' (and C if add_c is true) to register A.
-    pub fn alu_add(&mut self, b: u8, add_c: bool) {
+    fn alu_add(&mut self, b: u8, add_c: bool) {
         let a = self.regs.a;
         let c = if add_c && self.regs.flag(C_FLAG) { 1 } else { 0 };
         let r = (a as u16) + (b as u16) + (c as u16);
@@ -141,7 +144,7 @@ impl<M> Cpu<M> where M: Memory {
     }
 
     /// Substract 'b' (and C if sub_c is true) from register A.
-    pub fn alu_sub(&mut self, b: u8, sub_c: bool) {
+    fn alu_sub(&mut self, b: u8, sub_c: bool) {
         let a = self.regs.a;
         let c = if sub_c && self.regs.flag(C_FLAG) { 1 } else { 0 };
         let r = a.wrapping_sub(b).wrapping_sub(c);
@@ -153,7 +156,7 @@ impl<M> Cpu<M> where M: Memory {
     }
 
     /// Logical AND against register A.
-    pub fn alu_and(&mut self, b: u8) {
+    fn alu_and(&mut self, b: u8) {
         let r = self.regs.a & b;
         self.regs.set_flag(Z_FLAG, r == 0x0);
         self.regs.set_flag(H_FLAG, true);
@@ -161,21 +164,21 @@ impl<M> Cpu<M> where M: Memory {
         self.regs.a = r;
     }
     /// Logical OR against register A.
-    pub fn alu_or(&mut self, b: u8) {
+    fn alu_or(&mut self, b: u8) {
         let r = self.regs.a | b;
         self.regs.set_flag(Z_FLAG, r == 0x0);
         self.regs.set_flag(N_FLAG | H_FLAG | C_FLAG, false);
         self.regs.a = r;
     }
     /// Logical XOR against register A.
-    pub fn alu_xor(&mut self, b: u8) {
+    fn alu_xor(&mut self, b: u8) {
         let r = self.regs.a ^ b;
         self.regs.set_flag(Z_FLAG, r == 0x0);
         self.regs.set_flag(N_FLAG | H_FLAG | C_FLAG, false);
         self.regs.a = r;
     }
     /// Compare against register A.
-    pub fn alu_cp(&mut self, b: u8) {
+    fn alu_cp(&mut self, b: u8) {
         let a = self.regs.a;
         // use alu_sub to set the flags properly
         self.alu_sub(b, false);
@@ -184,7 +187,7 @@ impl<M> Cpu<M> where M: Memory {
     }
 
     /// Rotate left.
-    pub fn alu_rl(&mut self, v: u8) -> u8 {
+    fn alu_rl(&mut self, v: u8) -> u8 {
         let c  = (v & 0x80) == 0x80;
         let r = (v << 1) | (if self.regs.flag(C_FLAG) { 0x01 } else { 0x00 });
         self.regs.set_flag(Z_FLAG, r == 0x0);
@@ -193,7 +196,7 @@ impl<M> Cpu<M> where M: Memory {
         r
     }
     /// Rotate left with carry.
-    pub fn alu_rlc(&mut self, v: u8) -> u8 {
+    fn alu_rlc(&mut self, v: u8) -> u8 {
         let c  = (v & 0x80) == 0x80;
         let r = (v << 1) | (if c { 0x01 } else { 0x00 });
         self.regs.set_flag(Z_FLAG, r == 0x0);
@@ -203,7 +206,7 @@ impl<M> Cpu<M> where M: Memory {
     }
 
     /// Rotate right.
-    pub fn alu_rr(&mut self, v: u8) -> u8 {
+    fn alu_rr(&mut self, v: u8) -> u8 {
         let c  = (v & 0x01) == 0x01;
         let r = (v >> 1) | (if self.regs.flag(C_FLAG) { 0x80 } else { 0x00 });
         self.regs.set_flag(Z_FLAG, r == 0x0);
@@ -212,7 +215,7 @@ impl<M> Cpu<M> where M: Memory {
         r
     }
     /// Rotate right with carry.
-    pub fn alu_rrc(&mut self, v: u8) -> u8 {
+    fn alu_rrc(&mut self, v: u8) -> u8 {
         let c  = (v & 0x01) == 0x01;
         let r = (v >> 1) | (if c { 0x80 } else { 0x00 });
         self.regs.set_flag(Z_FLAG, r == 0x0);

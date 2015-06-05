@@ -1,6 +1,6 @@
-use super::cpu::*;
-use super::memory::Memory;
-use super::registers::{Z_FLAG, N_FLAG, H_FLAG, C_FLAG};
+use super::{Cpu, CycleType};
+use memory::Memory;
+use registers::{Z_FLAG, N_FLAG, H_FLAG, C_FLAG};
 
 // --- Implementation macros ---
 // avoid boilerplate some instructions functions
