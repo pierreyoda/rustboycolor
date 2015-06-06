@@ -1,12 +1,14 @@
 /// Used by small games who can fit in the 32 KB of ROM and the GameBoy's 8 KB
 /// of external RAM.
 
-use super::MBC;
+use super::{MBC, CartridgeHeader};
 
-pub const ROM_SIZE: usize = 65536;
+pub const ROM_SIZE: usize = 0x10000;
+pub const ERAM_SIZE: usize = 0x2000;
 
 pub struct MBC0 {
     rom: [u8; ROM_SIZE],
+    eram: Option<[u8; ERAM_SIZE]>,
 }
 
 impl MBC0 {
@@ -18,14 +20,30 @@ impl MBC0 {
             for i in 0..data.len() {
                 rom[i] = data[i];
             }
-            Ok(MBC0 { rom: rom })
+
+            let ram = match CartridgeHeader::ram_size(&data) {
+                0 => None,
+                ERAM_SIZE => Some([0x00; ERAM_SIZE]),
+                n => {
+                    error!("MBC0 : invalid external RAM size of {} bytes", n);
+                    return Err("MBC0 supports either 0 KB or 8 KB of external RAM");
+                },
+            };
+            Ok(MBC0 { rom: rom, eram: ram })
         }
     }
 }
 
 impl MBC for MBC0 {
     fn rom_read(&self, address: u16) -> u8 { self.rom[address as usize] }
-    fn ram_read(&self, address: u16) -> u8 { 0x0 }
+    fn ram_read(&self, address: u16) -> u8 {
+        if self.eram.is_some() { self.eram.unwrap()[(address as usize) & 0x1FFF] }
+        else { 0x00 }
+    }
+
     fn rom_control(&mut self, address: u16, value: u8) { }
-    fn ram_write(&mut self, address: u16, value: u8) { }
+
+    fn ram_write(&mut self, address: u16, value: u8) {
+        if self.eram.is_some() { self.eram.unwrap()[(address as usize) & 0x1FFF] = value; }
+    }
 }

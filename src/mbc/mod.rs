@@ -2,6 +2,9 @@
 /// interface for the MMU to use.
 /// MBCs allow the game cartridge to have access to more address space by
 /// explicit bank switching.
+///
+/// Main reference for the implementation :
+/// http://bgb.bircd.org/pandocs.htm (Pan Docs)
 
 use std::path::Path;
 use std::io::Read;
@@ -23,21 +26,22 @@ pub enum CartridgeHeader {
 }
 
 impl CartridgeHeader {
-    /// Return the ROM address for the given header information.
-    /// NB : only makes sense for single-byte information.
-    pub fn address(header_info: CartridgeHeader) -> usize {
+    /// Return the ROM address for the given header information, or None
+    /// if the header information does not fit in a single byte and/or is
+    /// unsupported.
+    pub fn address(header_info: CartridgeHeader) -> Option<usize> {
         match header_info {
-            MBC_TYPE => 0x0147,
-            ROM_SIZE => 0x0148,
-            RAM_SIZE => 0x0149,
-            DESTINATION => 0x014A,
-            LICENSEE_OLD => 0x014B,
+            MBC_TYPE => Some(0x0147),
+            ROM_SIZE => Some(0x0148),
+            RAM_SIZE => Some(0x0149),
+            DESTINATION => Some(0x014A),
+            LICENSEE_OLD => Some(0x014B),
         }
     }
 
     /// Return the RAM size in the given ROM file.
     pub fn ram_size(rom: &Vec<u8>) -> usize {
-        match rom[CartridgeHeader::address(RAM_SIZE)] {
+        match rom[CartridgeHeader::address(RAM_SIZE).unwrap()] {
             // 2 KB
             0x01 => 0x0800,
             // 8 KB
@@ -54,8 +58,8 @@ use self::CartridgeHeader::*;
 pub trait MBC {
     fn rom_read(&self, address: u16) -> u8;
     fn ram_read(&self, address: u16) -> u8;
-    /// For some MBCs, trying to write at specific ROM addresses allow it
-    /// to switch the ROM banks.
+    /// For some MBCs, trying to write at specific ROM addresses allow to
+    /// write to the Control Registers.
     fn rom_control(&mut self, address: u16, value: u8);
     fn ram_write(&mut self, address: u16, value: u8);
 }
@@ -66,11 +70,10 @@ pub trait MBC {
 /// TODO : cartridge header checksum validation
 /// TODO : state saving with battery-backed RAM
 pub fn load_cartridge(filepath: &Path) -> ::ResultStr<Box<MBC + 'static>> {
-
     let mut data = Vec::<u8>::new();
     try!(File::open(filepath).and_then(|mut f| f.read_to_end(&mut data))
          .map_err(|_| "could not load the file as a gameboy ROM"));
-    match data[CartridgeHeader::address(MBC_TYPE)] {
+    match data[CartridgeHeader::address(MBC_TYPE).unwrap()] {
         // MBC0 : no MBC
         0x00 => mbc0::MBC0::new(data).map(|v| Box::new(v) as Box<MBC>),
         // MBC1

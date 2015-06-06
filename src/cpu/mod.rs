@@ -1,4 +1,4 @@
-/// Crate emulating the behavior of the Sharp LR35902 processor powering the
+/// Module emulating the behavior of the Sharp LR35902 processor powering the
 /// Game Boy (Color).
 
 mod ops;
@@ -32,7 +32,7 @@ pub struct Cpu<M> {
 }
 
 impl<M> Cpu<M> where M: Memory {
-    /// Return a new, initialized Cpu instance operating on the given 'Memory',
+    /// Return a new, initialized Cpu instance operating on the given 'Memory'.
     pub fn new(mem: M) -> Cpu<M> {
         Cpu {
             cycles: 0,
