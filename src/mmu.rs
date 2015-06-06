@@ -1,6 +1,7 @@
 use super::bios::GB_BIOS;
 use super::memory::Memory;
 use super::gpu::Gpu;
+use super::mbc::{MBC};
 
 const ERAM_SIZE: usize = 0x2000;
 const WRAM_SIZE: usize = 0x2000;
@@ -20,9 +21,8 @@ pub struct MMU {
     bios: &'static [u8],
     /// GPU.
     gpu: Gpu,
-    /// The external RAM is an additional 8K RAM at the cartridge's disposal.
-    /// TODO : should this be in the cartridge MBC ?
-    eram: [u8; ERAM_SIZE],
+    /// The MBC interfacing with the cartridge ROM and (optionally) RAM banks.
+    mbc: Box<MBC + 'static>,
     /// 8K of internal working RAM.
     wram: [u8; WRAM_SIZE],
     ///'Zero-page' RAM of 128 bytes.
@@ -30,12 +30,12 @@ pub struct MMU {
 }
 
 impl MMU {
-    pub fn new() -> MMU {
+    pub fn new(mbc: Box<MBC>) -> MMU {
         MMU {
             in_bios: true,
             bios: &GB_BIOS,
             gpu: Gpu::new(),
-            eram: [0x0; ERAM_SIZE],
+            mbc: mbc,
             wram: [0x0; WRAM_SIZE],
             zram: [0x0; ZRAM_SIZE],
         }
@@ -63,11 +63,11 @@ impl Memory for MMU {
                 }
             },
             // cartridge ROM
-            0x0000 ... 0x7FFF => 0,
+            0x0000 ... 0x7FFF => self.mbc.rom_read(address),
             // GPU : background and sprite data
             0x8000 ... 0x9FFF => self.gpu.read_byte(address),
             // cartridge external RAM
-            0xA000 ... 0xBFFF => self.eram[a & 0x1FFF],
+            0xA000 ... 0xBFFF => self.mbc.ram_read(address),
             // working ram and its echo (TODO : RAM bank switch for GBC)
             0xC000 ... 0xFDFF => self.wram[a & 0x1FFF],
             // GPU : Object Attribute Memory
