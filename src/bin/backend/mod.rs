@@ -1,6 +1,10 @@
 pub mod sdl2;
+
+use std::sync::mpsc::{Sender, Receiver};
+
 use rustboylib::keypad::KeypadKey;
 use super::config::EmulatorAppConfig;
+use super::emulator::EmulationMessage;
 
 /// Message emitted by the backend UI loop to the emulation core.
 pub enum BackendMessage {
@@ -22,5 +26,6 @@ pub enum BackendMessage {
 /// Trait that any emulator backend must implement.
 pub trait EmulatorBackend {
     /// Launch and run the UI loop with the given configuration.
-    fn run(&mut self, config: EmulatorAppConfig);
+    fn run(&mut self, config: EmulatorAppConfig,
+           tx: Sender<BackendMessage>, rx: Receiver<EmulationMessage>);
 }

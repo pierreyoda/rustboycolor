@@ -80,6 +80,22 @@ impl Memory for MMU {
     }
 
     fn write_byte(&mut self, address: u16, byte: u8) {
-
+        let a = address as usize;
+        match a {
+            // cartridge ROM
+            0x0000 ... 0x7FFF => self.mbc.rom_control(address, byte),
+            // GPU : background and sprite data
+            0x8000 ... 0x9FFF => self.gpu.write_byte(address, byte),
+            // cartridge external RAM
+            0xA000 ... 0xBFFF => self.mbc.ram_write(address, byte),
+            // working ram and its echo
+            0xC000 ... 0xFDFF => self.wram[a & 0x1FFF] = byte,
+            // GPU : Object Attribute Memory
+            0xFE00 ... 0xFE9F => self.gpu.write_byte(address, byte),
+            // TODO : I/O + interrupts
+            // Zero-page RAM
+            0xFF80 ... 0xFFFF => self.zram[a & 0x7F] = byte,
+            _ => (),
+        }
     }
 }

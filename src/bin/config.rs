@@ -13,9 +13,15 @@ macro_rules! config_set_param {
         }
     )
 }
+macro_rules! config_get_param {
+    ($getter_name: ident, $param_name: ident, $param_type: ty) => (
+        pub fn $getter_name(&self) -> $param_type { self.$param_name }
+    )
+}
 
 /// Structure facilitating the configuration and creation of the emulation
 /// application.
+#[derive(Clone)]
 pub struct EmulatorAppConfig {
     /// The title of the emulator window.
     window_title        : &'static str,
@@ -65,6 +71,7 @@ impl EmulatorAppConfig {
     }
 
     config_set_param!(title, window_title, &'static str);
+    config_get_param!(get_title, window_title, &'static str);
     config_set_param!(width, window_width, u16);
     config_set_param!(height, window_height, u16);
     config_set_param!(force_aspect, window_force_aspect, bool);
