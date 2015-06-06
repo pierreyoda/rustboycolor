@@ -6,7 +6,7 @@ pub mod cpu;
 pub mod gpu;
 pub mod keypad;
 pub mod memory;
-mod mbc;
+pub mod mbc;
 pub mod mmu;
 pub mod registers;
 
