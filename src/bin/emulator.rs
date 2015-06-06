@@ -93,8 +93,7 @@ fn emulation_loop(cpu: &cpu::Cpu<mmu::MMU>,
             },
             _                   => {},
         }
-        println!("test");
 
-        thread::sleep_ms(1000);
+        thread::sleep_ms(1);
     }
 }

@@ -1,14 +1,16 @@
+use std::collections::HashMap;
 use std::sync::mpsc::{Sender, Receiver};
 extern crate sdl2;
 use self::sdl2::render::RenderDrawer;
 use self::sdl2::event::Event;
+use self::sdl2::keycode::KeyCode;
 use self::sdl2::rect::Rect;
 use self::sdl2::pixels::Color;
-use self::sdl2::keycode::KeyCode;
 
 use rustboylib::gpu::{SCREEN_W, SCREEN_H};
+use rustboylib::keypad::KeypadKey;
 use super::{EmulatorBackend, BackendMessage};
-use config::EmulatorAppConfig;
+use config::{EmulatorAppConfig, KeyboardBinding};
 use emulator::EmulationMessage;
 
 /// The SDL 2 backend, using rust-sdl2.
@@ -47,6 +49,7 @@ impl EmulatorBackend for BackendSDL2 {
         drawer.set_draw_color(Color::RGB(0, 0, 0));
         drawer.present();
         let mut events = context.event_pump();
+        let key_binds = get_key_bindings(&config.get_keyboard_binding());
 
         // Loop variables
         let mut paused = false;
@@ -56,7 +59,32 @@ impl EmulatorBackend for BackendSDL2 {
             // Event loop
             for event in events.poll_iter() {
                 match event {
-                    Event::Quit {..} => { paused = true; tx.send(Quit); },
+                    Event::Quit {..} => { paused = true; tx.send(Quit).unwrap(); },
+                    Event::KeyDown {keycode, ..} => match keycode {
+                        // quit
+                        KeyCode::Escape => { paused = true; tx.send(Quit).unwrap(); },
+                        // toggle pause
+                        KeyCode::Return => {
+                            tx.send(UpdateRunStatus(paused)).unwrap();
+                            paused = !paused;
+                        },
+                        _ => if !paused {
+                            match key_binds.get(&keycode) {
+                                Some(keypad_key) => {
+                                    tx.send(KeyDown(*keypad_key)).unwrap();
+                                },
+                                _                => {},
+                            }
+                        },
+                    },
+                    Event::KeyUp {keycode, ..} if !paused => {
+                        match key_binds.get(&keycode) {
+                            Some(keypad_key) => {
+                                tx.send(KeyUp(*keypad_key)).unwrap();
+                            },
+                            _                => {},
+                        }
+                    }
                     _ => continue,
                 }
             }
@@ -72,4 +100,32 @@ impl EmulatorBackend for BackendSDL2 {
 
         info!("terminating the main application thread.")
     }
+}
+
+/// Return the 'HashMap<KeyCode, KeypadKey>' translating between SDL 2 code keys
+/// and rustboylib's keypad keys, according to the given keyboard configuration.
+fn get_key_bindings(binding: &KeyboardBinding) -> HashMap<KeyCode, KeypadKey> {
+    let mut hm = HashMap::new();
+
+    hm.insert(KeyCode::S, KeypadKey::Down);
+    hm.insert(KeyCode::D, KeypadKey::Right);
+    hm.insert(KeyCode::G, KeypadKey::B);
+    hm.insert(KeyCode::Y, KeypadKey::A);
+    hm.insert(KeyCode::C, KeypadKey::Start);
+
+    match *binding {
+        KeyboardBinding::QWERTY => {
+            hm.insert(KeyCode::W, KeypadKey::Up);
+            hm.insert(KeyCode::A, KeypadKey::Left);
+            hm.insert(KeyCode::Z, KeypadKey::Select);
+        },
+        KeyboardBinding::AZERTY => {
+            hm.insert(KeyCode::Z, KeypadKey::Up);
+            hm.insert(KeyCode::Q, KeypadKey::Left);
+            hm.insert(KeyCode::W, KeypadKey::Select);
+        }
+    }
+
+    assert_eq!(hm.len(), 8);
+    hm
 }

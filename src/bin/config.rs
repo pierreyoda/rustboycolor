@@ -15,13 +15,21 @@ macro_rules! config_set_param {
 }
 macro_rules! config_get_param {
     ($getter_name: ident, $param_name: ident, $param_type: ty) => (
-        pub fn $getter_name(&self) -> $param_type { self.$param_name }
+        pub fn $getter_name(&self) -> $param_type { self.$param_name.clone() }
     )
+}
+
+/// Enumerates the supported keyboard bindings for the virtual keypad.
+/// TODO : add a Custom(...file?...) type, loaded from a file
+#[derive(Clone, Debug)]
+pub enum KeyboardBinding {
+    QWERTY,
+    AZERTY,
 }
 
 /// Structure facilitating the configuration and creation of the emulation
 /// application.
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct EmulatorAppConfig {
     /// The title of the emulator window.
     window_title        : &'static str,
@@ -36,6 +44,8 @@ pub struct EmulatorAppConfig {
     /// If true, the application will override the desired display size to
     /// respect the GB's aspect ratio.
     window_force_aspect : bool,
+    /// The keyboard configuration. QWERTY by default.
+    keyboard_binding    : KeyboardBinding,
 }
 
 impl EmulatorAppConfig {
@@ -60,6 +70,7 @@ impl EmulatorAppConfig {
             window_width: SCREEN_W as u16 * 2,
             window_height: SCREEN_H as u16 * 2,
             window_force_aspect: true,
+            keyboard_binding: KeyboardBinding::QWERTY,
         }
     }
 
@@ -72,7 +83,11 @@ impl EmulatorAppConfig {
 
     config_set_param!(title, window_title, &'static str);
     config_get_param!(get_title, window_title, &'static str);
+
     config_set_param!(width, window_width, u16);
     config_set_param!(height, window_height, u16);
     config_set_param!(force_aspect, window_force_aspect, bool);
+
+    config_set_param!(keyboard_binding, keyboard_binding, KeyboardBinding);
+    config_get_param!(get_keyboard_binding, keyboard_binding, KeyboardBinding);
 }
