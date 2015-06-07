@@ -1,6 +1,7 @@
 use std::path::Path;
 use std::sync::mpsc::{channel, Sender, Receiver};
 use std::thread;
+use super::time::{Duration, SteadyTime};
 
 use rustboylib;
 use rustboylib::{cpu, mmu, mbc};
@@ -53,10 +54,11 @@ impl<'a> EmulatorApplication<'a> {
             let mut mmu = mmu::MMU::new(mbc);
             let mut cpu = cpu::Cpu::<mmu::MMU>::new(mmu);
             emulation_loop(&mut cpu, tx_vm, rx_vm);
-         });
+        });
 
         // UI loop, in the emulator's thread (should be the main thread)
         self.backend.run(self.config.clone(), tx_ui, rx_ui);
+
         true
     }
 }
@@ -70,6 +72,9 @@ fn emulation_loop(cpu: &cpu::Cpu<mmu::MMU>,
     info!("starting the emulation thread.");
 
     let mut running = true;
+    // target CPU clock cycles per second
+    // 1 machine cycle = 4 clock cycles
+    //let cpu_cycles_per_s = ()
 
     'vm: loop {
         // Signals from the UI
@@ -77,10 +82,10 @@ fn emulation_loop(cpu: &cpu::Cpu<mmu::MMU>,
             Ok(backend_message) => match backend_message {
                 UpdateRunStatus(run) => running = run,
                 KeyDown(key)         => {
-                    println!("{:?}", key);
+                    println!("key down {:?}", key);
                 },
                 KeyUp(key)           => {
-                    println!("{:?}", key);
+                    println!("key up {:?}", key);
                 },
                 Step                 => {},
                 Reset                => {},

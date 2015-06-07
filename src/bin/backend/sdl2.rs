@@ -51,8 +51,10 @@ impl EmulatorBackend for BackendSDL2 {
         let mut events = context.event_pump();
         let key_binds = get_key_bindings(&config.get_keyboard_binding());
 
-        // Loop variables
+        // is the emulation paused ?
         let mut paused = false;
+        // avoid spamming 'Event::KeyDown' events for the same key
+        let mut last_key: Option<KeyCode> = None;
 
         // Main loop
         'ui: loop {
@@ -60,22 +62,30 @@ impl EmulatorBackend for BackendSDL2 {
             for event in events.poll_iter() {
                 match event {
                     Event::Quit {..} => { paused = true; tx.send(Quit).unwrap(); },
-                    Event::KeyDown {keycode, ..} => match keycode {
-                        // quit
-                        KeyCode::Escape => { paused = true; tx.send(Quit).unwrap(); },
-                        // toggle pause
-                        KeyCode::Return => {
-                            tx.send(UpdateRunStatus(paused)).unwrap();
-                            paused = !paused;
-                        },
-                        _ => if !paused {
-                            match key_binds.get(&keycode) {
-                                Some(keypad_key) => {
-                                    tx.send(KeyDown(*keypad_key)).unwrap();
-                                },
-                                _                => {},
+                    Event::KeyDown {keycode, ..} => {
+                        if !last_key.is_none() && keycode == last_key.unwrap() {
+                            continue;
+                        }
+                        match keycode {
+                            // quit
+                            KeyCode::Escape => {
+                                paused = true; tx.send(Quit).unwrap();
+                            },
+                            // toggle pause
+                            KeyCode::Return => {
+                                tx.send(UpdateRunStatus(paused)).unwrap();
+                                paused = !paused;
+                            },
+                            _ => if !paused {
+                                match key_binds.get(&keycode) {
+                                    Some(keypad_key) => {
+                                        tx.send(KeyDown(*keypad_key)).unwrap();
+                                    },
+                                    _                => {},
+                                }
                             }
-                        },
+                        }
+                        last_key = Some(keycode);
                     },
                     Event::KeyUp {keycode, ..} if !paused => {
                         match key_binds.get(&keycode) {
@@ -83,6 +93,9 @@ impl EmulatorBackend for BackendSDL2 {
                                 tx.send(KeyUp(*keypad_key)).unwrap();
                             },
                             _                => {},
+                        }
+                        if !last_key.is_none() && keycode == last_key.unwrap() {
+                            last_key = None;
                         }
                     }
                     _ => continue,
