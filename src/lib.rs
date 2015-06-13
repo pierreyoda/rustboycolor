@@ -4,6 +4,7 @@ extern crate log;
 mod bios;
 pub mod cpu;
 pub mod gpu;
+pub mod irq;
 pub mod keypad;
 pub mod memory;
 pub mod mbc;

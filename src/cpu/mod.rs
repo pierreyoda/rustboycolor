@@ -4,8 +4,12 @@
 mod ops;
 mod cb_ops;
 
+use irq::{Interrupt, INTERRUPT_FLAG_ADDRESS, INTERRUPT_ENABLE_ADDRESS};
 use memory::Memory;
 use registers::{Registers, Z_FLAG, N_FLAG, H_FLAG, C_FLAG};
+
+/// The CPU clock speed for the Game Boy (Classic), in Hz.
+pub const CPU_CLOCK_SPEED: u32 = 4_194_304;
 
 /// The type used to count the CPU's machine cycles.
 pub type CycleType = u64;
@@ -14,14 +18,16 @@ pub type CycleType = u64;
 pub struct Cpu<M> {
     /// The number of CPU cycles spent since the start of the emulation.
     cycles: CycleType,
-    pub halt: bool,
-    pub stop: bool,
+    /// Is the CPU execution halted ?
+    pub halted: bool,
     /// The CPU's registers.
     pub regs: Registers,
     /// The memory on which the CPU operates.
     pub mem: M,
     /// Interrupt master enable switch.
     pub ime: bool,
+    /// Interrupt flag register before CPU HALT.
+    pub if_reg_before_halt: u8,
     /// The opcode currently executed.
     opcode: u8,
     /// The dispatching array used for instruction decoding.
@@ -36,11 +42,11 @@ impl<M> Cpu<M> where M: Memory {
     pub fn new(mem: M) -> Cpu<M> {
         Cpu {
             cycles: 0,
-            halt: false,
-            stop: false,
+            halted: false,
             regs: Registers::new(),
             mem: mem,
             ime: true,
+            if_reg_before_halt: 0x00,
             opcode: 0x0,
             dispatch_array: dispatch_array(),
             cb_dispatch_array: cb_dispatch_array(),
@@ -65,10 +71,42 @@ impl<M> Cpu<M> where M: Memory {
         w
     }
 
-    /// Fetch, decode and execute a new instruction.
-    pub fn step(&mut self) {
+    /// Advance the CPU simulation and return the number of CPU machine cycles
+    /// spent.
+    pub fn step(&mut self) -> CycleType {
+        if self.halted {
+            // if any interrupt occured, resume execution
+            let if_reg = self.mem.read_byte(INTERRUPT_FLAG_ADDRESS);
+            if self.if_reg_before_halt != if_reg { self.halted = false; }
+            return 1; // NOP
+        }
+        let mut step_cycles = self.handle_interrupt();
         self.opcode = self.fetch_byte();
-        self.cycles += self.dispatch_array[self.opcode as usize](self);
+        step_cycles = self.dispatch_array[self.opcode as usize](self);
+        self.cycles += step_cycles;
+        step_cycles
+    }
+
+    fn handle_interrupt(&mut self) -> CycleType {
+        if !self.ime { return 0; }
+        let ie_reg = self.mem.read_byte(INTERRUPT_ENABLE_ADDRESS);
+        let if_reg = self.mem.read_byte(INTERRUPT_FLAG_ADDRESS);
+        let interrupts = ie_reg & if_reg;
+        if interrupts == 0x00 { return 0; }
+        // check the interrupts by order of priority
+        for i in 0..5 {
+            let interrupt_vector = match Interrupt::from_u8(
+                interrupts & (1 << i)) {
+                Some(interrupt) => interrupt.address(),
+                None            => continue,
+            };
+            self.mem.write_byte(interrupt_vector, interrupts & !(1 << i));
+            self.ime = false;
+            self.cpu_call(interrupt_vector);
+        }
+
+        // TO CHECK : cycles count
+        0
     }
 
     /// Called when encountering the '0xCB' prefix.
@@ -81,17 +119,17 @@ impl<M> Cpu<M> where M: Memory {
     /// Called when an unknown opcode is encountered.
     /// TODO improved behavior
     pub fn opcode_unknown(&mut self) -> CycleType {
-        println!("CPU : unknown opcode 0x{:0>2X} ; stopping",
+        warn!("CPU : unknown opcode 0x{:0>2X} ; halting",
                  self.opcode);
-        self.stop = true;
+        self.halted = true;
         0
     }
     /// Called when an unknown CB-prefixed opcode is encountered.
     /// TODO improved behavior
     pub fn cb_opcode_unknown(&mut self) -> CycleType {
-        println!("CPU : unknown opcode 0xCB{:0>2X} ; stopping",
+        warn!("CPU : unknown opcode 0xCB{:0>2X} ; halting",
                  self.opcode);
-        self.stop = true;
+        self.halted = true;
         0
     }
 

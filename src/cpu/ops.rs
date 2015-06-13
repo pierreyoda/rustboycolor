@@ -1,4 +1,5 @@
 use super::{Cpu, CycleType};
+use irq::INTERRUPT_FLAG_ADDRESS;
 use memory::Memory;
 use registers::{Z_FLAG, N_FLAG, H_FLAG, C_FLAG};
 
@@ -71,14 +72,14 @@ impl<M> Cpu<M> where M: Memory {
     }
 
     pub fn STOP(&mut self) -> CycleType {
-        // The correct instruction seems to be 'STOP 0'
-        self.regs.pc += 1;
-        self.stop = true;
+        // CGB speed switch instruction : TODO
+        warn!("CPU 'STOP' : unimplemented");
         1
     }
 
     pub fn HALT(&mut self) -> CycleType {
-        self.halt = true;
+        self.if_reg_before_halt = self.mem.read_byte(INTERRUPT_FLAG_ADDRESS);
+        self.halted = true;
         1
     }
 

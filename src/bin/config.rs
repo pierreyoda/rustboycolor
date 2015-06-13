@@ -7,6 +7,7 @@ use super::emulator::EmulatorApplication;
 // Macros to avoid boilerplate functions code.
 macro_rules! config_set_param {
     ($setter_name: ident, $param_name: ident, $param_type: ty) => (
+        #[allow(dead_code)]
         pub fn $setter_name(mut self, $param_name: $param_type)
             -> EmulatorAppConfig {
             self.$param_name = $param_name; self

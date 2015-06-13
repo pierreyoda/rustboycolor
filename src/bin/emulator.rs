@@ -1,9 +1,8 @@
 use std::path::Path;
 use std::sync::mpsc::{channel, Sender, Receiver};
 use std::thread;
-use super::time::{Duration, SteadyTime};
+//use super::time::{Duration, SteadyTime};
 
-use rustboylib;
 use rustboylib::{cpu, mmu, mbc};
 use super::backend::{EmulatorBackend, BackendMessage};
 use super::config::EmulatorAppConfig;
@@ -51,7 +50,7 @@ impl<'a> EmulatorApplication<'a> {
             },
         };
         thread::spawn(move || {
-            let mut mmu = mmu::MMU::new(mbc);
+            let mmu = mmu::MMU::new(mbc);
             let mut cpu = cpu::Cpu::<mmu::MMU>::new(mmu);
             emulation_loop(&mut cpu, tx_vm, rx_vm);
         });

@@ -14,15 +14,16 @@ mod mbc0;
 mod mbc1;
 
 /// Allows to access information stored in the cartridge header.
+#[allow(non_camel_case_types)]
 pub enum CartridgeHeader {
-    MBC_TYPE,
-    ROM_SIZE,
-    RAM_SIZE,
+    MBC_Type,
+    ROM_Size,
+    RAM_Size,
     /// Destination code : 0x00 for Japan market, 0x01 otherwise.
-    DESTINATION,
+    DestinationCode,
     /// Licensee (publisher) code. If equals to 0x33, the new format will
     /// be used instead (in range 0x144...0x0145).
-    LICENSEE_OLD,
+    LicenseeCodeOld,
 }
 
 impl CartridgeHeader {
@@ -31,17 +32,17 @@ impl CartridgeHeader {
     /// unsupported.
     pub fn address(header_info: CartridgeHeader) -> Option<usize> {
         match header_info {
-            MBC_TYPE => Some(0x0147),
-            ROM_SIZE => Some(0x0148),
-            RAM_SIZE => Some(0x0149),
-            DESTINATION => Some(0x014A),
-            LICENSEE_OLD => Some(0x014B),
+            MBC_Type => Some(0x0147),
+            ROM_Size => Some(0x0148),
+            RAM_Size => Some(0x0149),
+            DestinationCode => Some(0x014A),
+            LicenseeCodeOld => Some(0x014B),
         }
     }
 
     /// Return the RAM size in the given ROM file.
     pub fn ram_size(rom: &Vec<u8>) -> usize {
-        match rom[CartridgeHeader::address(RAM_SIZE).unwrap()] {
+        match rom[CartridgeHeader::address(RAM_Size).unwrap()] {
             // 2 KB
             0x01 => 0x0800,
             // 8 KB
@@ -73,7 +74,7 @@ pub fn load_cartridge(filepath: &Path) -> ::ResultStr<Box<MBC+Send>> {
     let mut data = Vec::<u8>::new();
     try!(File::open(filepath).and_then(|mut f| f.read_to_end(&mut data))
          .map_err(|_| "could not load the file as a gameboy ROM"));
-    match data[CartridgeHeader::address(MBC_TYPE).unwrap()] {
+    match data[CartridgeHeader::address(MBC_Type).unwrap()] {
         // MBC0 : no MBC
         0x00 => {
             info!("MBC used by the cartridge : none.");

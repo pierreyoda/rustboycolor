@@ -27,6 +27,10 @@ pub struct MMU {
     wram: [u8; WRAM_SIZE],
     ///'Zero-page' RAM of 128 bytes.
     zram: [u8; ZRAM_SIZE],
+    /// Interrupt Enable Register.
+    ie_reg: u8,
+    /// Interrupt Flag Register.
+    if_reg: u8,
 }
 
 impl MMU {
@@ -38,6 +42,8 @@ impl MMU {
             mbc: mbc,
             wram: [0x0; WRAM_SIZE],
             zram: [0x0; ZRAM_SIZE],
+            ie_reg: 0x00,
+            if_reg: 0x00,
         }
     }
 }
@@ -72,9 +78,14 @@ impl Memory for MMU {
             0xC000 ... 0xFDFF => self.wram[a & 0x1FFF],
             // GPU : Object Attribute Memory
             0xFE00 ... 0xFE9F => self.gpu.read_byte(address),
-            // TODO : I/O + interrupts
+            // not usable
+            0xFEA0 ... 0xFEFF => 0x00,
+            // I/O ports : TODO
+            0xFF0F            => self.if_reg,
             // Zero-page RAM
-            0xFF80 ... 0xFFFF => self.zram[a & 0x7F],
+            0xFF80 ... 0xFFFE => self.zram[a & 0x7F],
+            // Interrupt Enable Register
+            0xFFFF            => self.ie_reg,
             _ => 0,
         }
     }
@@ -84,17 +95,14 @@ impl Memory for MMU {
         match a {
             // cartridge ROM
             0x0000 ... 0x7FFF => self.mbc.rom_control(address, byte),
-            // GPU : background and sprite data
             0x8000 ... 0x9FFF => self.gpu.write_byte(address, byte),
-            // cartridge external RAM
             0xA000 ... 0xBFFF => self.mbc.ram_write(address, byte),
-            // working ram and its echo
             0xC000 ... 0xFDFF => self.wram[a & 0x1FFF] = byte,
-            // GPU : Object Attribute Memory
             0xFE00 ... 0xFE9F => self.gpu.write_byte(address, byte),
-            // TODO : I/O + interrupts
-            // Zero-page RAM
-            0xFF80 ... 0xFFFF => self.zram[a & 0x7F] = byte,
+            0xFEA0 ... 0xFEFF => {},
+            0xFF0F            => self.if_reg = byte,
+            0xFF80 ... 0xFFFE => self.zram[a & 0x7F] = byte,
+            0xFFFF            => self.ie_reg = byte,
             _ => (),
         }
     }

@@ -25,7 +25,7 @@ impl MBC1 {
             return Err("MBC1 does not support more than 2MB of ROM");
         }
 
-        let ram_size: usize = match data[CartridgeHeader::address(MBC_TYPE).unwrap()] {
+        let ram_size: usize = match data[CartridgeHeader::address(MBC_Type).unwrap()] {
             // RAM
             0x02 => CartridgeHeader::ram_size(&data),
             // RAM+BATTERY

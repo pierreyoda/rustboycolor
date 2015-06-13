@@ -1,7 +1,6 @@
 use std::collections::HashMap;
 use std::sync::mpsc::{Sender, Receiver};
 extern crate sdl2;
-use self::sdl2::render::RenderDrawer;
 use self::sdl2::event::Event;
 use self::sdl2::keycode::KeyCode;
 use self::sdl2::rect::Rect;
