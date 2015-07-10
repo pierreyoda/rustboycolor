@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::sync::mpsc::{Sender, Receiver};
 extern crate sdl2;
 use self::sdl2::event::Event;
-use self::sdl2::keycode::KeyCode;
+use self::sdl2::keyboard::Keycode;
 use self::sdl2::rect::Rect;
 use self::sdl2::pixels::Color;
 
@@ -44,16 +44,15 @@ impl EmulatorBackend for BackendSDL2 {
                 return;
             },
         };
-        let mut drawer = renderer.drawer();
-        drawer.set_draw_color(Color::RGB(0, 0, 0));
-        drawer.present();
+        renderer.set_draw_color(Color::RGB(0, 0, 0));
+        renderer.present();
         let mut events = context.event_pump();
         let key_binds = get_key_bindings(&config.get_keyboard_binding());
 
         // is the emulation paused ?
         let mut paused = false;
         // avoid spamming 'Event::KeyDown' events for the same key
-        let mut last_key: Option<KeyCode> = None;
+        let mut last_key: Option<Keycode> = None;
 
         // Main loop
         'ui: loop {
@@ -61,17 +60,17 @@ impl EmulatorBackend for BackendSDL2 {
             for event in events.poll_iter() {
                 match event {
                     Event::Quit {..} => { paused = true; tx.send(Quit).unwrap(); },
-                    Event::KeyDown {keycode, ..} => {
+                    Event::KeyDown { keycode: Some(keycode), ..} => {
                         if !last_key.is_none() && keycode == last_key.unwrap() {
                             continue;
                         }
                         match keycode {
                             // quit
-                            KeyCode::Escape => {
+                            Keycode::Escape => {
                                 paused = true; tx.send(Quit).unwrap();
                             },
                             // toggle pause
-                            KeyCode::Return => {
+                            Keycode::Return => {
                                 tx.send(UpdateRunStatus(paused)).unwrap();
                                 paused = !paused;
                             },
@@ -86,7 +85,7 @@ impl EmulatorBackend for BackendSDL2 {
                         }
                         last_key = Some(keycode);
                     },
-                    Event::KeyUp {keycode, ..} if !paused => {
+                    Event::KeyUp { keycode: Some(keycode), ..} if !paused => {
                         match key_binds.get(&keycode) {
                             Some(keypad_key) => {
                                 tx.send(KeyUp(*keypad_key)).unwrap();
@@ -114,27 +113,27 @@ impl EmulatorBackend for BackendSDL2 {
     }
 }
 
-/// Return the 'HashMap<KeyCode, KeypadKey>' translating between SDL 2 code keys
+/// Return the 'HashMap<Keycode, KeypadKey>' translating between SDL 2 code keys
 /// and rustboylib's keypad keys, according to the given keyboard configuration.
-fn get_key_bindings(binding: &KeyboardBinding) -> HashMap<KeyCode, KeypadKey> {
+fn get_key_bindings(binding: &KeyboardBinding) -> HashMap<Keycode, KeypadKey> {
     let mut hm = HashMap::new();
 
-    hm.insert(KeyCode::S, KeypadKey::Down);
-    hm.insert(KeyCode::D, KeypadKey::Right);
-    hm.insert(KeyCode::G, KeypadKey::B);
-    hm.insert(KeyCode::Y, KeypadKey::A);
-    hm.insert(KeyCode::C, KeypadKey::Start);
+    hm.insert(Keycode::S, KeypadKey::Down);
+    hm.insert(Keycode::D, KeypadKey::Right);
+    hm.insert(Keycode::G, KeypadKey::B);
+    hm.insert(Keycode::Y, KeypadKey::A);
+    hm.insert(Keycode::C, KeypadKey::Start);
 
     match *binding {
         KeyboardBinding::QWERTY => {
-            hm.insert(KeyCode::W, KeypadKey::Up);
-            hm.insert(KeyCode::A, KeypadKey::Left);
-            hm.insert(KeyCode::Z, KeypadKey::Select);
+            hm.insert(Keycode::W, KeypadKey::Up);
+            hm.insert(Keycode::A, KeypadKey::Left);
+            hm.insert(Keycode::Z, KeypadKey::Select);
         },
         KeyboardBinding::AZERTY => {
-            hm.insert(KeyCode::Z, KeypadKey::Up);
-            hm.insert(KeyCode::Q, KeypadKey::Left);
-            hm.insert(KeyCode::W, KeypadKey::Select);
+            hm.insert(Keycode::Z, KeypadKey::Up);
+            hm.insert(Keycode::Q, KeypadKey::Left);
+            hm.insert(Keycode::W, KeypadKey::Select);
         }
     }
 
