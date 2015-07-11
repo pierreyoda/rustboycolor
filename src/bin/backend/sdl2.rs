@@ -9,7 +9,8 @@ use self::sdl2::pixels::Color;
 use rustboylib::gpu::{SCREEN_W, SCREEN_H};
 use rustboylib::keypad::KeypadKey;
 use super::{EmulatorBackend, BackendMessage};
-use config::{EmulatorAppConfig, KeyboardBinding};
+use config::EmulatorAppConfig;
+use input::{KeyboardBinding, get_key_bindings};
 use emulator::EmulationMessage;
 
 /// The SDL 2 backend, using rust-sdl2.
@@ -22,6 +23,15 @@ impl EmulatorBackend for BackendSDL2 {
         use backend::BackendMessage::*;
 
         info!("starting the main application thread.");
+
+        // Input bindings
+        let key_binds = match get_key_bindings::<Keycode>(
+            config.get_keyboard_binding(), keycode_from_symbol_hm()) {
+            Ok(hm) => hm,
+            Err(why) => { error!("SDL2 backend input : {}", why); return },
+        };
+
+        // Window size
         let (scale_h, scale_v) = config.compute_display_scale();
         let w = (SCREEN_W as u32) * (scale_h as u32);
         let h = (SCREEN_H as u32) * (scale_v as u32);
@@ -47,7 +57,6 @@ impl EmulatorBackend for BackendSDL2 {
         renderer.set_draw_color(Color::RGB(0, 0, 0));
         renderer.present();
         let mut events = context.event_pump();
-        let key_binds = get_key_bindings(&config.get_keyboard_binding());
 
         // is the emulation paused ?
         let mut paused = false;
@@ -113,30 +122,39 @@ impl EmulatorBackend for BackendSDL2 {
     }
 }
 
-/// Return the 'HashMap<Keycode, KeypadKey>' translating between SDL 2 code keys
-/// and rustboylib's keypad keys, according to the given keyboard configuration.
-fn get_key_bindings(binding: &KeyboardBinding) -> HashMap<Keycode, KeypadKey> {
+pub fn keycode_from_symbol_hm() -> HashMap<String, Keycode> {
     let mut hm = HashMap::new();
 
-    hm.insert(Keycode::S, KeypadKey::Down);
-    hm.insert(Keycode::D, KeypadKey::Right);
-    hm.insert(Keycode::G, KeypadKey::B);
-    hm.insert(Keycode::Y, KeypadKey::A);
-    hm.insert(Keycode::C, KeypadKey::Start);
-
-    match *binding {
-        KeyboardBinding::QWERTY => {
-            hm.insert(Keycode::W, KeypadKey::Up);
-            hm.insert(Keycode::A, KeypadKey::Left);
-            hm.insert(Keycode::Z, KeypadKey::Select);
-        },
-        KeyboardBinding::AZERTY => {
-            hm.insert(Keycode::Z, KeypadKey::Up);
-            hm.insert(Keycode::Q, KeypadKey::Left);
-            hm.insert(Keycode::W, KeypadKey::Select);
-        }
+    hm.insert("Up".into(), Keycode::Up);
+    hm.insert("Down".into(), Keycode::Down);
+    hm.insert("Left".into(), Keycode::Left);
+    hm.insert("Right".into(), Keycode::Right);
+    hm.insert("Numpad0".into(), Keycode::Kp0);
+    hm.insert("Numpad1".into(), Keycode::Kp1);
+    hm.insert("Numpad2".into(), Keycode::Kp2);
+    hm.insert("Numpad3".into(), Keycode::Kp3);
+    hm.insert("Numpad4".into(), Keycode::Kp4);
+    hm.insert("Numpad5".into(), Keycode::Kp5);
+    hm.insert("Numpad6".into(), Keycode::Kp6);
+    hm.insert("Numpad7".into(), Keycode::Kp7);
+    hm.insert("Numpad8".into(), Keycode::Kp8);
+    hm.insert("Numpad9".into(), Keycode::Kp9);
+    hm.insert("NumpadPlus".into(), Keycode::KpPlus);
+    hm.insert("NumpadMinus".into(), Keycode::KpMinus);
+    // reference : https://wiki.libsdl.org/SDL_Keycode
+    // and : "keycode.rs" from https://github.com/AngryLawyer/rust-sdl2/
+    let mut sdl2_key_names = Vec::<String>::new();
+    for c in (b'A' .. b'Z'+1) {
+        sdl2_key_names.push((c as char).to_string());
+    }
+    for i in 1..13 { sdl2_key_names.push(format!("F{}", i)); } // F0-F12
+    for key_name in sdl2_key_names {
+        let key_code = match Keycode::from_name(&key_name[..]) {
+            Some(code) => code,
+            None => panic!("SDL2 backend : invalid keycode \"{}\"", key_name),
+        };
+        hm.insert(key_name.clone(), key_code);
     }
 
-    assert_eq!(hm.len(), 8);
     hm
 }

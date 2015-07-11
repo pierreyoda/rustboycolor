@@ -5,6 +5,7 @@ use std::sync::mpsc::{Sender, Receiver};
 use rustboylib::keypad::KeypadKey;
 use super::config::EmulatorAppConfig;
 use super::emulator::EmulationMessage;
+use super::input::KeyboardBinding;
 
 /// Message emitted by the backend UI loop to the emulation core.
 pub enum BackendMessage {

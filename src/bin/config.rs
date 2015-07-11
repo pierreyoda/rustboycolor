@@ -3,6 +3,7 @@ use std::cmp;
 use rustboylib::gpu::{SCREEN_W, SCREEN_H};
 use super::backend::EmulatorBackend;
 use super::emulator::EmulatorApplication;
+use super::input::KeyboardBinding;
 
 // Macros to avoid boilerplate functions code.
 macro_rules! config_set_param {
@@ -18,14 +19,6 @@ macro_rules! config_get_param {
     ($getter_name: ident, $param_name: ident, $param_type: ty) => (
         pub fn $getter_name(&self) -> $param_type { self.$param_name.clone() }
     )
-}
-
-/// Enumerates the supported keyboard bindings for the virtual keypad.
-/// TODO : add a Custom(...file?...) type, loaded from a file
-#[derive(Clone, Debug)]
-pub enum KeyboardBinding {
-    QWERTY,
-    AZERTY,
 }
 
 /// Structure facilitating the configuration and creation of the emulation
