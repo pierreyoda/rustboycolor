@@ -1,0 +1,11 @@
+[input]
+
+[input.keyboard]
+Up     = "Up"
+Down   = "Down"
+Left   = "Left"
+Right  = "Right"
+Select = "Numpad1"
+Start  = "Numpad3"
+A      = "E"
+B      = "T"

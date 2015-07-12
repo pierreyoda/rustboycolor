@@ -3,14 +3,12 @@ use std::sync::mpsc::{Sender, Receiver};
 extern crate sdl2;
 use self::sdl2::event::Event;
 use self::sdl2::keyboard::Keycode;
-use self::sdl2::rect::Rect;
 use self::sdl2::pixels::Color;
 
 use rustboylib::gpu::{SCREEN_W, SCREEN_H};
-use rustboylib::keypad::KeypadKey;
 use super::{EmulatorBackend, BackendMessage};
 use config::EmulatorAppConfig;
-use input::{KeyboardBinding, get_key_bindings};
+use input::get_key_bindings;
 use emulator::EmulationMessage;
 
 /// The SDL 2 backend, using rust-sdl2.
@@ -141,6 +139,8 @@ pub fn keycode_from_symbol_hm() -> HashMap<String, Keycode> {
     hm.insert("Numpad9".into(), Keycode::Kp9);
     hm.insert("NumpadPlus".into(), Keycode::KpPlus);
     hm.insert("NumpadMinus".into(), Keycode::KpMinus);
+    hm.insert("NumpadMultiply".into(), Keycode::KpMultiply);
+    hm.insert("NumpadDivide".into(), Keycode::KpDivide);
     // reference : https://wiki.libsdl.org/SDL_Keycode
     // and : "keycode.rs" from https://github.com/AngryLawyer/rust-sdl2/
     let mut sdl2_key_names = Vec::<String>::new();
@@ -157,4 +157,28 @@ pub fn keycode_from_symbol_hm() -> HashMap<String, Keycode> {
     }
 
     hm
+}
+
+#[cfg(test)]
+mod test {
+    use super::sdl2::keyboard::Keycode;
+    use rustboylib::keypad::KeypadKey;
+    use input::get_key_bindings;
+    use input::KeyboardBinding::FromConfigFile;
+
+    #[test]
+    fn test_keyboard_hm_from_config() {
+        let key_binds = get_key_bindings::<Keycode>(
+            FromConfigFile("tests/backend_input.toml".into()),
+                           super::keycode_from_symbol_hm())
+            .unwrap();
+        assert_eq!(*key_binds.get(&Keycode::Up).unwrap(), KeypadKey::Up);
+        assert_eq!(*key_binds.get(&Keycode::Down).unwrap(), KeypadKey::Down);
+        assert_eq!(*key_binds.get(&Keycode::Left).unwrap(), KeypadKey::Left);
+        assert_eq!(*key_binds.get(&Keycode::Right).unwrap(), KeypadKey::Right);
+        assert_eq!(*key_binds.get(&Keycode::Kp1).unwrap(), KeypadKey::Select);
+        assert_eq!(*key_binds.get(&Keycode::Kp3).unwrap(), KeypadKey::Start);
+        assert_eq!(*key_binds.get(&Keycode::E).unwrap(), KeypadKey::A);
+        assert_eq!(*key_binds.get(&Keycode::T).unwrap(), KeypadKey::B);
+    }
 }
