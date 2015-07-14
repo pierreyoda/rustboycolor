@@ -23,6 +23,30 @@ fn print_usage(opts: &getopts::Options) {
     println!("{}", opts.usage(&brief));
 }
 
+fn app_options_from_matches(matches: &getopts::Matches)
+    -> config::EmulatorAppConfig {
+
+    let config_file = match matches.opt_str("c") {
+        Some(file) => file,
+        None       => "config.toml".to_string(),
+    };
+    let keyboard_binding = match matches.opt_str("k") {
+        Some(binding) => match &binding[..] {
+            "QWERTY" => KeyboardBinding::QWERTY,
+            "AZERTY" => KeyboardBinding::AZERTY,
+            _        => {
+                warn!("Unkown keyboard binding '{}', reverting to QWERTY \
+                      or configuration file.", binding);
+                KeyboardBinding::FromConfigFile(config_file)
+            }
+        },
+        _             => KeyboardBinding::FromConfigFile(config_file),
+    };
+
+    config::EmulatorAppConfig::new()
+        .keyboard_binding(keyboard_binding)
+}
+
 fn main() {
     // Logger initialization
     match logger::init_console_logger() {
@@ -44,38 +68,22 @@ fn main() {
                 "");
     let matches = match opts.parse(&args[1..]) {
         Ok(m) => m,
-        Err(why) => panic!(why.to_string()),
+        Err(why) => { error!("{}", why); return; }
     };
     if matches.opt_present("h") {
         print_usage(&opts);
         return;
     }
-    let config_file = match matches.opt_str("c") {
-        Some(file) => file,
-        None => "config.toml".to_string(),
-    };
-    let keyboard_binding = match matches.opt_str("k") {
-        Some(binding) => match &binding[..] {
-            "QWERTY" => KeyboardBinding::QWERTY,
-            "AZERTY" => KeyboardBinding::AZERTY,
-            _ => {
-                warn!("Unkown keyboard binding '{}', reverting to QWERTY \
-                      or configuration file.", binding);
-                KeyboardBinding::FromConfigFile(config_file)
-            }
-        },
-        _ => KeyboardBinding::FromConfigFile(config_file),
-    };
+    println!("");
     let rom = if !matches.free.is_empty() { matches.free[0].clone() }
         else { print_usage(&opts); return; };
 
     // Application launch
     let rom_path = Path::new(&rom);
-    config::EmulatorAppConfig::new()
+    app_options_from_matches(&matches)
         .title("RustBoyColor - SDL 2")
         .width(800).height(600)
         .force_aspect(true)
-        .keyboard_binding(keyboard_binding)
         .create_with_backend(Box::new(sdl2::BackendSDL2))
         .run(&rom_path);
 }
