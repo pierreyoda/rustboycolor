@@ -3,7 +3,6 @@ use super::memory::Memory;
 use super::gpu::Gpu;
 use super::mbc::{MBC};
 
-const ERAM_SIZE: usize = 0x2000;
 const WRAM_SIZE: usize = 0x2000;
 const ZRAM_SIZE: usize = 0x0080;
 

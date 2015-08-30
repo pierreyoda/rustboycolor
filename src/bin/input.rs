@@ -33,7 +33,7 @@ impl fmt::Debug for KeyboardBinding {
     }
 }
 
-/// Get the 'Hashmap' translating between the emulator's 'KeypadKey' and the
+/// Get the 'HashMap' translating between the emulator's 'KeypadKey' and the
 /// backend's keycode type and corresponding to the given 'KeyboardBinding'.
 /// The given 'HashMap' provides the keycode corresponding to the associated
 /// symbol ; if it is not specified, the function fails.

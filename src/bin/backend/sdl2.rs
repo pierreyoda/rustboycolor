@@ -36,8 +36,9 @@ impl EmulatorBackend for BackendSDL2 {
         info!("display scale = ({}, {}).", scale_h, scale_v);
 
         // SDL 2 initialization
-        let mut context = sdl2::init().video().build().unwrap();
-        let window = match context.window(config.get_title(), w, h)
+        let sdl_context = sdl2::init().unwrap();
+        let video_subsystem = sdl_context.video().unwrap();
+        let window = match video_subsystem.window(config.get_title(), w, h)
             .position_centered().opengl().build() {
             Ok(window) => window,
             Err(why)   => {
@@ -54,7 +55,7 @@ impl EmulatorBackend for BackendSDL2 {
         };
         renderer.set_draw_color(Color::RGB(0, 0, 0));
         renderer.present();
-        let mut events = context.event_pump();
+        let mut events = sdl_context.event_pump().unwrap();
 
         // is the emulation paused ?
         let mut paused = false;
