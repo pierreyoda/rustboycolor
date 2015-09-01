@@ -7,7 +7,7 @@ use std::hash::Hash;
 
 use toml;
 
-use rustboylib::joypad::JoypadKey;
+use rustboylib::joypad::{JoypadKey, JOYPAD_KEYS};
 use self::KeyboardBinding::*;
 
 /// Enumerates the supported keyboard bindings for the virtual joypad.
@@ -61,11 +61,6 @@ pub fn get_key_bindings<Key>(binding: KeyboardBinding,
 
     Ok(hm)
 }
-
-
-/// All the keypad keys an input configuration must bind.
-static KEYPAD_KEYS: &'static [&'static str] = &["Up", "Down", "Right", "Left",
-    "A", "B", "Select", "Start"];
 
 fn build_keyboard_control_hm(binding: KeyboardBinding) ->
     Result<HashMap<String, JoypadKey>, String> {
@@ -128,7 +123,7 @@ fn keyboard_hm_from_config<'a>(config_str: &'a str, config_file: String)
         },
     };
 
-    for key in KEYPAD_KEYS {
+    for key in JOYPAD_KEYS.iter() {
         let key_symbol = match keyboard_input.lookup(key) {
             Some(value) => match *value {
                 toml::Value::String(ref s) => &s[..],

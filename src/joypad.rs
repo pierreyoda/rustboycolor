@@ -2,6 +2,10 @@ use super::memory::Memory;
 use self::JoypadKey::*;
 
 pub const JOYPAD_ADDRESS: u16 = 0xFF00;
+pub const JOYPAD_KEYS: [&'static str; 8] = ["Up", "Down", "Right", "Left",
+    "A", "B", "Select", "Start"];
+pub const JOYPAD_SELECT_DIRECTIONAL: u8 = 1 << 4;
+pub const JOYPAD_SELECT_BUTTON     : u8 = 1 << 5;
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum JoypadKey {
@@ -79,6 +83,7 @@ impl Joypad {
             B      => self.rows[1] &= 0x0D,
             A      => self.rows[1] &= 0x0E,
         }
+        // TODO : interrupt request
     }
 
     pub fn key_up(&mut self, key: &JoypadKey) {
@@ -109,9 +114,77 @@ impl Memory for Joypad {
         debug_assert!(address == JOYPAD_ADDRESS);
         // filter bits 4 and 5
         self.selection = match byte & 0x30 {
-            0x10 => 1, // bit 4 = row 1
-            0x20 => 2, // bit 5 = row 2
-            _ => 0,
+            JOYPAD_SELECT_DIRECTIONAL => 1, // bit 4 = row 1
+            JOYPAD_SELECT_BUTTON => 2, // bit 5 = row 2
+            0x00 => 0,
+            _ => unreachable!(),
         }
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::{Joypad, JoypadKey, JOYPAD_KEYS, JOYPAD_ADDRESS,
+        JOYPAD_SELECT_DIRECTIONAL, JOYPAD_SELECT_BUTTON};
+    use super::JoypadKey::*;
+    use super::super::memory::Memory;
+
+    #[test]
+    fn test_keys_from_str() {
+        assert_eq!(JoypadKey::from_str("Up"), Some(Up));
+        assert_eq!(JoypadKey::from_str("Down"), Some(Down));
+        assert_eq!(JoypadKey::from_str("Left"), Some(Left));
+        assert_eq!(JoypadKey::from_str("Right"), Some(Right));
+        assert_eq!(JoypadKey::from_str("Select"), Some(Select));
+        assert_eq!(JoypadKey::from_str("Start"), Some(Start));
+        assert_eq!(JoypadKey::from_str("A"), Some(A));
+        assert_eq!(JoypadKey::from_str("B"), Some(B));
+    }
+
+    #[test]
+    fn test_keys_down_and_up() {
+        let mut joypad = Joypad::new();
+        assert_eq!(joypad.read_byte(JOYPAD_ADDRESS), 0x00);
+
+        for key_str in JOYPAD_KEYS.iter() {
+            joypad.key_down(&JoypadKey::from_str(key_str).unwrap());
+        }
+        joypad.write_byte(JOYPAD_ADDRESS, JOYPAD_SELECT_DIRECTIONAL);
+        assert_eq!(joypad.read_byte(JOYPAD_ADDRESS), 0x00);
+        joypad.write_byte(JOYPAD_ADDRESS, JOYPAD_SELECT_BUTTON);
+        assert_eq!(joypad.read_byte(JOYPAD_ADDRESS), 0x00);
+
+        for key_str in JOYPAD_KEYS.iter() {
+            joypad.key_up(&JoypadKey::from_str(key_str).unwrap());
+        }
+        assert_eq!(joypad.read_byte(JOYPAD_ADDRESS), 0x0F);
+        joypad.write_byte(JOYPAD_ADDRESS, JOYPAD_SELECT_DIRECTIONAL);
+        assert_eq!(joypad.read_byte(JOYPAD_ADDRESS), 0x0F);
+    }
+
+    #[test]
+    fn test_key_sequence() {
+        let mut joypad = Joypad::new();
+        // up+right+A
+        joypad.key_down(&Up);
+        joypad.key_down(&Right);
+        joypad.key_down(&A);
+        joypad.write_byte(JOYPAD_ADDRESS, JOYPAD_SELECT_DIRECTIONAL);
+        assert_eq!(joypad.read_byte(JOYPAD_ADDRESS), 0b1010);
+        joypad.write_byte(JOYPAD_ADDRESS, JOYPAD_SELECT_BUTTON);
+        assert_eq!(joypad.read_byte(JOYPAD_ADDRESS), 0b1110);
+        // right+A+Start
+        joypad.key_up(&Up);
+        joypad.key_down(&Start);
+        assert_eq!(joypad.read_byte(JOYPAD_ADDRESS), 0b0110);
+        joypad.write_byte(JOYPAD_ADDRESS, JOYPAD_SELECT_DIRECTIONAL);
+        assert_eq!(joypad.read_byte(JOYPAD_ADDRESS), 0b1110);
+        // none
+        joypad.key_up(&Right);
+        joypad.key_up(&A);
+        joypad.key_up(&Start);
+        assert_eq!(joypad.read_byte(JOYPAD_ADDRESS), 0x0F);
+        joypad.write_byte(JOYPAD_ADDRESS, JOYPAD_SELECT_BUTTON);
+        assert_eq!(joypad.read_byte(JOYPAD_ADDRESS), 0x0F);
     }
 }
