@@ -2,7 +2,7 @@ pub mod sdl2;
 
 use std::sync::mpsc::{Sender, Receiver};
 
-use rustboylib::keypad::KeypadKey;
+use rustboylib::joypad::JoypadKey;
 use super::config::EmulatorAppConfig;
 use super::emulator::EmulationMessage;
 
@@ -11,9 +11,9 @@ pub enum BackendMessage {
     /// Set the emulation state (running for true, paused for false).
     UpdateRunStatus(bool),
     /// Notify that a key was pressed.
-    KeyDown(KeypadKey),
+    KeyDown(JoypadKey),
     /// Notify that a key was released.
-    KeyUp(KeypadKey),
+    KeyUp(JoypadKey),
     /// When the emulation is paused, perform a single step.
     Step,
     /// Reset the emulation.

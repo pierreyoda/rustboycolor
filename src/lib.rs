@@ -5,7 +5,7 @@ mod bios;
 pub mod cpu;
 pub mod gpu;
 pub mod irq;
-pub mod keypad;
+pub mod joypad;
 pub mod memory;
 pub mod mbc;
 pub mod mmu;

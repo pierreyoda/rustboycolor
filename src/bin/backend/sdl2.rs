@@ -163,7 +163,7 @@ pub fn keycode_from_symbol_hm() -> HashMap<String, Keycode> {
 #[cfg(test)]
 mod test {
     use super::sdl2::keyboard::Keycode;
-    use rustboylib::keypad::KeypadKey;
+    use rustboylib::joypad::JoypadKey;
     use input::get_key_bindings;
     use input::KeyboardBinding::FromConfigFile;
 
@@ -173,13 +173,13 @@ mod test {
             FromConfigFile("tests/backend_input.toml".into()),
                            super::keycode_from_symbol_hm())
             .unwrap();
-        assert_eq!(*key_binds.get(&Keycode::Up).unwrap(), KeypadKey::Up);
-        assert_eq!(*key_binds.get(&Keycode::Down).unwrap(), KeypadKey::Down);
-        assert_eq!(*key_binds.get(&Keycode::Left).unwrap(), KeypadKey::Left);
-        assert_eq!(*key_binds.get(&Keycode::Right).unwrap(), KeypadKey::Right);
-        assert_eq!(*key_binds.get(&Keycode::Kp1).unwrap(), KeypadKey::Select);
-        assert_eq!(*key_binds.get(&Keycode::Kp3).unwrap(), KeypadKey::Start);
-        assert_eq!(*key_binds.get(&Keycode::E).unwrap(), KeypadKey::A);
-        assert_eq!(*key_binds.get(&Keycode::T).unwrap(), KeypadKey::B);
+        assert_eq!(*key_binds.get(&Keycode::Up).unwrap(), JoypadKey::Up);
+        assert_eq!(*key_binds.get(&Keycode::Down).unwrap(), JoypadKey::Down);
+        assert_eq!(*key_binds.get(&Keycode::Left).unwrap(), JoypadKey::Left);
+        assert_eq!(*key_binds.get(&Keycode::Right).unwrap(), JoypadKey::Right);
+        assert_eq!(*key_binds.get(&Keycode::Kp1).unwrap(), JoypadKey::Select);
+        assert_eq!(*key_binds.get(&Keycode::Kp3).unwrap(), JoypadKey::Start);
+        assert_eq!(*key_binds.get(&Keycode::E).unwrap(), JoypadKey::A);
+        assert_eq!(*key_binds.get(&Keycode::T).unwrap(), JoypadKey::B);
     }
 }

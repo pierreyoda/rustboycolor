@@ -7,11 +7,10 @@ use std::hash::Hash;
 
 use toml;
 
-use rustboylib::keypad::KeypadKey;
+use rustboylib::joypad::JoypadKey;
 use self::KeyboardBinding::*;
 
-/// Enumerates the supported keyboard bindings for the virtual keypad.
-/// TODO : add a Custom(...file?...) type, loaded from a file
+/// Enumerates the supported keyboard bindings for the virtual joypad.
 #[derive(Clone, PartialEq)]
 pub enum KeyboardBinding {
     /// QWERTY binding (the default one).
@@ -33,7 +32,7 @@ impl fmt::Debug for KeyboardBinding {
     }
 }
 
-/// Get the 'HashMap' translating between the emulator's 'KeypadKey' and the
+/// Get the 'HashMap' translating between the emulator's 'JoypadKey' and the
 /// backend's keycode type and corresponding to the given 'KeyboardBinding'.
 /// The given 'HashMap' provides the keycode corresponding to the associated
 /// symbol ; if it is not specified, the function fails.
@@ -46,7 +45,7 @@ impl fmt::Debug for KeyboardBinding {
 /// "Up" / "Down" / "Left" / "Right"
 pub fn get_key_bindings<Key>(binding: KeyboardBinding,
                              symbol_backend_key_hm: HashMap<String, Key>)
-    -> Result<HashMap<Key, KeypadKey>, String>
+    -> Result<HashMap<Key, JoypadKey>, String>
     where Key: Hash+Eq+Copy {
     let mut hm = HashMap::new();
 
@@ -69,32 +68,32 @@ static KEYPAD_KEYS: &'static [&'static str] = &["Up", "Down", "Right", "Left",
     "A", "B", "Select", "Start"];
 
 fn build_keyboard_control_hm(binding: KeyboardBinding) ->
-    Result<HashMap<String, KeypadKey>, String> {
+    Result<HashMap<String, JoypadKey>, String> {
 
     match binding {
         QWERTY => {
             let mut hm = HashMap::new();
-            hm.insert("W".into(), KeypadKey::Up);
-            hm.insert("S".into(), KeypadKey::Down);
-            hm.insert("A".into(), KeypadKey::Left);
-            hm.insert("D".into(), KeypadKey::Right);
-            hm.insert("Z".into(), KeypadKey::Select);
-            hm.insert("C".into(), KeypadKey::Start);
-            hm.insert("G".into(), KeypadKey::A);
-            hm.insert("Y".into(), KeypadKey::B);
+            hm.insert("W".into(), JoypadKey::Up);
+            hm.insert("S".into(), JoypadKey::Down);
+            hm.insert("A".into(), JoypadKey::Left);
+            hm.insert("D".into(), JoypadKey::Right);
+            hm.insert("Z".into(), JoypadKey::Select);
+            hm.insert("C".into(), JoypadKey::Start);
+            hm.insert("G".into(), JoypadKey::A);
+            hm.insert("Y".into(), JoypadKey::B);
             assert_eq!(hm.len(), 8);
             Ok(hm)
         }
         AZERTY => {
             let mut hm = HashMap::new();
-            hm.insert("W".into(), KeypadKey::Up);
-            hm.insert("S".into(), KeypadKey::Down);
-            hm.insert("A".into(), KeypadKey::Left);
-            hm.insert("D".into(), KeypadKey::Right);
-            hm.insert("Z".into(), KeypadKey::Select);
-            hm.insert("C".into(), KeypadKey::Start);
-            hm.insert("G".into(), KeypadKey::A);
-            hm.insert("Y".into(), KeypadKey::B);
+            hm.insert("W".into(), JoypadKey::Up);
+            hm.insert("S".into(), JoypadKey::Down);
+            hm.insert("A".into(), JoypadKey::Left);
+            hm.insert("D".into(), JoypadKey::Right);
+            hm.insert("Z".into(), JoypadKey::Select);
+            hm.insert("C".into(), JoypadKey::Start);
+            hm.insert("G".into(), JoypadKey::A);
+            hm.insert("Y".into(), JoypadKey::B);
             assert_eq!(hm.len(), 8);
             Ok(hm)
         },
@@ -111,7 +110,7 @@ fn build_keyboard_control_hm(binding: KeyboardBinding) ->
 }
 
 fn keyboard_hm_from_config<'a>(config_str: &'a str, config_file: String)
-    -> Result<HashMap<String, KeypadKey>, String> {
+    -> Result<HashMap<String, JoypadKey>, String> {
     let mut hm = HashMap::new();
 
     let mut parser = toml::Parser::new(config_str);
@@ -138,14 +137,14 @@ fn keyboard_hm_from_config<'a>(config_str: &'a str, config_file: String)
             },
             None => return Err(format!("no key specified for \"{}\" in config", key)),
         };
-        hm.insert(key_symbol.into(), KeypadKey::from_str(key).unwrap());
+        hm.insert(key_symbol.into(), JoypadKey::from_str(key).unwrap());
     }
     Ok(hm)
 }
 
 #[cfg(test)]
 mod test {
-    use rustboylib::keypad::KeypadKey;
+    use rustboylib::joypad::JoypadKey;
 
     #[test]
     fn test_keyboard_hm_from_config() {
@@ -164,13 +163,13 @@ mod test {
         let r = super::keyboard_hm_from_config(config, "*test*".into());
         assert!(r.is_ok());
         let keys_hm = r.unwrap();
-        assert_eq!(*keys_hm.get("Up".into()).unwrap(), KeypadKey::Up);
-        assert_eq!(*keys_hm.get("Down".into()).unwrap(), KeypadKey::Down);
-        assert_eq!(*keys_hm.get("Left".into()).unwrap(), KeypadKey::Left);
-        assert_eq!(*keys_hm.get("Right".into()).unwrap(), KeypadKey::Right);
-        assert_eq!(*keys_hm.get("Numpad1".into()).unwrap(), KeypadKey::Select);
-        assert_eq!(*keys_hm.get("Numpad3".into()).unwrap(), KeypadKey::Start);
-        assert_eq!(*keys_hm.get("E".into()).unwrap(), KeypadKey::A);
-        assert_eq!(*keys_hm.get("T".into()).unwrap(), KeypadKey::B);
+        assert_eq!(*keys_hm.get("Up".into()).unwrap(), JoypadKey::Up);
+        assert_eq!(*keys_hm.get("Down".into()).unwrap(), JoypadKey::Down);
+        assert_eq!(*keys_hm.get("Left".into()).unwrap(), JoypadKey::Left);
+        assert_eq!(*keys_hm.get("Right".into()).unwrap(), JoypadKey::Right);
+        assert_eq!(*keys_hm.get("Numpad1".into()).unwrap(), JoypadKey::Select);
+        assert_eq!(*keys_hm.get("Numpad3".into()).unwrap(), JoypadKey::Start);
+        assert_eq!(*keys_hm.get("E".into()).unwrap(), JoypadKey::A);
+        assert_eq!(*keys_hm.get("T".into()).unwrap(), JoypadKey::B);
     }
 }
