@@ -63,10 +63,11 @@ impl<'a> EmulatorApplication<'a> {
 }
 
 /// Emulation loop leveraging the rustboylib crate to emulate a Game Boy (Color).
-fn emulation_loop(cpu: &cpu::Cpu<mmu::MMU>,
+fn emulation_loop(cpu: &mut cpu::Cpu<mmu::MMU>,
                   tx: Sender<EmulationMessage>, rx: Receiver<BackendMessage>) {
     use emulator::EmulationMessage::*;
     use backend::BackendMessage::*;
+    use rustboylib::memory::Memory;
 
     info!("starting the emulation thread.");
 
@@ -75,17 +76,16 @@ fn emulation_loop(cpu: &cpu::Cpu<mmu::MMU>,
     // 1 machine cycle = 4 clock cycles
     //let cpu_cycles_per_s = ()
 
+    let joypad = cpu.mem.get_joypad();
+    joypad.write_byte(0xFF00, 0x20); // 0x10 : direction / 0x20 : button
+
     'vm: loop {
         // Signals from the UI
         match rx.try_recv() {
             Ok(backend_message) => match backend_message {
                 UpdateRunStatus(run) => running = run,
-                KeyDown(key)         => {
-                    println!("key down {:?}", key);
-                },
-                KeyUp(key)           => {
-                    println!("key up {:?}", key);
-                },
+                KeyDown(key)         => joypad.key_down(&key),
+                KeyUp(key)           => joypad.key_up(&key),
                 Step                 => {},
                 Reset                => {},
                 Quit                 => {
@@ -98,6 +98,8 @@ fn emulation_loop(cpu: &cpu::Cpu<mmu::MMU>,
             _                   => {},
         }
 
-        thread::sleep_ms(1);
+        // input test
+        thread::sleep_ms(25);
+        println!("{:0>8b}", joypad.read_byte(0xFF00));
     }
 }

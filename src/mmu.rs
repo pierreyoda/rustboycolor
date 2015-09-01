@@ -2,6 +2,7 @@ use super::bios::GB_BIOS;
 use super::memory::Memory;
 use super::gpu::Gpu;
 use super::mbc::{MBC};
+use super::joypad::Joypad;
 
 const WRAM_SIZE: usize = 0x2000;
 const ZRAM_SIZE: usize = 0x0080;
@@ -22,6 +23,8 @@ pub struct MMU {
     gpu: Gpu,
     /// The MBC interfacing with the cartridge ROM and (optionally) RAM banks.
     mbc: Box<MBC + 'static>,
+    /// The joypad controller.
+    joypad: Joypad,
     /// 8K of internal working RAM.
     wram: [u8; WRAM_SIZE],
     ///'Zero-page' RAM of 128 bytes.
@@ -39,12 +42,15 @@ impl MMU {
             bios: &GB_BIOS,
             gpu: Gpu::new(),
             mbc: mbc,
+            joypad: Joypad::new(),
             wram: [0x0; WRAM_SIZE],
             zram: [0x0; ZRAM_SIZE],
             ie_reg: 0x00,
             if_reg: 0x00,
         }
     }
+
+    pub fn get_joypad(&mut self) -> &mut Joypad { &mut self.joypad }
 }
 
 // MMU implements the Memory trait to provide transparent interfacing
@@ -79,7 +85,9 @@ impl Memory for MMU {
             0xFE00 ... 0xFE9F => self.gpu.read_byte(address),
             // not usable
             0xFEA0 ... 0xFEFF => 0x00,
-            // I/O ports : TODO
+            // joypad
+            0xFF00            => self.joypad.read_byte(address),
+            // Interrupt Flag Register
             0xFF0F            => self.if_reg,
             // Zero-page RAM
             0xFF80 ... 0xFFFE => self.zram[a & 0x7F],
@@ -99,6 +107,7 @@ impl Memory for MMU {
             0xC000 ... 0xFDFF => self.wram[a & 0x1FFF] = byte,
             0xFE00 ... 0xFE9F => self.gpu.write_byte(address, byte),
             0xFEA0 ... 0xFEFF => {},
+            0xFF00            => self.joypad.write_byte(address, byte),
             0xFF0F            => self.if_reg = byte,
             0xFF80 ... 0xFFFE => self.zram[a & 0x7F] = byte,
             0xFFFF            => self.ie_reg = byte,
