@@ -90,7 +90,7 @@ fn emulation_loop(cpu: &cpu::Cpu<mmu::MMU>,
                 Reset                => {},
                 Quit                 => {
                     running = false;
-                    info!("terminating the virtual machine thread...");
+                    info!("terminating the emulation thread...");
                     tx.send(Finished).unwrap();
                     break 'vm;
                 },

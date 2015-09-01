@@ -164,9 +164,6 @@ mod test {
         let r = super::keyboard_hm_from_config(config, "*test*".into());
         assert!(r.is_ok());
         let keys_hm = r.unwrap();
-        for (k, v) in &keys_hm {
-            println!("{} = {:?}", k, v);
-        }
         assert_eq!(*keys_hm.get("Up".into()).unwrap(), KeypadKey::Up);
         assert_eq!(*keys_hm.get("Down".into()).unwrap(), KeypadKey::Down);
         assert_eq!(*keys_hm.get("Left".into()).unwrap(), KeypadKey::Left);

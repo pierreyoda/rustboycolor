@@ -6,7 +6,7 @@ pub const INTERRUPT_FLAG_ADDRESS: u16 = 0xFF0F;
 pub const INTERRUPT_ENABLE_ADDRESS: u16 = 0xFFFF;
 
 /// The different interrupts used in the Game Boy.
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, PartialEq)]
 #[allow(non_camel_case_types)]
 pub enum Interrupt {
     V_Blank  = 1 << 0,
@@ -38,5 +38,29 @@ impl Interrupt {
             Interrupt::Serial   => 0x58,
             Interrupt::Joypad   => 0x60,
         }
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::Interrupt;
+    use super::Interrupt::*;
+
+    #[test]
+    fn test_irq_address() {
+        assert_eq!(V_Blank.address(), 0x40);
+        assert_eq!(LCD_Stat.address(), 0x48);
+        assert_eq!(Timer.address(), 0x50);
+        assert_eq!(Serial.address(), 0x58);
+        assert_eq!(Joypad.address(), 0x60);
+    }
+
+    #[test]
+    fn test_irq_from_u8() {
+        assert_eq!(Interrupt::from_u8(1 << 0), Some(V_Blank));
+        assert_eq!(Interrupt::from_u8(1 << 1), Some(LCD_Stat));
+        assert_eq!(Interrupt::from_u8(1 << 2), Some(Timer));
+        assert_eq!(Interrupt::from_u8(1 << 3), Some(Serial));
+        assert_eq!(Interrupt::from_u8(1 << 4), Some(Joypad));
     }
 }

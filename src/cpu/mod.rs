@@ -100,7 +100,7 @@ impl<M> Cpu<M> where M: Memory {
                 Some(interrupt) => interrupt.address(),
                 None            => continue,
             };
-            self.mem.write_byte(interrupt_vector, interrupts & !(1 << i));
+            self.mem.write_byte(INTERRUPT_FLAG_ADDRESS, interrupts & !(1 << i));
             self.ime = false;
             self.cpu_call(interrupt_vector);
         }
