@@ -8,6 +8,13 @@ pub trait IrqHandler {
     fn request_interrupt(&mut self, interrupt: Interrupt);
 }
 
+/// Mock 'IrqHandler'.
+pub struct EmptyIrqHandler;
+
+impl IrqHandler for EmptyIrqHandler {
+    fn request_interrupt(&mut self, interrupt: Interrupt) {}
+}
+
 /// The different interrupts used in the Game Boy.
 #[derive(Copy, Clone, Debug, PartialEq)]
 #[allow(non_camel_case_types)]

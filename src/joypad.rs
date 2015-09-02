@@ -129,6 +129,7 @@ mod test {
         JOYPAD_SELECT_DIRECTIONAL, JOYPAD_SELECT_BUTTON};
     use super::JoypadKey::*;
     use super::super::memory::Memory;
+    use super::super::irq::EmptyIrqHandler;
 
     #[test]
     fn test_keys_from_str() {
@@ -144,11 +145,12 @@ mod test {
 
     #[test]
     fn test_keys_down_and_up() {
+        let mut irq_handler = EmptyIrqHandler;
         let mut joypad = Joypad::new();
         assert_eq!(joypad.read_byte(JOYPAD_ADDRESS), 0x00);
 
         for key_str in JOYPAD_KEYS.iter() {
-            joypad.key_down(&JoypadKey::from_str(key_str).unwrap());
+            joypad.key_down(&JoypadKey::from_str(key_str).unwrap(), &mut irq_handler);
         }
         joypad.write_byte(JOYPAD_ADDRESS, JOYPAD_SELECT_DIRECTIONAL);
         assert_eq!(joypad.read_byte(JOYPAD_ADDRESS), 0x00);
@@ -165,18 +167,19 @@ mod test {
 
     #[test]
     fn test_key_sequence() {
+        let mut irq_handler = EmptyIrqHandler;
         let mut joypad = Joypad::new();
         // up+right+A
-        joypad.key_down(&Up);
-        joypad.key_down(&Right);
-        joypad.key_down(&A);
+        joypad.key_down(&Up, &mut irq_handler);
+        joypad.key_down(&Right, &mut irq_handler);
+        joypad.key_down(&A, &mut irq_handler);
         joypad.write_byte(JOYPAD_ADDRESS, JOYPAD_SELECT_DIRECTIONAL);
         assert_eq!(joypad.read_byte(JOYPAD_ADDRESS), 0b1010);
         joypad.write_byte(JOYPAD_ADDRESS, JOYPAD_SELECT_BUTTON);
         assert_eq!(joypad.read_byte(JOYPAD_ADDRESS), 0b1110);
         // right+A+Start
         joypad.key_up(&Up);
-        joypad.key_down(&Start);
+        joypad.key_down(&Start, &mut irq_handler);
         assert_eq!(joypad.read_byte(JOYPAD_ADDRESS), 0b0110);
         joypad.write_byte(JOYPAD_ADDRESS, JOYPAD_SELECT_DIRECTIONAL);
         assert_eq!(joypad.read_byte(JOYPAD_ADDRESS), 0b1110);

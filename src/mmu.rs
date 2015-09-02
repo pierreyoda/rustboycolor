@@ -44,6 +44,12 @@ struct MachineIrqHandler {
     pub if_reg: u8,
 }
 
+impl MachineIrqHandler {
+    pub fn new() -> MachineIrqHandler {
+        MachineIrqHandler { ie_reg: 0x00, if_reg: 0x00 }
+    }
+}
+
 impl IrqHandler for MachineIrqHandler {
     fn request_interrupt(&mut self, interrupt: Interrupt) {
         self.if_reg |= interrupt as u8;
@@ -58,7 +64,7 @@ impl MMU {
             gpu: Gpu::new(),
             mbc: mbc,
             joypad: Joypad::new(),
-            irq_handler: MachineIrqHandler { ie_reg: 0x00, if_reg: 0x00 },
+            irq_handler: MachineIrqHandler::new(),
             wram: [0x0; WRAM_SIZE],
             zram: [0x0; ZRAM_SIZE],
         }
