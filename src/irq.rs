@@ -1,9 +1,12 @@
-/// Define the Game Boy interrupt requests sent to the CPU.
-
 /// Interrupt Flag Register memory address.
 pub const INTERRUPT_FLAG_ADDRESS: u16 = 0xFF0F;
-/// Interrupt Enable Register memory address
+/// Interrupt Enable Register memory address.
 pub const INTERRUPT_ENABLE_ADDRESS: u16 = 0xFFFF;
+
+/// Handler trait for Interrupt Requests.
+pub trait IrqHandler {
+    fn request_interrupt(&mut self, interrupt: Interrupt);
+}
 
 /// The different interrupts used in the Game Boy.
 #[derive(Copy, Clone, Debug, PartialEq)]

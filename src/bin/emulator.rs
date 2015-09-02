@@ -76,16 +76,15 @@ fn emulation_loop(cpu: &mut cpu::Cpu<mmu::MMU>,
     // 1 machine cycle = 4 clock cycles
     //let cpu_cycles_per_s = ()
 
-    let joypad = cpu.mem.get_joypad();
-    joypad.write_byte(0xFF00, 0x20); // 0x10 : direction / 0x20 : button
+    cpu.mem.write_byte(0xFF00, 0x20); // 0x10 : direction / 0x20 : button
 
     'vm: loop {
         // Signals from the UI
         match rx.try_recv() {
             Ok(backend_message) => match backend_message {
                 UpdateRunStatus(run) => running = run,
-                KeyDown(key)         => joypad.key_down(&key),
-                KeyUp(key)           => joypad.key_up(&key),
+                KeyDown(key)         => cpu.mem.key_down(&key),
+                KeyUp(key)           => cpu.mem.key_up(&key),
                 Step                 => {},
                 Reset                => {},
                 Quit                 => {
@@ -100,6 +99,6 @@ fn emulation_loop(cpu: &mut cpu::Cpu<mmu::MMU>,
 
         // input test
         thread::sleep_ms(25);
-        println!("{:0>8b}", joypad.read_byte(0xFF00));
+        println!("{:0>8b}", cpu.mem.read_byte(0xFF00));
     }
 }

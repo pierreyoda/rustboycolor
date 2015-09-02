@@ -1,8 +1,9 @@
+use super::irq::{Interrupt, IrqHandler};
 use super::bios::GB_BIOS;
 use super::memory::Memory;
 use super::gpu::Gpu;
 use super::mbc::{MBC};
-use super::joypad::Joypad;
+use super::joypad::{Joypad, JoypadKey};
 
 const WRAM_SIZE: usize = 0x2000;
 const ZRAM_SIZE: usize = 0x0080;
@@ -25,14 +26,28 @@ pub struct MMU {
     mbc: Box<MBC + 'static>,
     /// The joypad controller.
     joypad: Joypad,
+    /// Interrupt Request handler.
+    irq_handler: MachineIrqHandler,
     /// 8K of internal working RAM.
     wram: [u8; WRAM_SIZE],
     ///'Zero-page' RAM of 128 bytes.
     zram: [u8; ZRAM_SIZE],
+}
+
+/// MMU subcomponent passed around to throw interrupt requests from various
+/// components, who should use the 'request_interrupt' method and not directly
+/// manipulate the registers.
+struct MachineIrqHandler {
     /// Interrupt Enable Register.
-    ie_reg: u8,
+    pub ie_reg: u8,
     /// Interrupt Flag Register.
-    if_reg: u8,
+    pub if_reg: u8,
+}
+
+impl IrqHandler for MachineIrqHandler {
+    fn request_interrupt(&mut self, interrupt: Interrupt) {
+        self.if_reg |= interrupt as u8;
+    }
 }
 
 impl MMU {
@@ -43,14 +58,19 @@ impl MMU {
             gpu: Gpu::new(),
             mbc: mbc,
             joypad: Joypad::new(),
+            irq_handler: MachineIrqHandler { ie_reg: 0x00, if_reg: 0x00 },
             wram: [0x0; WRAM_SIZE],
             zram: [0x0; ZRAM_SIZE],
-            ie_reg: 0x00,
-            if_reg: 0x00,
         }
     }
 
-    pub fn get_joypad(&mut self) -> &mut Joypad { &mut self.joypad }
+    pub fn key_down(&mut self, key: &JoypadKey) {
+        self.joypad.key_down(key, &mut self.irq_handler);
+    }
+
+    pub fn key_up(&mut self, key: &JoypadKey) {
+        self.joypad.key_up(key);
+    }
 }
 
 // MMU implements the Memory trait to provide transparent interfacing
@@ -88,11 +108,11 @@ impl Memory for MMU {
             // joypad
             0xFF00            => self.joypad.read_byte(address),
             // Interrupt Flag Register
-            0xFF0F            => self.if_reg,
+            0xFF0F            => self.irq_handler.if_reg,
             // Zero-page RAM
             0xFF80 ... 0xFFFE => self.zram[a & 0x7F],
             // Interrupt Enable Register
-            0xFFFF            => self.ie_reg,
+            0xFFFF            => self.irq_handler.ie_reg,
             _ => 0,
         }
     }
@@ -108,9 +128,9 @@ impl Memory for MMU {
             0xFE00 ... 0xFE9F => self.gpu.write_byte(address, byte),
             0xFEA0 ... 0xFEFF => {},
             0xFF00            => self.joypad.write_byte(address, byte),
-            0xFF0F            => self.if_reg = byte,
+            0xFF0F            => self.irq_handler.if_reg = byte,
             0xFF80 ... 0xFFFE => self.zram[a & 0x7F] = byte,
-            0xFFFF            => self.ie_reg = byte,
+            0xFFFF            => self.irq_handler.ie_reg = byte,
             _ => (),
         }
     }

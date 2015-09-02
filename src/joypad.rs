@@ -1,3 +1,4 @@
+use super::irq::{Interrupt, IrqHandler};
 use super::memory::Memory;
 use self::JoypadKey::*;
 
@@ -72,7 +73,7 @@ impl Joypad {
         }
     }
 
-    pub fn key_down(&mut self, key: &JoypadKey) {
+    pub fn key_down(&mut self, key: &JoypadKey, irq_handler: &mut IrqHandler) {
         match *key {
             Down   => self.rows[0] &= 0x07,
             Up     => self.rows[0] &= 0x0B,
@@ -83,7 +84,7 @@ impl Joypad {
             B      => self.rows[1] &= 0x0D,
             A      => self.rows[1] &= 0x0E,
         }
-        // TODO : interrupt request
+        irq_handler.request_interrupt(Interrupt::Joypad);
     }
 
     pub fn key_up(&mut self, key: &JoypadKey) {
