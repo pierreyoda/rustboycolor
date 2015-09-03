@@ -1,3 +1,5 @@
+mod palette;
+
 use super::cpu::CycleType;
 use super::memory::Memory;
 use super::irq::{Interrupt, IrqHandler};
@@ -45,6 +47,10 @@ pub struct Gpu {
     mode_clock: CycleType,
     /// The index of the current scanline.
     ly: usize,
+    /// Horizontal position of the top-left corner of the on-screen background.
+    scroll_x: usize,
+    /// Vertical position of the top-left corner of the on-screen background.
+    scroll_y: usize,
     /// The frame buffer containing the display's pixels.
     frame_buffer: ScreenData,
     /// Should the screen be redrawn by the frontend ?
@@ -59,6 +65,8 @@ impl Gpu {
             mode: H_Blank,
             mode_clock: 0,
             ly: 0,
+            scroll_x: 0,
+            scroll_y: 0,
             frame_buffer: [RGB::new(255, 255, 255); SCREEN_W * SCREEN_H],
             dirty: false,
         }
