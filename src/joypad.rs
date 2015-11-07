@@ -3,8 +3,8 @@ use super::memory::Memory;
 use self::JoypadKey::*;
 
 pub const JOYPAD_ADDRESS: u16 = 0xFF00;
-pub const JOYPAD_KEYS: [&'static str; 8] = ["Up", "Down", "Right", "Left",
-    "A", "B", "Select", "Start"];
+pub const JOYPAD_KEYS: [&'static str; 8] = ["Up", "Down", "Left", "Right",
+    "Select", "Start", "A", "B"];
 pub const JOYPAD_SELECT_DIRECTIONAL: u8 = 1 << 4;
 pub const JOYPAD_SELECT_BUTTON     : u8 = 1 << 5;
 

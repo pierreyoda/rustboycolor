@@ -67,7 +67,6 @@ fn emulation_loop(cpu: &mut cpu::Cpu<mmu::MMU>,
                   tx: Sender<EmulationMessage>, rx: Receiver<BackendMessage>) {
     use emulator::EmulationMessage::*;
     use backend::BackendMessage::*;
-    use rustboylib::memory::Memory;
 
     info!("starting the emulation thread.");
 
@@ -75,8 +74,6 @@ fn emulation_loop(cpu: &mut cpu::Cpu<mmu::MMU>,
     // target CPU clock cycles per second
     // 1 machine cycle = 4 clock cycles
     //let cpu_cycles_per_s = ()
-
-    cpu.mem.write_byte(0xFF00, 0x20); // 0x10 : direction / 0x20 : button
 
     'vm: loop {
         // Signals from the UI
@@ -97,8 +94,6 @@ fn emulation_loop(cpu: &mut cpu::Cpu<mmu::MMU>,
             _                   => {},
         }
 
-        // input test
         thread::sleep_ms(25);
-        println!("{:0>8b}", cpu.mem.read_byte(0xFF00));
     }
 }

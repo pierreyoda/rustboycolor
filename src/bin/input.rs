@@ -132,9 +132,16 @@ fn keyboard_hm_from_config<'a>(config_str: &'a str, config_file: String)
             },
             None => return Err(format!("no key specified for \"{}\" in config", key)),
         };
-        hm.insert(key_symbol.into(), JoypadKey::from_str(key).unwrap());
+        if hm.insert(key_symbol.into(), JoypadKey::from_str(key).unwrap()).is_some() {
+            warn!("config file \"{}\" binds key \"{}\" more than once, earlier \
+                   occurences will be erased",
+                config_file, key_symbol);
+            // N.B. : the order of priority is the one defined in JOYPAD_KEYS
+            // which may not be naturally the one written in the configuration file
+        }
     }
-    Ok(hm)
+    if hm.len() == JOYPAD_KEYS.len() { Ok(hm) }
+    else { Err(format!("missing joypad key(s) in config \"{}\"", config_file)) }
 }
 
 #[cfg(test)]

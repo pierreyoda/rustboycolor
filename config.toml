@@ -1,11 +1,25 @@
-[input]
+[emulation]
+    # Disable the boot sequence and boot directly into the ROM ?
+    skip_bios = false
+    # Print the average FPS in the console ?
+    print_fps = true
 
-[input.keyboard]
-Up     = "Up"
-Down   = "Down"
-Left   = "Left"
-Right  = "Right"
-Select = "Numpad1"
-Start  = "Numpad3"
-A      = "E"
-B      = "T"
+[display]
+    # TODO : window size config
+    # TODO : show FPS ?
+
+[input]
+    [input.keyboard]
+    # TODO : multiple bindings ? (with 1 list per gameboy key...)
+    # TODO : enforce binding uniqueness (1 keyboard key = 1 gameboy key at most)
+    Up     = "Up"
+    Down   = "Down"
+    Left   = "Left"
+    Right  = "Right"
+    Select = "Numpad1"
+    Start  = "Numpad3"
+    A      = "E"
+    B      = "T"
+
+    [input.gamepad]
+    # TODO
