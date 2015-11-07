@@ -15,7 +15,7 @@ pub enum PaletteGrayShade {
 impl PaletteGrayShade {
     /// Build a 'PaletteGrayShade' value from a byte.
     /// Assumption : value <= 3 (see 'PaletteClassic' usage for justification).
-    fn from_u8(value: u8) -> PaletteGrayShade {
+    pub fn from_u8(value: u8) -> PaletteGrayShade {
         match value {
             0 => White,
             1 => LightGray,
