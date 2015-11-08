@@ -49,22 +49,34 @@ const PALETTE_CLASSIC_RGB: [RGB; 4] = [
 ///
 /// A shade is thus coded as two bits to directly map to the 'PaletteGrayShade'
 /// values : 0 for white, 1 for light gray, 2 for dark gray and 3 for dark.
-pub struct PaletteClassic(PaletteGrayShade, PaletteGrayShade,
-                          PaletteGrayShade, PaletteGrayShade,
-                          u8); // keep the value around for cheap memory read
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct PaletteClassic {
+    /// The palette's raw byte value.
+    raw: u8,
+    /// The palette's colors.
+    data: [PaletteGrayShade; 4],
+}
 
 impl PaletteClassic {
     pub fn new() -> PaletteClassic {
         // TODO : check default palette value
-        PaletteClassic(Dark, Dark, Dark, Dark, 0xFF)
+        PaletteClassic{ raw: 0xFF, data: [White, White, White, White] }
     }
 
     pub fn set(&mut self, value: u8) {
-        self.0 = PaletteGrayShade::from_u8((value >> 0) & 0b11);
-        self.1 = PaletteGrayShade::from_u8((value >> 2) & 0b11);
-        self.2 = PaletteGrayShade::from_u8((value >> 4) & 0b11);
-        self.3 = PaletteGrayShade::from_u8((value >> 6) & 0b11);
-        self.4 = value;
+        self.raw     = value;
+        self.data[0] = PaletteGrayShade::from_u8((value >> 0) & 0b11);
+        self.data[1] = PaletteGrayShade::from_u8((value >> 2) & 0b11);
+        self.data[2] = PaletteGrayShade::from_u8((value >> 4) & 0b11);
+        self.data[3] = PaletteGrayShade::from_u8((value >> 6) & 0b11);
+    }
+
+    pub fn raw(&self) -> u8 {
+        self.raw
+    }
+
+    pub fn data(&self) -> &[PaletteGrayShade; 4] {
+        &self.data
     }
 }
 
@@ -93,10 +105,11 @@ mod test {
     fn test_PaletteClassic() {
         let mut palette = PaletteClassic::new();
         palette.set(0b_1011_0001);
-        assert_eq!(palette.0, LightGray);
-        assert_eq!(palette.1, White);
-        assert_eq!(palette.2, Dark);
-        assert_eq!(palette.3, DarkGray);
-        assert_eq!(palette.4, 0b_1011_0001);
+        let colors = palette.data();
+        assert_eq!(palette.raw(), 0b_1011_0001);
+        assert_eq!(colors[0], LightGray);
+        assert_eq!(colors[1], White);
+        assert_eq!(colors[2], Dark);
+        assert_eq!(colors[3], DarkGray);
     }
 }

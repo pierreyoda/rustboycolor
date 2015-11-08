@@ -5,7 +5,7 @@ use super::memory::Memory;
 use super::irq::{Interrupt, IrqHandler};
 
 use self::GpuMode::*;
-use self::palette::PaletteGrayShade;
+use self::palette::{PaletteClassic, PaletteGrayShade};
 
 /// The width of the Game Boy's screen, in pixels.
 pub const SCREEN_W: usize = 160;
@@ -82,6 +82,20 @@ enum GpuMode {
     VRAM_Read = 3,
 }
 
+/// The GPU registers' addresses.
+mod Regs {
+    pub const STAT  : usize = 0xFF41;
+    pub const SCY   : usize = 0xFF42;
+    pub const SCX   : usize = 0xFF43;
+    pub const LY    : usize = 0xFF44; // read-only
+    pub const LYC   : usize = 0xFF45;
+    pub const BGP   : usize = 0xFF47;
+    pub const OBP_0 : usize = 0xFF48;
+    pub const OBP_1 : usize = 0xFF49;
+    pub const WY    : usize = 0xFF4A;
+    pub const WX    : usize = 0xFF4B;
+}
+
 /// The structure holding and emulating the GPU state.
 ///
 /// Time durations are expressed in CPU clock cycles with a CPU clock speed of
@@ -92,13 +106,26 @@ pub struct Gpu {
     /// The number of cycles spent in the current mode.
     mode_clock: CycleType,
     /// The index of the current scanline.
+    /// Can take any value between 0 and 153, with values between 144 and 153
+    /// indicating a V-Blank period.
+    /// Writing to the LY register resets it to 0.
     ly: usize,
     /// Horizontal position of the top-left corner of the on-screen background.
-    scroll_x: usize,
+    scroll_x: u8,
     /// Vertical position of the top-left corner of the on-screen background.
-    scroll_y: usize,
+    scroll_y: u8,
+    // Horizontal position of the top-left of the Window area.
+    window_x: u8,
+    // Vertical position of the top-left of the Window area.
+    window_y: u8,
     /// The frame buffer containing the display's pixels.
     frame_buffer: ScreenData,
+    /// The background palette, assigning gray shades to the color numbers
+    /// of the background and window tiles.
+    bg_palette: PaletteClassic,
+    /// The two object palettes (Classic mode only), assigning gray shades to
+    /// the color numbers of the sprites. Color 0 is not used (transparent).
+    ob_palettes: [PaletteClassic; 2],
     /// Should the screen be redrawn by the frontend ?
     /// Must be externally set to false after that.
     pub dirty: bool,
@@ -113,7 +140,11 @@ impl Gpu {
             ly: 0,
             scroll_x: 0,
             scroll_y: 0,
+            window_x: 0,
+            window_y: 0,
             frame_buffer: [RGB::new(255, 255, 255); SCREEN_W * SCREEN_H],
+            bg_palette: PaletteClassic::new(),
+            ob_palettes: [PaletteClassic::new(), PaletteClassic::new()],
             dirty: false,
         }
     }
@@ -168,9 +199,39 @@ impl Gpu {
 
 impl Memory for Gpu {
     fn read_byte(&mut self, address: u16) -> u8
-    { 0 }
+    {
+        use self::Regs::*;
+
+        let a = address as usize;
+        match a {
+            SCY   => self.scroll_y,
+            SCX   => self.scroll_x,
+            LY    => self.ly as u8,
+            BGP   => self.bg_palette.raw(),
+            OBP_0 => self.ob_palettes[0].raw(),
+            OBP_1 => self.ob_palettes[1].raw(),
+            WY    => self.window_y,
+            WX    => self.window_x,
+            _     => 0,
+        }
+    }
     fn write_byte(&mut self, address: u16, byte: u8)
-    { }
+    {
+        use self::Regs::*;
+
+        let a = address as usize;
+        match a {
+            SCY   => self.scroll_y = byte,
+            SCX   => self.scroll_x = byte,
+            LY    => self.ly = 0,
+            BGP   => self.bg_palette.set(byte),
+            OBP_0 => self.ob_palettes[0].set(byte),
+            OBP_1 => self.ob_palettes[1].set(byte),
+            WY    => self.window_y = byte,
+            WX    => self.window_x = byte,
+            _     => (),
+        }
+    }
 }
 
 #[cfg(test)]
