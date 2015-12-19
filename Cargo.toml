@@ -12,7 +12,7 @@ path = "src/lib.rs"
 
 [dependencies]
 time = "0.1.32"
-log = "0.3.2"
+log = "0.3.4"
 getopts = "0.2.14"
-toml = "0.1.23"
-sdl2 = "0.9.1"
+toml = "0.1.25"
+sdl2 = "0.12.1"
