@@ -145,7 +145,7 @@ pub fn keycode_from_symbol_hm() -> HashMap<String, Keycode> {
     // reference : https://wiki.libsdl.org/SDL_Keycode
     // and : "keycode.rs" from https://github.com/AngryLawyer/rust-sdl2/
     let mut sdl2_key_names = Vec::<String>::new();
-    for c in (b'A' .. b'Z'+1) {
+    for c in b'A' .. b'Z'+1 {
         sdl2_key_names.push((c as char).to_string());
     }
     for i in 1..13 { sdl2_key_names.push(format!("F{}", i)); } // F0-F12
