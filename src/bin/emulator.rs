@@ -50,7 +50,7 @@ impl<'a> EmulatorApplication<'a> {
             },
         };
         thread::spawn(move || {
-            let mmu = mmu::MMU::new(mbc);
+            let mmu = mmu::MMU::new(mbc, false);
             let mut cpu = cpu::Cpu::<mmu::MMU>::new(mmu);
             emulation_loop(&mut cpu, tx_vm, rx_vm);
         });

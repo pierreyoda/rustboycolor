@@ -1,3 +1,4 @@
+mod cgb;
 mod palette;
 
 use super::cpu::CycleType;
@@ -29,6 +30,7 @@ impl RGB {
 pub type ScreenData = [RGB; SCREEN_W * SCREEN_H];
 
 /// A tile is an area of 8x8 pixels.
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
 struct Tile {
     /// Each tile occupies 16 bytes, where 2 bytes represent a line:
     /// byte 0-1 = first line (upper 8 pixels)
@@ -68,8 +70,9 @@ impl Tile {
         }
     }
 
-    pub fn data(&self) -> &[[PaletteGrayShade; 8]; 8] {
-        &self.data
+    pub fn data(&self) -> &[[PaletteGrayShade; 8]; 8] { &self.data }
+    pub fn data_mut(&mut self) -> &mut [[PaletteGrayShade; 8]; 8] {
+        &mut self.data
     }
 }
 
@@ -83,15 +86,15 @@ enum GpuMode {
 }
 
 /// The GPU registers' addresses.
-mod Regs {
+mod regs {
     pub const STAT  : usize = 0xFF41;
     pub const SCY   : usize = 0xFF42;
     pub const SCX   : usize = 0xFF43;
     pub const LY    : usize = 0xFF44; // read-only
     pub const LYC   : usize = 0xFF45;
-    pub const BGP   : usize = 0xFF47;
-    pub const OBP_0 : usize = 0xFF48;
-    pub const OBP_1 : usize = 0xFF49;
+    pub const BGP   : usize = 0xFF47; // ignored in CGB mode
+    pub const OBP_0 : usize = 0xFF48; // ignored in CGB mode
+    pub const OBP_1 : usize = 0xFF49; // ignored in CGB mode
     pub const WY    : usize = 0xFF4A;
     pub const WX    : usize = 0xFF4B;
 }
@@ -101,6 +104,10 @@ mod Regs {
 /// Time durations are expressed in CPU clock cycles with a CPU clock speed of
 /// 4194304 Hz.
 pub struct Gpu {
+    /// If true, a Game Boy Color GPU will be emulated.
+    cgb_mode: bool,
+    /// CGB-specific data, needed in CGB mode.
+    cgb_data: Option<cgb::GpuData>,
     /// The current mode.
     mode: GpuMode,
     /// The number of cycles spent in the current mode.
@@ -122,10 +129,14 @@ pub struct Gpu {
     frame_buffer: ScreenData,
     /// The background palette, assigning gray shades to the color numbers
     /// of the background and window tiles.
+    /// Not used in CGB mode (yet 'Option' is not used for convenience).
     bg_palette: PaletteClassic,
     /// The two object palettes (Classic mode only), assigning gray shades to
     /// the color numbers of the sprites. Color 0 is not used (transparent).
+    /// Not used in CGB mode.
     ob_palettes: [PaletteClassic; 2],
+    /// The tileset in VRAM.
+    tileset: [Tile; 384],
     /// Should the screen be redrawn by the frontend ?
     /// Must be externally set to false after that.
     pub dirty: bool,
@@ -133,8 +144,10 @@ pub struct Gpu {
 
 impl Gpu {
     /// Create and return a new 'Gpu' instance.
-    pub fn new() -> Gpu {
+    pub fn new(cgb_mode: bool) -> Gpu {
         Gpu {
+            cgb_mode: cgb_mode,
+            cgb_data: if cgb_mode { Some(cgb::GpuData::new()) } else { None },
             mode: H_Blank,
             mode_clock: 0,
             ly: 0,
@@ -144,7 +157,8 @@ impl Gpu {
             window_y: 0,
             frame_buffer: [RGB::new(255, 255, 255); SCREEN_W * SCREEN_H],
             bg_palette: PaletteClassic::new(),
-            ob_palettes: [PaletteClassic::new(), PaletteClassic::new()],
+            ob_palettes: [PaletteClassic::new(); 2],
+            tileset: [Tile::new([0x00; 16]); 384],
             dirty: false,
         }
     }
@@ -200,10 +214,26 @@ impl Gpu {
 impl Memory for Gpu {
     fn read_byte(&mut self, address: u16) -> u8
     {
-        use self::Regs::*;
+        use self::regs::*;
 
         let a = address as usize;
+
+        if self.cgb_mode {
+            use self::cgb::regs as r;
+            let data = self.cgb_data.as_ref().unwrap();
+            match a {
+                r::BGP_INDEX => return data.bg_palette_index.raw_value(),
+                r::BGP_DATA  => return data.get_bg_color(),
+                r::OBP_INDEX => return data.ob_palette_index.raw_value(),
+                r::OBP_DATA  => return data.get_ob_color(),
+                _            => {},
+            }
+        }
         match a {
+            0x8000 ... 0x97FF => { // Video RAM
+                let bank_address = a & 0x1FFF;
+                0
+            },
             SCY   => self.scroll_y,
             SCX   => self.scroll_x,
             LY    => self.ly as u8,
@@ -217,9 +247,21 @@ impl Memory for Gpu {
     }
     fn write_byte(&mut self, address: u16, byte: u8)
     {
-        use self::Regs::*;
+        use self::regs::*;
 
         let a = address as usize;
+
+        if self.cgb_mode {
+            use self::cgb::regs as r;
+            let data = self.cgb_data.as_mut().unwrap();
+            match a {
+                r::BGP_INDEX => data.bg_palette_index.update_with(byte),
+                r::BGP_DATA  => data.set_bg_color(byte),
+                r::OBP_INDEX => data.ob_palette_index.update_with(byte),
+                r::OBP_DATA  => data.set_ob_color(byte),
+                _            => {},
+            }
+        }
         match a {
             SCY   => self.scroll_y = byte,
             SCX   => self.scroll_x = byte,

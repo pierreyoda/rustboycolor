@@ -106,6 +106,15 @@ impl PaletteColorValue {
         self.rgb = PaletteColorValue::compute_rgb(raw_value);
     }
 
+    pub fn set_low(&mut self, byte: u8) {
+        let new_raw = (self.raw & 0xFF00) | (byte as u16);
+        self.set(new_raw);
+    }
+    pub fn set_high(&mut self, byte: u8) {
+        let new_raw = (self.raw & 0x00FF) | ((byte as u16) << 8);
+        self.set(new_raw);
+    }
+
     pub fn raw_low(&self) -> u8 {
         (self.raw & 0x00FF) as u8
     }
@@ -138,6 +147,9 @@ impl PaletteColor {
         // TODO : check default palette value
         PaletteColor{ data: [PaletteColorValue::new(0x0000); 4] }
     }
+
+    pub fn data(&self) -> &[PaletteColorValue; 4] { return &self.data }
+    pub fn data_mut(&mut self) -> &mut [PaletteColorValue; 4] { return &mut self.data }
 }
 
 #[cfg(test)]
@@ -189,5 +201,13 @@ mod test {
         assert_eq!(color.rgb().r,  72);
         assert_eq!(color.rgb().g, 232);
         assert_eq!(color.rgb().b, 232);
+
+        color.set_high(0x38);
+        color.set_low(0xB2);
+        assert_eq!(color.raw_high(), 0x38);
+        assert_eq!(color.raw_low(), 0xB2);
+        assert_eq!(color.rgb().r, 144);
+        assert_eq!(color.rgb().g,  40);
+        assert_eq!(color.rgb().b, 112);
     }
 }
