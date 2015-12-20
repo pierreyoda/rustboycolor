@@ -26,6 +26,8 @@ pub enum BackendMessage {
 /// Trait that any emulator backend must implement.
 pub trait EmulatorBackend {
     /// Launch and run the UI loop with the given configuration.
-    fn run(&mut self, config: EmulatorAppConfig,
-           tx: Sender<BackendMessage>, rx: Receiver<EmulationMessage>);
+    fn run(&mut self,
+           config: EmulatorAppConfig,
+           tx: Sender<BackendMessage>,
+           rx: Receiver<EmulationMessage>);
 }

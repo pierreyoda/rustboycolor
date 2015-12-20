@@ -18,16 +18,16 @@ pub const C_FLAG: u8 = 0b_0001_0000;
 /// AF, BC, DE, HL.
 pub struct Registers {
     /// Accumulator register ; most of the processed data passes through it.
-    pub a : u8,
+    pub a: u8,
     /// Flag register.
     /// The Sharp LR35902 only uses the most significant nibble.
-    pub f : u8,
-    pub b : u8,
-    pub c : u8,
-    pub d : u8,
-    pub e : u8,
-    pub h : u8,
-    pub l : u8,
+    pub f: u8,
+    pub b: u8,
+    pub c: u8,
+    pub d: u8,
+    pub e: u8,
+    pub h: u8,
+    pub l: u8,
     /// Program counter.
     pub pc: u16,
     /// Stack pointer.
@@ -87,18 +87,26 @@ impl Registers {
     }
     pub fn set_flag(&mut self, mask: u8, value: bool) {
         match value {
-            true  => self.f |= mask,
+            true => self.f |= mask,
             false => self.f &= !mask,
         }
     }
-
 }
 
 impl fmt::Debug for Registers {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-    write!(f, concat!("A:{:0>2X} B:{:0>2X} C:{:0>2X} D:{:0>2X} E:{:0>2X} ",
-                      "F:{:0>8b} H:{:0>2X} L:{:0>2X} SP:{:0>4X} PC:{:0>4X}"),
-           self.a, self.b, self.c, self.d, self.e,
-           self.f, self.h, self.l, self.sp, self.pc)
+        write!(f,
+               concat!("A:{:0>2X} B:{:0>2X} C:{:0>2X} D:{:0>2X} E:{:0>2X} ",
+                       "F:{:0>8b} H:{:0>2X} L:{:0>2X} SP:{:0>4X} PC:{:0>4X}"),
+               self.a,
+               self.b,
+               self.c,
+               self.d,
+               self.e,
+               self.f,
+               self.h,
+               self.l,
+               self.sp,
+               self.pc)
     }
 }

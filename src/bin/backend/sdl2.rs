@@ -15,18 +15,23 @@ use emulator::EmulationMessage;
 pub struct BackendSDL2;
 
 impl EmulatorBackend for BackendSDL2 {
-    fn run(&mut self, config: EmulatorAppConfig,
-       tx: Sender<BackendMessage>, rx: Receiver<EmulationMessage>) {
+    fn run(&mut self,
+           config: EmulatorAppConfig,
+           tx: Sender<BackendMessage>,
+           rx: Receiver<EmulationMessage>) {
         use emulator::EmulationMessage::*;
         use backend::BackendMessage::*;
 
         info!("starting the main application thread.");
 
         // Input bindings
-        let key_binds = match get_key_bindings::<Keycode>(
-            config.get_keyboard_binding(), keycode_from_symbol_hm()) {
+        let key_binds = match get_key_bindings::<Keycode>(config.get_keyboard_binding(),
+                                                          keycode_from_symbol_hm()) {
             Ok(hm) => hm,
-            Err(why) => { error!("SDL2 backend input : {}", why); return },
+            Err(why) => {
+                error!("SDL2 backend input : {}", why);
+                return;
+            }
         };
 
         // Window size
@@ -39,19 +44,21 @@ impl EmulatorBackend for BackendSDL2 {
         let sdl_context = sdl2::init().unwrap();
         let video_subsystem = sdl_context.video().unwrap();
         let window = match video_subsystem.window(config.get_title(), w, h)
-            .position_centered().opengl().build() {
+                                          .position_centered()
+                                          .opengl()
+                                          .build() {
             Ok(window) => window,
-            Err(why)   => {
+            Err(why) => {
                 error!("SDL2 backend failed to create the window : {}", why);
                 return;
-            },
+            }
         };
         let mut renderer = match window.renderer().build() {
             Ok(renderer) => renderer,
-            Err(why)     => {
+            Err(why) => {
                 error!("SDL2 backend failed to create the renderer : {}", why);
                 return;
-            },
+            }
         };
         renderer.set_draw_color(Color::RGB(0, 0, 0));
         renderer.present();
@@ -67,7 +74,10 @@ impl EmulatorBackend for BackendSDL2 {
             // Event loop
             for event in events.poll_iter() {
                 match event {
-                    Event::Quit {..} => { paused = true; tx.send(Quit).unwrap(); },
+                    Event::Quit {..} => {
+                        paused = true;
+                        tx.send(Quit).unwrap();
+                    }
                     Event::KeyDown { keycode: Some(keycode), ..} => {
                         if !last_key.is_none() && keycode == last_key.unwrap() {
                             continue;
@@ -75,30 +85,33 @@ impl EmulatorBackend for BackendSDL2 {
                         match keycode {
                             // quit
                             Keycode::Escape => {
-                                paused = true; tx.send(Quit).unwrap();
-                            },
+                                paused = true;
+                                tx.send(Quit).unwrap();
+                            }
                             // toggle pause
                             Keycode::Return => {
                                 tx.send(UpdateRunStatus(paused)).unwrap();
                                 paused = !paused;
-                            },
-                            _ => if !paused {
-                                match key_binds.get(&keycode) {
-                                    Some(keypad_key) => {
-                                        tx.send(KeyDown(*keypad_key)).unwrap();
-                                    },
-                                    _                => {},
+                            }
+                            _ => {
+                                if !paused {
+                                    match key_binds.get(&keycode) {
+                                        Some(keypad_key) => {
+                                            tx.send(KeyDown(*keypad_key)).unwrap();
+                                        }
+                                        _ => {}
+                                    }
                                 }
                             }
                         }
                         last_key = Some(keycode);
-                    },
+                    }
                     Event::KeyUp { keycode: Some(keycode), ..} if !paused => {
                         match key_binds.get(&keycode) {
                             Some(keypad_key) => {
                                 tx.send(KeyUp(*keypad_key)).unwrap();
-                            },
-                            _                => {},
+                            }
+                            _ => {}
                         }
                         if !last_key.is_none() && keycode == last_key.unwrap() {
                             last_key = None;
@@ -110,10 +123,12 @@ impl EmulatorBackend for BackendSDL2 {
 
             // Signals from the VM
             match rx.try_recv() {
-                Ok(emulation_message) => match emulation_message {
-                    Finished => break 'ui,
-                },
-                _                     => {},
+                Ok(emulation_message) => {
+                    match emulation_message {
+                        Finished => break 'ui,
+                    }
+                }
+                _ => {}
             }
         }
 
@@ -145,10 +160,12 @@ pub fn keycode_from_symbol_hm() -> HashMap<String, Keycode> {
     // reference : https://wiki.libsdl.org/SDL_Keycode
     // and : "keycode.rs" from https://github.com/AngryLawyer/rust-sdl2/
     let mut sdl2_key_names = Vec::<String>::new();
-    for c in b'A' .. b'Z'+1 {
+    for c in b'A'..b'Z' + 1 {
         sdl2_key_names.push((c as char).to_string());
     }
-    for i in 1..13 { sdl2_key_names.push(format!("F{}", i)); } // F0-F12
+    for i in 1..13 {
+        sdl2_key_names.push(format!("F{}", i));
+    } // F0-F12
     for key_name in sdl2_key_names {
         let key_code = match Keycode::from_name(&key_name[..]) {
             Some(code) => code,
@@ -169,10 +186,10 @@ mod test {
 
     #[test]
     fn test_keyboard_hm_from_config() {
-        let key_binds = get_key_bindings::<Keycode>(
-            FromConfigFile("tests/backend_input.toml".into()),
-                           super::keycode_from_symbol_hm())
-            .unwrap();
+        let key_binds = get_key_bindings::<Keycode>(FromConfigFile("tests/backend_input.toml"
+                                                                       .into()),
+                                                    super::keycode_from_symbol_hm())
+                            .unwrap();
         assert_eq!(*key_binds.get(&Keycode::Up).unwrap(), JoypadKey::Up);
         assert_eq!(*key_binds.get(&Keycode::Down).unwrap(), JoypadKey::Down);
         assert_eq!(*key_binds.get(&Keycode::Left).unwrap(), JoypadKey::Left);
