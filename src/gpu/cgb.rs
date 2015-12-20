@@ -136,3 +136,17 @@ impl GpuData {
         self.ob_palette_index.auto_increment();
     }
 }
+
+#[cfg(test)]
+mod test {
+    use super::PaletteIndexRegister;
+
+    #[test]
+    fn test_PaletteIndexRegister_decoding() {
+        let index = PaletteIndexRegister::new(0xAD);
+        assert_eq!(index.raw_value(), 0xAD);
+        assert_eq!(index.high_byte(), true);
+        assert_eq!(index.color_index(), 2);
+        assert_eq!(index.index(), 5);
+    }
+}
