@@ -82,7 +82,7 @@ impl<M> Cpu<M> where M: Memory {
         }
         let mut step_cycles = self.handle_interrupt();
         self.opcode = self.fetch_byte();
-        step_cycles = self.dispatch_array[self.opcode as usize](self);
+        step_cycles += self.dispatch_array[self.opcode as usize](self);
         self.cycles += step_cycles;
         step_cycles
     }
