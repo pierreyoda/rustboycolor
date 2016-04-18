@@ -11,8 +11,8 @@ name = "rustboylib"
 path = "src/lib.rs"
 
 [dependencies]
-time = "0.1.32"
-log = "0.3.2"
+time = "0.1.35"
+log = "0.3.6"
 getopts = "0.2.14"
-toml = "0.1.23"
-sdl2 = "0.9.1"
+toml = "0.1.28"
+sdl2 = "0.18.0"
