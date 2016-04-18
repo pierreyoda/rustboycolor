@@ -5,7 +5,9 @@
     print_fps = true
 
 [display]
-    # TODO : window size config
+    width        = 800
+    height       = 600
+    force_aspect = true
     # TODO : show FPS ?
 
 [input]

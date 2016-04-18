@@ -38,14 +38,23 @@ fn app_options_from_matches(matches: &getopts::Matches) -> config::EmulatorAppCo
                     warn!("Unkown keyboard binding '{}', reverting to QWERTY or configuration \
                            file.",
                           binding);
-                    KeyboardBinding::FromConfigFile(config_file)
+                    KeyboardBinding::FromConfigFile(config_file.clone())
                 }
             }
         }
-        _ => KeyboardBinding::FromConfigFile(config_file),
+        _ => KeyboardBinding::FromConfigFile(config_file.clone()),
     };
 
-    config::EmulatorAppConfig::new().keyboard_binding(keyboard_binding)
+    let config = match config::EmulatorAppConfig::from_file(&config_file[..]) {
+        Ok(c) => c,
+        Err(e) => {
+            warn!("cannot use the configuration file \"{}\": {}",
+                  config_file,
+                  e);
+            config::EmulatorAppConfig::new()
+        }
+    };
+    config.keyboard_binding(keyboard_binding)
 }
 
 fn main() {
@@ -91,9 +100,6 @@ fn main() {
     let rom_path = Path::new(&rom);
     app_options_from_matches(&matches)
         .title("RustBoyColor - SDL 2")
-        .width(800)
-        .height(600)
-        .force_aspect(true)
         .create_with_backend(Box::new(sdl2::BackendSDL2))
         .run(&rom_path);
 }

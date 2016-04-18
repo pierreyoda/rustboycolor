@@ -97,7 +97,8 @@ fn build_keyboard_control_hm(binding: KeyboardBinding) -> Result<HashMap<String,
             try!(File::open(filepath)
                      .and_then(|mut f| f.read_to_string(&mut file_content))
                      .map_err(|_| {
-                         format!("could not load the config file : {}", filepath.display())
+                         format!("could not load the input config file : {}",
+                                 filepath.display())
                      }));
             keyboard_hm_from_config(&file_content[..], format!("{}", filepath.display()))
         }
@@ -112,12 +113,12 @@ fn keyboard_hm_from_config<'a>(config_str: &'a str,
     let mut parser = toml::Parser::new(config_str);
     let table: toml::Value = match parser.parse() {
         Some(t) => toml::Value::Table(t),
-        None => return Err(format!("parsing error in config : {:?}", parser.errors)),
+        None => return Err(format!("parsing error in input config : {:?}", parser.errors)),
     };
     let keyboard_input = match table.lookup("input.keyboard") {
         Some(value) => value,
         None => {
-            warn!(concat!("config file \"{}\" does not specify",
+            warn!(concat!("input config file \"{}\" does not specify",
                           " keyboard input, reverting to QWERTY."),
                   config_file);
             return build_keyboard_control_hm(QWERTY);
@@ -130,15 +131,16 @@ fn keyboard_hm_from_config<'a>(config_str: &'a str,
                 match *value {
                     toml::Value::String(ref s) => &s[..],
                     _ => {
-                        return Err(format!("key \"{}\" does not have a String value in config",
+                        return Err(format!("key \"{}\" does not have a String value in input \
+                                            config",
                                            key))
                     }
                 }
             }
-            None => return Err(format!("no key specified for \"{}\" in config", key)),
+            None => return Err(format!("no key specified for \"{}\" in input config", key)),
         };
         if hm.insert(key_symbol.into(), JoypadKey::from_str(key).unwrap()).is_some() {
-            warn!("config file \"{}\" binds key \"{}\" more than once, earlier \
+            warn!("input config file \"{}\" binds key \"{}\" more than once, earlier \
                    occurences will be erased",
                   config_file,
                   key_symbol);
@@ -149,7 +151,8 @@ fn keyboard_hm_from_config<'a>(config_str: &'a str,
     if hm.len() == JOYPAD_KEYS.len() {
         Ok(hm)
     } else {
-        Err(format!("missing joypad key(s) in config \"{}\"", config_file))
+        Err(format!("missing joypad key(s) in input config file \"{}\"",
+                    config_file))
     }
 }
 

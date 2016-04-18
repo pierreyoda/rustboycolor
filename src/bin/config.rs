@@ -1,9 +1,17 @@
 use std::cmp;
+use std::fs::File;
+use std::io::Read;
+use std::path::Path;
+
+use toml;
 
 use rustboylib::gpu::{SCREEN_W, SCREEN_H};
 use super::backend::EmulatorBackend;
 use super::emulator::EmulatorApplication;
 use super::input::KeyboardBinding;
+
+// Default display scale, i.e. the actual size (in pixels) of each individual GameBoy pixel.
+const DEFAULT_SCALE: u16 = 2;
 
 // Macros to avoid boilerplate functions code.
 macro_rules! config_set_param {
@@ -60,11 +68,65 @@ impl EmulatorAppConfig {
     pub fn new() -> EmulatorAppConfig {
         EmulatorAppConfig {
             window_title: "RustBoyColor",
-            window_width: SCREEN_W as u16 * 2,
-            window_height: SCREEN_H as u16 * 2,
+            window_width: SCREEN_W as u16 * DEFAULT_SCALE,
+            window_height: SCREEN_H as u16 * DEFAULT_SCALE,
             window_force_aspect: true,
             keyboard_binding: KeyboardBinding::QWERTY,
         }
+    }
+
+    /// Create and return a new 'EmulatorAppConfig' with the default values set,
+    /// and with all valid properties from the given configuration file set.
+    pub fn from_file(filepath: &str) -> Result<EmulatorAppConfig, String> {
+        let mut config = EmulatorAppConfig::new();
+
+        let file_path = Path::new(filepath);
+        let mut file_content = String::new();
+        try!(File::open(file_path)
+                 .and_then(|mut f| f.read_to_string(&mut file_content))
+                 .map_err(|_| format!("could not load the config file : {}", file_path.display())));
+
+        let mut parser = toml::Parser::new(&file_content[..]);
+        let table = match parser.parse() {
+            Some(t) => toml::Value::Table(t),
+            None => {
+                return Err(format!("parsing error in config file \"{}\" : {:?}",
+                                   file_path.display(),
+                                   parser.errors))
+            }
+        };
+
+        info!("reading configuration from file \"{}\"...",
+              file_path.display());
+        if let Some(display) = table.lookup("display") {
+            match lookup_bool_value("force_aspect", display) {
+                Ok(force_aspect) => config.window_force_aspect = force_aspect,
+                Err(error) => warn!("{}", error),
+            }
+            match lookup_int_value("width", display) {
+                Ok(width) => {
+                    if width > 0 && width as u16 >= SCREEN_W as u16 {
+                        config.window_width = width as u16;
+                    } else {
+                        warn!("invalid display width");
+                    }
+                }
+                Err(error) => warn!("{}", error),
+            }
+            match lookup_int_value("height", display) {
+                Ok(height) => {
+                    if height > 0 && height as u16 >= SCREEN_H as u16 {
+                        config.window_height = height as u16;
+                    } else {
+                        warn!("invalid display height");
+                    }
+                }
+                Err(error) => warn!("{}", error),
+            }
+        }
+        info!("configuration reading done.");
+
+        Ok(config)
     }
 
     /// Create the 'EmulatorApplication' with this configuration and the
@@ -82,4 +144,44 @@ impl EmulatorAppConfig {
 
     config_set_param!(keyboard_binding, keyboard_binding, KeyboardBinding);
     config_get_param!(get_keyboard_binding, keyboard_binding, KeyboardBinding);
+}
+
+fn lookup_bool_value(key: &'static str, table: &toml::Value) -> Result<bool, String> {
+    match *table {
+        toml::Value::Table(_) => (),
+        _ => return Err(format!("config::lookup_bool_value requires a table")),
+    }
+    if let Some(value) = table.lookup(key) {
+        match *value {
+            toml::Value::Boolean(boolean) => Ok(boolean),
+            _ => {
+                return Err(format!("config::lookup_bool_value : key '{}' does not correspond to \
+                                    a boolean",
+                                   key))
+            }
+        }
+    } else {
+        Err(format!("config::lookup_bool_value : key '{}' was not found in the given table",
+                    key))
+    }
+}
+
+fn lookup_int_value(key: &'static str, table: &toml::Value) -> Result<i64, String> {
+    match *table {
+        toml::Value::Table(_) => (),
+        _ => return Err(format!("config::lookup_int_value requires a table")),
+    }
+    if let Some(value) = table.lookup(key) {
+        match *value {
+            toml::Value::Integer(int) => Ok(int),
+            _ => {
+                return Err(format!("config::lookup_int_value : key '{}' does not correspond to \
+                                    an integer",
+                                   key))
+            }
+        }
+    } else {
+        Err(format!("config::lookup_int_value : key '{}' was not found in the given table",
+                    key))
+    }
 }
