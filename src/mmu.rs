@@ -57,11 +57,11 @@ impl IrqHandler for MachineIrqHandler {
 }
 
 impl MMU {
-    pub fn new(mbc: Box<MBC>) -> MMU {
+    pub fn new(mbc: Box<MBC>, cgb_mode: bool) -> MMU {
         MMU {
             in_bios: true,
             bios: &GB_BIOS,
-            gpu: Gpu::new(),
+            gpu: Gpu::new(cgb_mode),
             mbc: mbc,
             joypad: Joypad::new(),
             irq_handler: MachineIrqHandler::new(),
