@@ -1,7 +1,7 @@
 use std::path::Path;
 use std::sync::mpsc::{channel, Sender, Receiver};
 use std::thread;
-//use super::time::{Duration, SteadyTime};
+// use super::time::{Duration, SteadyTime};
 
 use rustboylib::{cpu, mmu, mbc};
 use super::backend::{EmulatorBackend, BackendMessage};
@@ -21,16 +21,20 @@ pub enum EmulationMessage {
 /// 'Chip8VMCommand' and 'Chip8UICommand'.
 pub struct EmulatorApplication<'a> {
     /// The application configuration.
-    config  : EmulatorAppConfig,
+    config: EmulatorAppConfig,
     /// Pointer to the heap-allocated backend responsible for running the
     /// actual UI loop in the main thread.
-    backend : Box<EmulatorBackend + 'a>,
+    backend: Box<EmulatorBackend + 'a>,
 }
 
 impl<'a> EmulatorApplication<'a> {
-    pub fn new(config: EmulatorAppConfig, backend: Box<EmulatorBackend>)
-        -> EmulatorApplication<'a> {
-        EmulatorApplication { config: config, backend: backend }
+    pub fn new(config: EmulatorAppConfig,
+               backend: Box<EmulatorBackend>)
+               -> EmulatorApplication<'a> {
+        EmulatorApplication {
+            config: config,
+            backend: backend,
+        }
     }
 
     /// Run the emulator application with the given cartridge.
@@ -43,14 +47,14 @@ impl<'a> EmulatorApplication<'a> {
 
         // VM loop, in a secondary thread
         let mbc: Box<mbc::MBC + Send> = match mbc::load_cartridge(&rom_path) {
-            Ok(mbc)  => mbc,
+            Ok(mbc) => mbc,
             Err(why) => {
                 error!("cannot load the cartridge : {}", why);
                 return false;
-            },
+            }
         };
         thread::spawn(move || {
-            let mmu = mmu::MMU::new(mbc);
+            let mmu = mmu::MMU::new(mbc, false);
             let mut cpu = cpu::Cpu::<mmu::MMU>::new(mmu);
             emulation_loop(&mut cpu, tx_vm, rx_vm);
         });
@@ -64,7 +68,8 @@ impl<'a> EmulatorApplication<'a> {
 
 /// Emulation loop leveraging the rustboylib crate to emulate a Game Boy (Color).
 fn emulation_loop(cpu: &mut cpu::Cpu<mmu::MMU>,
-                  tx: Sender<EmulationMessage>, rx: Receiver<BackendMessage>) {
+                  tx: Sender<EmulationMessage>,
+                  rx: Receiver<BackendMessage>) {
     use emulator::EmulationMessage::*;
     use backend::BackendMessage::*;
 
@@ -73,25 +78,27 @@ fn emulation_loop(cpu: &mut cpu::Cpu<mmu::MMU>,
     let mut running = true;
     // target CPU clock cycles per second
     // 1 machine cycle = 4 clock cycles
-    //let cpu_cycles_per_s = ()
+    // let cpu_cycles_per_s = ()
 
     'vm: loop {
         // Signals from the UI
         match rx.try_recv() {
-            Ok(backend_message) => match backend_message {
-                UpdateRunStatus(run) => running = run,
-                KeyDown(key)         => cpu.mem.key_down(&key),
-                KeyUp(key)           => cpu.mem.key_up(&key),
-                Step                 => {},
-                Reset                => {},
-                Quit                 => {
-                    running = false;
-                    info!("terminating the emulation thread...");
-                    tx.send(Finished).unwrap();
-                    break 'vm;
-                },
-            },
-            _                   => {},
+            Ok(backend_message) => {
+                match backend_message {
+                    UpdateRunStatus(run) => running = run,
+                    KeyDown(key) => cpu.mem.key_down(&key),
+                    KeyUp(key) => cpu.mem.key_up(&key),
+                    Step => {}
+                    Reset => {}
+                    Quit => {
+                        running = false;
+                        info!("terminating the emulation thread...");
+                        tx.send(Finished).unwrap();
+                        break 'vm;
+                    }
+                }
+            }
+            _ => {}
         }
 
         thread::sleep_ms(25);
