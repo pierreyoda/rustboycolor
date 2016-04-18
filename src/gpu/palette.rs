@@ -99,7 +99,7 @@ impl PaletteClassic {
 /// bit 5-9: green intensity
 /// bit 10-14: blue intensity
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
-struct PaletteColorValue {
+pub struct PaletteColorValue {
     /// The color's raw value.
     raw: u16,
     /// The color's RGB value, stored for more efficient drawing.

@@ -1,7 +1,7 @@
 use std::path::Path;
 use std::sync::mpsc::{channel, Sender, Receiver};
 use std::thread;
-// use super::time::{Duration, SteadyTime};
+use std::time::Duration;
 
 use rustboylib::{cpu, mmu, mbc};
 use super::backend::{EmulatorBackend, BackendMessage};
@@ -101,6 +101,6 @@ fn emulation_loop(cpu: &mut cpu::Cpu<mmu::MMU>,
             _ => {}
         }
 
-        thread::sleep_ms(25);
+        thread::sleep(Duration::from_millis(25));
     }
 }
