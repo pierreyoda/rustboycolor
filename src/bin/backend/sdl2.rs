@@ -53,15 +53,9 @@ impl EmulatorBackend for BackendSDL2 {
                 return;
             }
         };
-        let mut renderer = match window.renderer().build() {
-            Ok(renderer) => renderer,
-            Err(why) => {
-                error!("SDL2 backend failed to create the renderer : {}", why);
-                return;
-            }
-        };
-        renderer.set_draw_color(Color::RGB(0, 0, 0));
-        renderer.present();
+        let mut canvas = window.into_canvas().accelerated().build().unwrap();
+        canvas.set_draw_color(Color::RGB(0, 0, 0));
+        canvas.present();
         let mut events = sdl_context.event_pump().unwrap();
 
         // is the emulation paused ?
@@ -130,6 +124,8 @@ impl EmulatorBackend for BackendSDL2 {
                 }
                 _ => {}
             }
+
+            canvas.present();
         }
 
         info!("terminating the main application thread.")

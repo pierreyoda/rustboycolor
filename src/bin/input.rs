@@ -63,7 +63,6 @@ pub fn get_key_bindings<Key>(binding: KeyboardBinding,
 }
 
 fn build_keyboard_control_hm(binding: KeyboardBinding) -> Result<HashMap<String, JoypadKey>, String> {
-
     match binding {
         QWERTY => {
             let mut hm = HashMap::new();
@@ -109,14 +108,24 @@ fn keyboard_hm_from_config<'a>(config_str: &'a str,
                                config_file: String)
                                -> Result<HashMap<String, JoypadKey>, String> {
     let mut hm = HashMap::new();
-
-    let mut parser = toml::Parser::new(config_str);
-    let table: toml::Value = match parser.parse() {
-        Some(t) => toml::Value::Table(t),
-        None => return Err(format!("parsing error in input config : {:?}", parser.errors)),
+    let table_value = match config_str.parse::<toml::Value>() {
+        Ok(value) => value,
+        Err(err) => return Err(format!("parsing error in input config file \"{}\" : {}",
+                                       config_file,
+                                       err)),
     };
-    let keyboard_input = match table.lookup("input.keyboard") {
-        Some(value) => value,
+    let table = table_value.as_table().unwrap();
+    let input = match table.get("input") {
+        Some(value) => value.as_table().expect("no input section specified"),
+        None => {
+            warn!(concat!("input config file \"{}\" does not specify",
+                          "any input configuration, reverting to QWERTY."),
+                  config_file);
+            return build_keyboard_control_hm(QWERTY);
+        }
+    };
+    let keyboard_input = match input.get("keyboard") {
+        Some(value) => value.as_table().expect("no input.keyboard subsection specified"),
         None => {
             warn!(concat!("input config file \"{}\" does not specify",
                           " keyboard input, reverting to QWERTY."),
@@ -126,7 +135,7 @@ fn keyboard_hm_from_config<'a>(config_str: &'a str,
     };
 
     for key in JOYPAD_KEYS.iter() {
-        let key_symbol = match keyboard_input.lookup(key) {
+        let key_symbol = match keyboard_input.get(&key.to_string()) {
             Some(value) => {
                 match *value {
                     toml::Value::String(ref s) => &s[..],
@@ -136,8 +145,11 @@ fn keyboard_hm_from_config<'a>(config_str: &'a str,
                                            key))
                     }
                 }
+            },
+            None => {
+                warn!("no key specified for \"{}\" in input config, reverting to QWERTY", key);
+                return build_keyboard_control_hm(QWERTY);
             }
-            None => return Err(format!("no key specified for \"{}\" in input config", key)),
         };
         if hm.insert(key_symbol.into(), JoypadKey::from_str(key).unwrap()).is_some() {
             warn!("input config file \"{}\" binds key \"{}\" more than once, earlier \

@@ -86,19 +86,18 @@ impl EmulatorAppConfig {
                  .and_then(|mut f| f.read_to_string(&mut file_content))
                  .map_err(|_| format!("could not load the config file : {}", file_path.display())));
 
-        let mut parser = toml::Parser::new(&file_content[..]);
-        let table = match parser.parse() {
-            Some(t) => toml::Value::Table(t),
-            None => {
-                return Err(format!("parsing error in config file \"{}\" : {:?}",
-                                   file_path.display(),
-                                   parser.errors))
-            }
+        let table_value = match file_content.parse::<toml::Value>() {
+            Ok(value) => value,
+            Err(err) => return Err(format!("parsing error in config file \"{}\" : {}",
+                                       file_path.display(),
+                                       err)),
         };
+        let table = table_value.as_table().unwrap();
 
         info!("reading configuration from file \"{}\"...",
               file_path.display());
-        if let Some(display) = table.lookup("display") {
+        if let Some(value) = table.get("display") {
+            let display = value.as_table().expect("config file error : no display section");
             match lookup_bool_value("force_aspect", display) {
                 Ok(force_aspect) => config.window_force_aspect = force_aspect,
                 Err(error) => warn!("{}", error),
@@ -146,12 +145,8 @@ impl EmulatorAppConfig {
     config_get_param!(get_keyboard_binding, keyboard_binding, KeyboardBinding);
 }
 
-fn lookup_bool_value(key: &'static str, table: &toml::Value) -> Result<bool, String> {
-    match *table {
-        toml::Value::Table(_) => (),
-        _ => return Err(format!("config::lookup_bool_value requires a table")),
-    }
-    if let Some(value) = table.lookup(key) {
+fn lookup_bool_value(key: &'static str, table: &toml::value::Table) -> Result<bool, String> {
+    if let Some(value) = table.get(key) {
         match *value {
             toml::Value::Boolean(boolean) => Ok(boolean),
             _ => {
@@ -166,12 +161,8 @@ fn lookup_bool_value(key: &'static str, table: &toml::Value) -> Result<bool, Str
     }
 }
 
-fn lookup_int_value(key: &'static str, table: &toml::Value) -> Result<i64, String> {
-    match *table {
-        toml::Value::Table(_) => (),
-        _ => return Err(format!("config::lookup_int_value requires a table")),
-    }
-    if let Some(value) = table.lookup(key) {
+fn lookup_int_value(key: &'static str, table: &toml::value::Table) -> Result<i64, String> {
+    if let Some(value) = table.get(key) {
         match *value {
             toml::Value::Integer(int) => Ok(int),
             _ => {
