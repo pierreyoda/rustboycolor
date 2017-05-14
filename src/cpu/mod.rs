@@ -44,7 +44,7 @@ impl<M> Cpu<M> where M: Memory {
             cycles: 0,
             halted: false,
             regs: Registers::new(),
-            mem: mem,
+            mem,
             ime: true,
             if_reg_before_halt: 0x00,
             opcode: 0x0,

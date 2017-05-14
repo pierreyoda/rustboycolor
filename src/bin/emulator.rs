@@ -31,10 +31,7 @@ impl<'a> EmulatorApplication<'a> {
     pub fn new(config: EmulatorAppConfig,
                backend: Box<EmulatorBackend>)
                -> EmulatorApplication<'a> {
-        EmulatorApplication {
-            config: config,
-            backend: backend,
-        }
+        EmulatorApplication { config, backend }
     }
 
     /// Run the emulator application with the given cartridge.

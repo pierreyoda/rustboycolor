@@ -29,7 +29,7 @@ impl MBC0 {
                     return Err("MBC0 supports either 0 KB or 8 KB of external RAM");
                 },
             };
-            Ok(MBC0 { rom: rom, eram: ram })
+            Ok(MBC0 { rom, eram: ram })
         }
     }
 }

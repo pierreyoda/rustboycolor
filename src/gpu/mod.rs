@@ -153,7 +153,7 @@ impl Gpu {
     /// Create and return a new 'Gpu' instance.
     pub fn new(cgb_mode: bool) -> Gpu {
         Gpu {
-            cgb_mode: cgb_mode,
+            cgb_mode,
             cgb_data: if cgb_mode {
                 Some(cgb::GpuData::new())
             } else {
