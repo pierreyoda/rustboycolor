@@ -80,11 +80,11 @@ fn build_keyboard_control_hm(binding: KeyboardBinding) -> Result<HashMap<String,
         }
         AZERTY => {
             let mut hm = HashMap::new();
-            hm.insert("W".into(), JoypadKey::Up);
+            hm.insert("Z".into(), JoypadKey::Up);
             hm.insert("S".into(), JoypadKey::Down);
-            hm.insert("A".into(), JoypadKey::Left);
+            hm.insert("Q".into(), JoypadKey::Left);
             hm.insert("D".into(), JoypadKey::Right);
-            hm.insert("Z".into(), JoypadKey::Select);
+            hm.insert("W".into(), JoypadKey::Select);
             hm.insert("C".into(), JoypadKey::Start);
             hm.insert("G".into(), JoypadKey::A);
             hm.insert("Y".into(), JoypadKey::B);
