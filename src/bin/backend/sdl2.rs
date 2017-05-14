@@ -90,8 +90,8 @@ impl EmulatorBackend for BackendSDL2 {
                             }
                             // toggle pause
                             Keycode::Return => {
-                                tx.send(UpdateRunStatus(paused)).unwrap();
                                 paused = !paused;
+                                tx.send(UpdateRunStatus(paused)).unwrap();
                             }
                             _ => {
                                 if !paused {
