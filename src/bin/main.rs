@@ -7,7 +7,7 @@ mod logger;
 use std::env;
 use std::path::Path;
 use std::error::Error;
-extern crate time;
+
 #[macro_use]
 extern crate log;
 extern crate getopts;

@@ -1,14 +1,12 @@
 [emulation]
     # Disable the boot sequence and boot directly into the ROM ?
     skip_bios = false
-    # Print the average FPS in the console ?
-    print_fps = true
 
 [display]
     width        = 800
     height       = 600
     force_aspect = true
-    # TODO : show FPS ?
+    show_fps     = true
 
 [input]
     [input.keyboard]

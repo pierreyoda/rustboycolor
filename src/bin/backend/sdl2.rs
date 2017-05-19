@@ -1,4 +1,6 @@
+use std::path::Path;
 use std::collections::HashMap;
+use std::time::{Instant, Duration};
 use std::sync::mpsc::{Sender, Receiver};
 extern crate sdl2;
 use self::sdl2::event::Event;
@@ -26,7 +28,7 @@ impl EmulatorBackend for BackendSDL2 {
 
         // Input bindings
         let key_binds = match get_key_bindings::<Keycode>(config.get_keyboard_binding(),
-                                                          keycode_from_symbol_hm()) {
+                                                          &keycode_from_symbol_hm()) {
             Ok(hm) => hm,
             Err(why) => {
                 error!("SDL2 backend input : {}", why);
@@ -42,6 +44,7 @@ impl EmulatorBackend for BackendSDL2 {
 
         // SDL 2 initialization
         let sdl_context = sdl2::init().unwrap();
+        let ttf_context = sdl2::ttf::init().unwrap();
         let video_subsystem = sdl_context.video().unwrap();
         let window = match video_subsystem.window(config.get_title(), w, h)
                                           .position_centered()
@@ -54,14 +57,28 @@ impl EmulatorBackend for BackendSDL2 {
             }
         };
         let mut canvas = window.into_canvas().accelerated().build().unwrap();
+        let texture_creator = canvas.texture_creator();
         canvas.set_draw_color(Color::RGB(0, 0, 0));
         canvas.present();
         let mut events = sdl_context.event_pump().unwrap();
+
+        let mut font = ttf_context.load_font(Path::new("assets/OpenSans-Regular.ttf"), 48)
+            .expect("could not load 'assets/OpenSans-Regular.ttf'");
 
         // is the emulation paused ?
         let mut paused = false;
         // avoid spamming 'Event::KeyDown' events for the same key
         let mut last_key: Option<Keycode> = None;
+
+        // FPS count
+        let mut fps = 0;
+        let mut fps_timer = Instant::now();
+        let one_second = Duration::new(1, 0);
+        let show_fps = config.get_display_fps();
+        let fps_font_color = Color::RGBA(255, 255, 255, 255);
+        let fps_target_rect = sdl2::rect::Rect::new(0, 0, 70, 40);
+        let fps_surface = font.render("0").blended(fps_font_color).unwrap();
+        let mut fps_texture = texture_creator.create_texture_from_surface(&fps_surface).unwrap();
 
         // Main loop
         'ui: loop {
@@ -89,11 +106,8 @@ impl EmulatorBackend for BackendSDL2 {
                             }
                             _ => {
                                 if !paused {
-                                    match key_binds.get(&keycode) {
-                                        Some(keypad_key) => {
-                                            tx.send(KeyDown(*keypad_key)).unwrap();
-                                        }
-                                        _ => {}
+                                    if let Some(keypad_key) = key_binds.get(&keycode) {
+                                        tx.send(KeyDown(*keypad_key)).unwrap();
                                     }
                                 }
                             }
@@ -101,11 +115,8 @@ impl EmulatorBackend for BackendSDL2 {
                         last_key = Some(keycode);
                     }
                     Event::KeyUp { keycode: Some(keycode), .. } if !paused => {
-                        match key_binds.get(&keycode) {
-                            Some(keypad_key) => {
-                                tx.send(KeyUp(*keypad_key)).unwrap();
-                            }
-                            _ => {}
+                        if let Some(keypad_key) = key_binds.get(&keycode) {
+                            tx.send(KeyUp(*keypad_key)).unwrap();
                         }
                         if !last_key.is_none() && keycode == last_key.unwrap() {
                             last_key = None;
@@ -123,6 +134,22 @@ impl EmulatorBackend for BackendSDL2 {
                     }
                 }
                 _ => {}
+            }
+
+            canvas.clear();
+
+            // FPS count
+            fps += 1;
+            if fps_timer.elapsed() >= one_second {
+                fps_timer = Instant::now();
+                let text = format!("{}", fps);
+                fps = 0;
+
+                let surface = font.render(&text[..]).blended(fps_font_color).unwrap();
+                fps_texture = texture_creator.create_texture_from_surface(&surface).unwrap();
+            }
+            if show_fps {
+                canvas.copy(&fps_texture, None, Some(fps_target_rect)).unwrap();
             }
 
             canvas.present();

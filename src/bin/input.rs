@@ -44,7 +44,7 @@ impl fmt::Debug for KeyboardBinding {
 /// "F{0..12}"
 /// "Up" / "Down" / "Left" / "Right"
 pub fn get_key_bindings<Key>(binding: KeyboardBinding,
-                             symbol_backend_key_hm: HashMap<String, Key>)
+                             symbol_backend_key_hm: &HashMap<String, Key>)
                              -> Result<HashMap<Key, JoypadKey>, String>
     where Key: Hash + Eq + Copy
 {
@@ -104,9 +104,9 @@ fn build_keyboard_control_hm(binding: KeyboardBinding) -> Result<HashMap<String,
     }
 }
 
-fn keyboard_hm_from_config<'a>(config_str: &'a str,
-                               config_file: String)
-                               -> Result<HashMap<String, JoypadKey>, String> {
+fn keyboard_hm_from_config(config_str: &str,
+                           config_file: String)
+                           -> Result<HashMap<String, JoypadKey>, String> {
     let mut hm = HashMap::new();
     let table_value = match config_str.parse::<toml::Value>() {
         Ok(value) => value,

@@ -44,10 +44,12 @@ pub struct EmulatorAppConfig {
     /// aspect ratio if the option 'window_force_aspect' is set to true.
     window_height: u16,
     /// If true, the application will override the desired display size to
-    /// respect the GB's aspect ratio.
+    /// respect the GB's aspect ratio. True by default.
     window_force_aspect: bool,
     /// The keyboard configuration. QWERTY by default.
     keyboard_binding: KeyboardBinding,
+    /// Display the FPS count.
+    display_fps: bool,
 }
 
 impl EmulatorAppConfig {
@@ -72,6 +74,7 @@ impl EmulatorAppConfig {
             window_height: SCREEN_H as u16 * DEFAULT_SCALE,
             window_force_aspect: true,
             keyboard_binding: KeyboardBinding::QWERTY,
+            display_fps: false
         }
     }
 
@@ -102,6 +105,10 @@ impl EmulatorAppConfig {
                 Ok(force_aspect) => config.window_force_aspect = force_aspect,
                 Err(error) => warn!("{}", error),
             }
+            match lookup_bool_value("show_fps", display) {
+                Ok(show_fps) => config.display_fps = show_fps,
+                Err(error) => warn!("{}", error),
+            }
             match lookup_int_value("width", display) {
                 Ok(width) => {
                     if width > 0 && width as u16 >= SCREEN_W as u16 {
@@ -122,7 +129,10 @@ impl EmulatorAppConfig {
                 }
                 Err(error) => warn!("{}", error),
             }
+        } else {
+            warn!("no display section in config file");
         }
+
         info!("configuration reading done.");
 
         Ok(config)
@@ -143,6 +153,9 @@ impl EmulatorAppConfig {
 
     config_set_param!(keyboard_binding, keyboard_binding, KeyboardBinding);
     config_get_param!(get_keyboard_binding, keyboard_binding, KeyboardBinding);
+
+    config_set_param!(display_fps, display_fps, bool);
+    config_get_param!(get_display_fps, display_fps, bool);
 }
 
 fn lookup_bool_value(key: &'static str, table: &toml::value::Table) -> Result<bool, String> {
