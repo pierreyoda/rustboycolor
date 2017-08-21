@@ -188,7 +188,7 @@ pub fn keycode_from_symbol_hm() -> HashMap<String, Keycode> {
     }
     for i in 1..13 {
         sdl2_key_names.push(format!("F{}", i));
-    } // F0-F12
+    } // F1-F12
     for key_name in sdl2_key_names {
         let key_code = match Keycode::from_name(&key_name[..]) {
             Some(code) => code,
