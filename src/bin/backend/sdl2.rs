@@ -155,7 +155,7 @@ impl EmulatorBackend for BackendSDL2 {
             canvas.present();
         }
 
-        info!("terminating the main application thread.")
+        info!("terminating the main application thread.");
     }
 }
 

@@ -5,17 +5,18 @@ authors = ["pierreyoda <pierreyoda@users.noreply.github.com>"]
 
 [[bin]]
 name = "rustboycolor"
+path = "src/bin/main.rs"
 
 [lib]
 name = "rustboylib"
 path = "src/lib.rs"
 
 [dependencies]
-log = "0.3.7"
-getopts = "0.2.14"
-toml = "0.4.1"
+log = "0.3.8"
+getopts = "0.2.15"
+toml = "0.4.5"
 
 [dependencies.sdl2]
-version = "0.30"
+version = "0.30.0"
 default-features = false
 features = ["ttf"]
