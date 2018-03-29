@@ -209,10 +209,11 @@ mod test {
 
     #[test]
     fn test_keyboard_hm_from_config() {
-        let key_binds = get_key_bindings::<Keycode>(FromConfigFile("tests/backend_input.toml"
-                                                                       .into()),
-                                                    super::keycode_from_symbol_hm())
-                            .unwrap();
+        let keycode_symbol_hm = super::keycode_from_symbol_hm();
+        let key_binds = get_key_bindings::<Keycode>(
+            FromConfigFile("tests/backend_input.toml".into()),
+            &keycode_symbol_hm,
+        ).unwrap();
         assert_eq!(*key_binds.get(&Keycode::Up).unwrap(), JoypadKey::Up);
         assert_eq!(*key_binds.get(&Keycode::Down).unwrap(), JoypadKey::Down);
         assert_eq!(*key_binds.get(&Keycode::Left).unwrap(), JoypadKey::Left);
