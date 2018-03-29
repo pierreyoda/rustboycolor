@@ -6,6 +6,6 @@ rust:
   - nightly
 
 before_install:
-  - sudo add-apt-repository ppa:team-xbmc/ppa -y
-  - sudo apt-get update -q
-  - sudo apt-get install libsdl2-dev
+  - sudo apt-get -qq update
+  - sudo apt-get install -y libegl1-mesa-dev libgles2-mesa-dev
+  - sudo apt-get install -y libsdl2-dev
