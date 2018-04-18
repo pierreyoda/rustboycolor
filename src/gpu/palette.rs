@@ -32,22 +32,24 @@ impl PaletteGrayShade {
 }
 
 /// Gives the RGB colors corresponding to the GB's monochrome palette values.
-const PALETTE_CLASSIC_RGB: [RGB; 4] = [RGB {
-                                           r: 255,
-                                           g: 255,
-                                           b: 255,
-                                       },
-                                       RGB {
-                                           r: 192,
-                                           g: 192,
-                                           b: 192,
-                                       },
-                                       RGB {
-                                           r: 96,
-                                           g: 96,
-                                           b: 96,
-                                       },
-                                       RGB { r: 0, g: 0, b: 0 }];
+const PALETTE_CLASSIC_RGB: [RGB; 4] = [
+    RGB {
+        r: 255,
+        g: 255,
+        b: 255,
+    },
+    RGB {
+        r: 192,
+        g: 192,
+        b: 192,
+    },
+    RGB {
+        r: 96,
+        g: 96,
+        b: 96,
+    },
+    RGB { r: 0, g: 0, b: 0 },
+];
 
 /// The palette in the Game Boy (Classic) allows by changing a single byte to
 /// individually assign 4 colors to arbitrary 'PaletteGrayShade' values :
@@ -160,7 +162,9 @@ pub struct PaletteColor {
 impl PaletteColor {
     pub fn new() -> PaletteColor {
         // TODO : check default palette value
-        PaletteColor { data: [PaletteColorValue::new(0x0000); 4] }
+        PaletteColor {
+            data: [PaletteColorValue::new(0x0000); 4],
+        }
     }
 
     pub fn data(&self) -> &[PaletteColorValue; 4] {
@@ -173,8 +177,8 @@ impl PaletteColor {
 
 #[cfg(test)]
 mod test {
-    use super::{PaletteGrayShade, PaletteClassic, PALETTE_CLASSIC_RGB, PaletteColorValue,
-                PaletteColor};
+    use super::{PaletteClassic, PaletteColor, PaletteColorValue, PaletteGrayShade,
+                PALETTE_CLASSIC_RGB};
     use super::PaletteGrayShade::*;
 
     #[test]

@@ -50,7 +50,7 @@ impl CartridgeHeader {
             // 32 KB
             0x03 => 0x8000,
             // None
-            _    => 0,
+            _ => 0,
         }
     }
 }
@@ -70,21 +70,24 @@ pub trait MBC {
 /// TODO : read cartridge information
 /// TODO : cartridge header checksum validation
 /// TODO : state saving with battery-backed RAM
-pub fn load_cartridge(filepath: &Path) -> ::ResultStr<Box<MBC+Send>> {
+pub fn load_cartridge(filepath: &Path) -> ::ResultStr<Box<MBC + Send>> {
     let mut data = Vec::<u8>::new();
-    try!(File::open(filepath).and_then(|mut f| f.read_to_end(&mut data))
-         .map_err(|_| "could not load the file as a gameboy ROM"));
+    try!(
+        File::open(filepath)
+            .and_then(|mut f| f.read_to_end(&mut data))
+            .map_err(|_| "could not load the file as a gameboy ROM")
+    );
     match data[CartridgeHeader::address(MBC_Type).unwrap()] {
         // MBC0 : no MBC
         0x00 => {
             info!("MBC used by the cartridge : none.");
-            mbc0::MBC0::new(data).map(|v| Box::new(v) as Box<MBC+Send>)
-        },
+            mbc0::MBC0::new(data).map(|v| Box::new(v) as Box<MBC + Send>)
+        }
         // MBC1
-        0x01 ... 0x03 => {
+        0x01...0x03 => {
             info!("MBC used by the cartridge : MBC1.");
-            mbc1::MBC1::new(data).map(|v| Box::new(v) as Box<MBC+Send>)
-        },
-        _    => Err("unsupported cartridge MBC")
+            mbc1::MBC1::new(data).map(|v| Box::new(v) as Box<MBC + Send>)
+        }
+        _ => Err("unsupported cartridge MBC"),
     }
 }

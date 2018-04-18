@@ -1,7 +1,7 @@
 /// Used by small games who can fit in the 32 KB of ROM and the GameBoy's 8 KB
 /// of external RAM.
 
-use super::{MBC, CartridgeHeader};
+use super::{CartridgeHeader, MBC};
 
 pub const ROM_SIZE: usize = 0x10000;
 pub const ERAM_SIZE: usize = 0x2000;
@@ -27,7 +27,7 @@ impl MBC0 {
                 n => {
                     error!("MBC0 : invalid external RAM size of {} bytes", n);
                     return Err("MBC0 supports either 0 KB or 8 KB of external RAM");
-                },
+                }
             };
             Ok(MBC0 { rom, eram: ram })
         }
@@ -35,15 +35,22 @@ impl MBC0 {
 }
 
 impl MBC for MBC0 {
-    fn rom_read(&self, address: u16) -> u8 { self.rom[address as usize] }
+    fn rom_read(&self, address: u16) -> u8 {
+        self.rom[address as usize]
+    }
     fn ram_read(&self, address: u16) -> u8 {
-        if self.eram.is_some() { self.eram.unwrap()[(address as usize) & 0x1FFF] }
-        else { 0x00 }
+        if self.eram.is_some() {
+            self.eram.unwrap()[(address as usize) & 0x1FFF]
+        } else {
+            0x00
+        }
     }
 
-    fn rom_control(&mut self, address: u16, value: u8) { }
+    fn rom_control(&mut self, address: u16, value: u8) {}
 
     fn ram_write(&mut self, address: u16, value: u8) {
-        if self.eram.is_some() { self.eram.unwrap()[(address as usize) & 0x1FFF] = value; }
+        if self.eram.is_some() {
+            self.eram.unwrap()[(address as usize) & 0x1FFF] = value;
+        }
     }
 }

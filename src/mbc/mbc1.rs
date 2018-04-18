@@ -3,7 +3,7 @@
 
 use std::iter;
 
-use super::{MBC, CartridgeHeader};
+use super::{CartridgeHeader, MBC};
 use super::CartridgeHeader::*;
 
 pub struct MBC1 {
@@ -32,7 +32,7 @@ impl MBC1 {
             0x03 => {
                 // TODO : state loading
                 CartridgeHeader::ram_size(&data)
-            },
+            }
             _ => 0,
         };
 
@@ -50,7 +50,9 @@ impl MBC1 {
 impl MBC for MBC1 {
     fn rom_read(&self, address: u16) -> u8 {
         // ROM bank 00
-        if address < 0x4000 { self.rom[address as usize] }
+        if address < 0x4000 {
+            self.rom[address as usize]
+        }
         // ROM bank 01-7F
         else {
             self.rom[self.rom_bank * 0x4000 + ((address as usize) & 0x3FFF)]
@@ -58,38 +60,51 @@ impl MBC for MBC1 {
     }
 
     fn ram_read(&self, address: u16) -> u8 {
-        if !self.ram_enabled { return 0x00; }
-        let ram_bank = if self.ram_mode { self.ram_bank } else { 0x00 };
+        if !self.ram_enabled {
+            return 0x00;
+        }
+        let ram_bank =
+            if self.ram_mode { self.ram_bank } else { 0x00 };
         self.ram[ram_bank * 0x2000 + ((address as usize) & 0x1FFF)]
     }
 
     fn rom_control(&mut self, address: u16, value: u8) {
         match address {
             // external RAM switch
-            0x0000 ... 0x1FFF => { self.ram_enabled = value == 0x0A; },
+            0x0000...0x1FFF => {
+                self.ram_enabled = value == 0x0A;
+            }
             // ROM bank number : lower 5 bits
-            0x2000 ... 0x3FFF => {
-                self.rom_bank = (self.rom_bank & 0x60)
-                    + match (address as usize) & 0x1F { 0x0 => 0x1, n => n };
-            },
-            0x4000 ... 0x5FFF => {
+            0x2000...0x3FFF => {
+                self.rom_bank = (self.rom_bank & 0x60) + match (address as usize) & 0x1F {
+                    0x0 => 0x1,
+                    n => n,
+                };
+            }
+            0x4000...0x5FFF => {
                 let n = (address as usize) & 0x03;
-                if self.ram_mode { // RAM bank number
+                if self.ram_mode {
+                    // RAM bank number
                     self.ram_bank = n;
-                }
-                else { // bits 6 and 7 of ROM bank number in ROM mode
+                } else {
+                    // bits 6 and 7 of ROM bank number in ROM mode
                     self.rom_bank = (self.rom_bank & 0x1F) | (n << 5);
                 }
-            },
+            }
             // ROM/RAM mode select
-            0x6000 ... 0x7FFF => { self.ram_mode = value == 0x01; }
+            0x6000...0x7FFF => {
+                self.ram_mode = value == 0x01;
+            }
             _ => panic!(format!("MBC1 : cannot write to ROM at {:0>4X}", address)),
         }
     }
 
     fn ram_write(&mut self, address: u16, value: u8) {
-        if !self.ram_enabled { return; }
-        let ram_bank = if self.ram_mode { self.ram_bank } else { 0x00 };
+        if !self.ram_enabled {
+            return;
+        }
+        let ram_bank =
+            if self.ram_mode { self.ram_bank } else { 0x00 };
         self.ram[ram_bank * 0x2000 + ((address as usize) & 0x1FFF)] = value;
     }
 }
