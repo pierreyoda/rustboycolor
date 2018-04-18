@@ -25,7 +25,7 @@ pub struct RGB {
 
 impl RGB {
     pub fn new(r: u8, g: u8, b: u8) -> RGB {
-        RGB { r: r, g: g, b: b }
+        RGB { r, g, b }
     }
 }
 
