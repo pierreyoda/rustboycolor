@@ -37,7 +37,7 @@ impl<'a> EmulatorApplication<'a> {
     /// Run the emulator application with the given cartridge.
     /// Return true if all went well, false otherwise.
     /// TODO : more flexible run function (maybe a LoadRomCommand ?)
-    pub fn run(&mut self, rom_path: &Path) -> bool {
+    pub fn run(&mut self, rom_path: &Path, skip_bios: bool) -> bool {
         // Communication channels
         let (tx_vm, rx_ui) = channel::<EmulationMessage>();
         let (tx_ui, rx_vm) = channel::<BackendMessage>();
@@ -51,8 +51,11 @@ impl<'a> EmulatorApplication<'a> {
             }
         };
         thread::spawn(move || {
-            let mmu = mmu::MMU::new(mbc, false);
+            let mmu = mmu::MMU::new(mbc, false, skip_bios);
             let mut cpu = cpu::Cpu::<mmu::MMU>::new(mmu);
+            if skip_bios {
+                cpu.post_bios();
+            }
             emulation_loop(&mut cpu, tx_vm, rx_vm);
         });
 
@@ -98,6 +101,8 @@ fn emulation_loop(cpu: &mut cpu::Cpu<mmu::MMU>,
             _ => {}
         }
 
-        thread::sleep(Duration::from_millis(25));
+        cpu.step();
+
+        // thread::sleep(Duration::from_millis(25));
     }
 }

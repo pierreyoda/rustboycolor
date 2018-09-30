@@ -101,5 +101,5 @@ fn main() {
     app_options_from_matches(&matches)
         .title("RustBoyColor - SDL 2")
         .create_with_backend(Box::new(sdl2::BackendSDL2))
-        .run(&rom_path);
+        .run(&rom_path, true);
 }

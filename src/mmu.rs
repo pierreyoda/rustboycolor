@@ -57,9 +57,9 @@ impl IrqHandler for MachineIrqHandler {
 }
 
 impl MMU {
-    pub fn new(mbc: Box<MBC>, cgb_mode: bool) -> MMU {
+    pub fn new(mbc: Box<MBC>, cgb_mode: bool, skip_bios: bool) -> MMU {
         MMU {
-            in_bios: true,
+            in_bios: !skip_bios,
             bios: &GB_BIOS,
             gpu: Gpu::new(cgb_mode),
             mbc: mbc,

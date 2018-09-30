@@ -55,6 +55,36 @@ impl<M> Cpu<M> where M: Memory {
         }
     }
 
+    /// Simulate the effects of the power-up sequence.
+    /// Source: http://gbdev.gg8.se/wiki/articles/Power_Up_Sequence
+    pub fn post_bios(&mut self) {
+        self.regs.set_af(0x01B0);
+        self.regs.set_bc(0x0013);
+        self.regs.set_de(0x00D8);
+        self.regs.set_hl(0x014D);
+        self.regs.pc = 0x100;
+        self.regs.sp = 0xFFFE;
+        self.mem.write_byte(0xFF10, 0x80);
+        self.mem.write_byte(0xFF11, 0xBF);
+        self.mem.write_byte(0xFF12, 0xF3);
+        self.mem.write_byte(0xFF14, 0xBF);
+        self.mem.write_byte(0xFF16, 0x3F);
+        self.mem.write_byte(0xFF19, 0xBF);
+        self.mem.write_byte(0xFF1A, 0x7F);
+        self.mem.write_byte(0xFF1B, 0xFF);
+        self.mem.write_byte(0xFF1C, 0x9F);
+        self.mem.write_byte(0xFF1E, 0xBF);
+        self.mem.write_byte(0xFF20, 0xFF);
+        self.mem.write_byte(0xFF23, 0xBF);
+        self.mem.write_byte(0xFF24, 0x77);
+        self.mem.write_byte(0xFF25, 0xF3);
+        self.mem.write_byte(0xFF26, 0xF1);
+        self.mem.write_byte(0xFF40, 0x91);
+        self.mem.write_byte(0xFF47, 0xFC);
+        self.mem.write_byte(0xFF48, 0xFF);
+        self.mem.write_byte(0xFF49, 0xFF);
+    }
+
     /// Get an immutable reference to the Registers state.
     pub fn registers(&self) -> &Registers {
         &self.regs
