@@ -3,6 +3,7 @@
 
 mod ops;
 mod cb_ops;
+#[cfg(test)] mod test;
 
 use irq::{Interrupt, INTERRUPT_FLAG_ADDRESS, INTERRUPT_ENABLE_ADDRESS};
 use memory::Memory;
@@ -12,6 +13,7 @@ use registers::{Registers, Z_FLAG, N_FLAG, H_FLAG, C_FLAG};
 pub const CPU_CLOCK_SPEED: u32 = 4_194_304;
 
 /// The type used to count the CPU's machine cycles.
+/// 1 machine cycle = 4 clock cycles
 pub type CycleType = u64;
 
 /// The structure holding and emulating the CPU state.
