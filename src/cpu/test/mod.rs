@@ -1,7 +1,7 @@
 mod load; // load/store/move instructions
 
-use super::{Cpu, CycleType};
 use super::super::memory::Memory;
+use super::{Cpu, CycleType};
 
 const OPCODE_END: u8 = 0xD3;
 
@@ -13,9 +13,7 @@ impl TestMachine {
     pub fn with_instructions(instructions: &[u8]) -> Self {
         let mut m = TestMemory::new(0x10000);
         m.memory[0..instructions.len()].copy_from_slice(instructions);
-        TestMachine {
-            cpu: Cpu::new(m),
-        }
+        TestMachine { cpu: Cpu::new(m) }
     }
 
     pub fn init_cpu<F: Fn(&mut Cpu<TestMemory>) -> ()>(mut self, function: F) -> Self {
@@ -28,8 +26,7 @@ impl TestMachine {
     }
 }
 
-pub fn test_cpu<F: Fn(&mut Cpu<TestMemory>) -> ()>(instructions: &[u8], init: F)
-    -> TestMachine {
+pub fn test_cpu<F: Fn(&mut Cpu<TestMemory>) -> ()>(instructions: &[u8], init: F) -> TestMachine {
     let mut instrs = instructions.to_vec();
     instrs.push(OPCODE_END);
     let mut machine = TestMachine::with_instructions(&instrs).init_cpu(init);
@@ -41,7 +38,7 @@ pub fn test_cpu<F: Fn(&mut Cpu<TestMemory>) -> ()>(instructions: &[u8], init: F)
     machine
 }
 
-struct TestMemory {
+pub struct TestMemory {
     memory: Vec<u8>,
 }
 

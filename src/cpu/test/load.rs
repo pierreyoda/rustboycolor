@@ -1,3 +1,5 @@
+#![allow(non_snake_case)]
+
 use super::test_cpu;
 use memory::Memory;
 
@@ -126,13 +128,17 @@ test_LD_HLm_r_x! {
 
 #[test]
 fn test_LD_HLm_r_h() {
-    let mut machine = test_cpu(&[0x74], |cpu| { cpu.regs.set_hl(0x7AD8); });
+    let mut machine = test_cpu(&[0x74], |cpu| {
+        cpu.regs.set_hl(0x7AD8);
+    });
     assert_eq!(machine.clock_cycles(), 8);
     assert_eq!(machine.cpu.mem.read_byte(0x7AD8), 0x7A);
 }
 #[test]
 fn test_LD_HLm_r_l() {
-    let mut machine = test_cpu(&[0x75], |cpu| { cpu.regs.set_hl(0x7AD8); });
+    let mut machine = test_cpu(&[0x75], |cpu| {
+        cpu.regs.set_hl(0x7AD8);
+    });
     assert_eq!(machine.clock_cycles(), 8);
     assert_eq!(machine.cpu.mem.read_byte(0x7AD8), 0xD8);
 }
@@ -163,7 +169,9 @@ test_LD_r_n_x! {
 // LD_HLm_n : load immediate byte into (HL)
 #[test]
 fn test_LD_HLm_n() {
-    let mut machine = test_cpu(&[0x36, 0x9A], |cpu| { cpu.regs.set_hl(0x7AD8); });
+    let mut machine = test_cpu(&[0x36, 0x9A], |cpu| {
+        cpu.regs.set_hl(0x7AD8);
+    });
     assert_eq!(machine.clock_cycles(), 12);
     assert_eq!(machine.cpu.mem.read_byte(0x7AD8), 0x9A);
 }
@@ -232,4 +240,105 @@ fn test_LD_SP_nn() {
     let machine = test_cpu(&[0x31, 0x4B, 0xDE], |_| {});
     assert_eq!(machine.clock_cycles(), 12);
     assert_eq!(machine.cpu.regs.sp, 0xDE4B);
+}
+
+// LD_NNm_A : load A into (nn)
+#[test]
+fn test_LD_NNm_A() {
+    let mut machine = test_cpu(&[0xEA, 0x4B, 0xDE], |cpu| {
+        cpu.regs.a = 0x9A;
+    });
+    assert_eq!(machine.clock_cycles(), 16);
+    assert_eq!(machine.cpu.mem.read_byte(0xDE4B), 0x9A);
+}
+// LD_A_NNm : load (nn) into A
+#[test]
+fn test_LD_A_NNm() {
+    let machine = test_cpu(&[0xFA, 0x4B, 0xDE], |cpu| {
+        cpu.mem.write_byte(0xDE4B, 0x9A);
+    });
+    assert_eq!(machine.clock_cycles(), 16);
+    assert_eq!(machine.cpu.regs.a, 0x9A);
+}
+
+// LDI_HLm_A / LDD_HLm_A : load A into (HL) and increment/decrement HL
+#[test]
+fn test_LDI_HLm_A() {
+    let mut machine = test_cpu(&[0x22], |cpu| {
+        cpu.regs.a = 0x9A;
+        cpu.regs.set_hl(0x97D3);
+    });
+    assert_eq!(machine.clock_cycles(), 8);
+    assert_eq!(machine.cpu.mem.read_byte(0x97D3), 0x9A);
+    assert_eq!(machine.cpu.regs.hl(), 0x97D4);
+}
+#[test]
+fn test_LDD_HLm_A() {
+    let mut machine = test_cpu(&[0x32], |cpu| {
+        cpu.regs.a = 0x9A;
+        cpu.regs.set_hl(0x97D3);
+    });
+    assert_eq!(machine.clock_cycles(), 8);
+    assert_eq!(machine.cpu.mem.read_byte(0x97D3), 0x9A);
+    assert_eq!(machine.cpu.regs.hl(), 0x97D2);
+}
+
+// LDI_A_HLm / LDD_A_HLm : load (HL) into A and increment/decrement HL
+#[test]
+fn test_LDI_A_HLm() {
+    let machine = test_cpu(&[0x2A], |cpu| {
+        cpu.regs.set_hl(0x97D3);
+        cpu.mem.write_byte(cpu.regs.hl(), 0x9A);
+    });
+    assert_eq!(machine.clock_cycles(), 8);
+    assert_eq!(machine.cpu.regs.a, 0x9A);
+    assert_eq!(machine.cpu.regs.hl(), 0x97D4);
+}
+#[test]
+fn test_LDD_A_HLm() {
+    let machine = test_cpu(&[0x3A], |cpu| {
+        cpu.regs.set_hl(0x97D3);
+        cpu.mem.write_byte(cpu.regs.hl(), 0x9A);
+    });
+    assert_eq!(machine.clock_cycles(), 8);
+    assert_eq!(machine.cpu.regs.a, 0x9A);
+    assert_eq!(machine.cpu.regs.hl(), 0x97D2);
+}
+
+// LDH_n_A : load A into (0xFF00 + offset = 8-bit immediate)
+#[test]
+fn test_LDH_n_A() {
+    let mut machine = test_cpu(&[0xE0, 0xC3], |cpu| cpu.regs.a = 0x9A);
+    assert_eq!(machine.clock_cycles(), 12);
+    assert_eq!(machine.cpu.mem.read_byte(0xFFC3), 0x9A);
+}
+// LDH_A_n : load (0xFF00 + offset = 8-bit immediate) into A
+#[test]
+fn test_LDH_A_n() {
+    let machine = test_cpu(&[0xF0, 0xC3], |cpu| {
+        cpu.mem.write_byte(0xFFC3, 0x9A);
+    });
+    assert_eq!(machine.clock_cycles(), 12);
+    assert_eq!(machine.cpu.regs.a, 0x9A);
+}
+
+// LDH_C_A : load A into (0xFF00 + offset = C)
+#[test]
+fn test_LDH_C_A() {
+    let mut machine = test_cpu(&[0xE2], |cpu| {
+        cpu.regs.a = 0x9A;
+        cpu.regs.c = 0xC3;
+    });
+    assert_eq!(machine.clock_cycles(), 8);
+    assert_eq!(machine.cpu.mem.read_byte(0xFFC3), 0x9A);
+}
+// LDH_A_C : load (0xFF00 + offset = C) into A
+#[test]
+fn test_LDH_A_A() {
+    let machine = test_cpu(&[0xF2], |cpu| {
+        cpu.regs.c = 0xC3;
+        cpu.mem.write_byte(0xFFC3, 0x9A);
+    });
+    assert_eq!(machine.clock_cycles(), 8);
+    assert_eq!(machine.cpu.regs.a, 0x9A);
 }
