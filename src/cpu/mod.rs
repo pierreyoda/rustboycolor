@@ -144,8 +144,7 @@ impl<M> Cpu<M> where M: Memory {
     /// Called when encountering the '0xCB' prefix.
     pub fn call_cb(&mut self) -> CycleType {
         self.opcode = self.fetch_byte();
-        // TO CHECK : cycles overhead of 'CB' prefix = 1 ?
-        1 + self.cb_dispatch_array[self.opcode as usize](self)
+        self.cb_dispatch_array[self.opcode as usize](self)
     }
 
     /// Called when an unknown opcode is encountered.

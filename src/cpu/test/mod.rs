@@ -1,4 +1,5 @@
 mod load; // load/store/move instructions
+mod cb; // CB-prefixed instructions
 
 use super::super::memory::Memory;
 use super::{Cpu, CycleType};

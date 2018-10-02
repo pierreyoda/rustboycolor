@@ -74,7 +74,7 @@ macro_rules! impl_BIT_b_HLm {
         $s.regs.set_flag(N_FLAG, false);
         $s.regs.set_flag(H_FLAG, true);
         $s.regs.set_flag(Z_FLAG, bit == 0b0);
-        return 4;
+        return 3;
     })
 }
 
@@ -86,7 +86,7 @@ macro_rules! impl_RES_b_r_x {
 }
 macro_rules! impl_RES_b_HLm {
     ($s: ident, $b: expr) => ({
-        let hl = ($s.regs.h as u16) << 8 + $s.regs.l as u16;
+        let hl = $s.regs.hl();
         let v = $s.mem.read_byte(hl) & !(1 << $b);
         $s.mem.write_byte(hl, v);
         return 4;
@@ -101,7 +101,7 @@ macro_rules! impl_SET_b_r_x {
 }
 macro_rules! impl_SET_b_HLm {
     ($s: ident, $b: expr) => ({
-        let hl = ($s.regs.h as u16) << 8 + $s.regs.l as u16;
+        let hl = $s.regs.hl();
         let v = $s.mem.read_byte(hl) | (1 << $b);
         $s.mem.write_byte(hl, v);
         return 4;
