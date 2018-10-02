@@ -49,13 +49,10 @@ macro_rules! srl {
 // Swap the byte's nibbles, reset the NHC flags and set the Z flag.
 macro_rules! swap {
     ($s: ident, $x: expr) => ({
-        $s.regs.f = 0x0;
         let x1 = ($x & 0x0F) << 4;
         let x2 = ($x >> 4) & 0x0F;
         $x = x1 | x2;
-        if $x == 0 {
-            $s.regs.f |= Z_FLAG;
-        }
+        $s.regs.f = if $x == 0 { Z_FLAG } else { 0 };
     })
 }
 
@@ -233,7 +230,7 @@ impl<M> Cpu<M> where M: Memory {
     // --- SWAP ---
     //
 
-    // SWAP_r_b : swap register X's nibbles, reset NHC flags and set Z flag
+    // SWAP_r_X : swap register X's nibbles, reset NHC flags and set Z flag
     pub fn SWAP_r_b(&mut self) -> CycleType { swap!(self, self.regs.b); 2 }
     pub fn SWAP_r_c(&mut self) -> CycleType { swap!(self, self.regs.c); 2 }
     pub fn SWAP_r_d(&mut self) -> CycleType { swap!(self, self.regs.d); 2 }

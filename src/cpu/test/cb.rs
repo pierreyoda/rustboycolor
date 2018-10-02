@@ -2,7 +2,68 @@
 
 use super::test_cpu;
 use memory::Memory;
-use registers::{Z_FLAG, N_FLAG, H_FLAG};
+use registers::{Z_FLAG, N_FLAG, H_FLAG, C_FLAG};
+
+// SWAP_r_X : swap register X's nibbles, reset NHC flags and set Z flag
+macro_rules! test_SWAP_r_X {
+    ($ ( $name: ident : ($instr: expr, $x: ident), )* ) => {
+    $(
+        #[test]
+        fn $name() {
+            {
+                let machine = test_cpu(&[0xCB, $instr], |cpu| {
+                    cpu.regs.f = N_FLAG | H_FLAG | C_FLAG;
+                });
+                assert_eq!(machine.clock_cycles(), 8);
+                assert_eq!(machine.cpu.regs.$x, 0);
+                assert_eq!(machine.cpu.regs.f, Z_FLAG);
+            }
+            {
+                let machine = test_cpu(&[0xCB, $instr], |cpu| {
+                    cpu.regs.f = Z_FLAG |N_FLAG | H_FLAG | C_FLAG;
+                    cpu.regs.$x = 0b_1010_1101;
+                });
+                assert_eq!(machine.clock_cycles(), 8);
+                assert_eq!(machine.cpu.regs.$x, 0b_1101_1010);
+                assert_eq!(machine.cpu.regs.f, 0);
+            }
+        }
+    )*
+    }
+}
+test_SWAP_r_X! {
+    test_CB_SWAP_r_b: (0x30, b),
+    test_CB_SWAP_r_c: (0x31, c),
+    test_CB_SWAP_r_d: (0x32, d),
+    test_CB_SWAP_r_e: (0x33, e),
+    test_CB_SWAP_r_h: (0x34, h),
+    test_CB_SWAP_r_l: (0x35, l),
+    test_CB_SWAP_r_a: (0x37, a),
+}
+
+// SWAP_HLm : swap (HL)'s nibbles, reset NHC flags and set Z flag
+#[test]
+fn test_CB_SWAP_HLm() {
+    {
+        let mut machine = test_cpu(&[0xCB, 0x36], |cpu| {
+            cpu.regs.f = N_FLAG | H_FLAG | C_FLAG;
+            cpu.regs.set_hl(0x29DA);
+        });
+        assert_eq!(machine.clock_cycles(), 16);
+        assert_eq!(machine.cpu.mem.read_byte(0x29DA), 0);
+        assert_eq!(machine.cpu.regs.f, Z_FLAG);
+    }
+    {
+        let mut machine = test_cpu(&[0xCB, 0x36], |cpu| {
+            cpu.regs.f = Z_FLAG | N_FLAG | H_FLAG | C_FLAG;
+            cpu.regs.set_hl(0x29DA);
+            cpu.mem.write_byte(cpu.regs.hl(), 0b_0110_1100);
+        });
+        assert_eq!(machine.clock_cycles(), 16);
+        assert_eq!(machine.cpu.mem.read_byte(0x29DA), 0b_1100_0110);
+        assert_eq!(machine.cpu.regs.f, 0);
+    }
+}
 
 // BIT b, X : set the Z flag against the byte of index b in register X
 // also set the H flag to 1 and the N flag to 0
