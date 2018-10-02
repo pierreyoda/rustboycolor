@@ -266,7 +266,7 @@ macro_rules! test_SET_b_r_X {
     $(
         #[test]
         fn $name() {
-            let machine = test_cpu(&[0xCB, $instr], |cpu| {});
+            let machine = test_cpu(&[0xCB, $instr], |_| {});
             assert_eq!(machine.clock_cycles(), 8);
             assert_eq!(machine.cpu.regs.$x, 1 << $bit);
         }

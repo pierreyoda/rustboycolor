@@ -27,7 +27,7 @@ impl EmulatorBackend for BackendSDL2 {
         info!("starting the main application thread.");
 
         // Input bindings
-        let key_binds = match get_key_bindings::<Keycode>(config.get_keyboard_binding(),
+        let key_binds = match get_key_bindings::<Keycode>(&config.get_keyboard_binding(),
                                                           &keycode_from_symbol_hm()) {
             Ok(hm) => hm,
             Err(why) => {
@@ -62,7 +62,7 @@ impl EmulatorBackend for BackendSDL2 {
         canvas.present();
         let mut events = sdl_context.event_pump().unwrap();
 
-        let mut font = ttf_context.load_font(Path::new("assets/OpenSans-Regular.ttf"), 48)
+        let font = ttf_context.load_font(Path::new("assets/OpenSans-Regular.ttf"), 48)
             .expect("could not load 'assets/OpenSans-Regular.ttf'");
 
         // is the emulation paused ?
@@ -90,7 +90,7 @@ impl EmulatorBackend for BackendSDL2 {
                         tx.send(Quit).unwrap();
                     }
                     Event::KeyDown { keycode: Some(keycode), .. } => {
-                        if !last_key.is_none() && keycode == last_key.unwrap() {
+                        if last_key.is_some() && keycode == last_key.unwrap() {
                             continue;
                         }
                         match keycode {
@@ -118,7 +118,7 @@ impl EmulatorBackend for BackendSDL2 {
                         if let Some(keypad_key) = key_binds.get(&keycode) {
                             tx.send(KeyUp(*keypad_key)).unwrap();
                         }
-                        if !last_key.is_none() && keycode == last_key.unwrap() {
+                        if last_key.is_some() && keycode == last_key.unwrap() {
                             last_key = None;
                         }
                     }
@@ -211,7 +211,7 @@ mod test {
     fn test_keyboard_hm_from_config() {
         let keycode_symbol_hm = super::keycode_from_symbol_hm();
         let key_binds = get_key_bindings::<Keycode>(
-            FromConfigFile("tests/backend_input.toml".into()),
+            &FromConfigFile("tests/backend_input.toml".into()),
             &keycode_symbol_hm,
         ).unwrap();
         assert_eq!(*key_binds.get(&Keycode::Up).unwrap(), JoypadKey::Up);

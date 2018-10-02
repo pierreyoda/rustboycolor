@@ -43,14 +43,14 @@ impl fmt::Debug for KeyboardBinding {
 /// "{A..Z}"
 /// "F{0..12}"
 /// "Up" / "Down" / "Left" / "Right"
-pub fn get_key_bindings<Key>(binding: KeyboardBinding,
+pub fn get_key_bindings<Key>(binding: &KeyboardBinding,
                              symbol_backend_key_hm: &HashMap<String, Key>)
                              -> Result<HashMap<Key, JoypadKey>, String>
     where Key: Hash + Eq + Copy
 {
     let mut hm = HashMap::new();
 
-    let keyboard_control_hm = try!(build_keyboard_control_hm(binding));
+    let keyboard_control_hm = try!(build_keyboard_control_hm(&binding));
     for (symbol, control) in &keyboard_control_hm {
         let key = match symbol_backend_key_hm.get(symbol) {
             Some(ref k) => *(k.clone()),
@@ -62,8 +62,8 @@ pub fn get_key_bindings<Key>(binding: KeyboardBinding,
     Ok(hm)
 }
 
-fn build_keyboard_control_hm(binding: KeyboardBinding) -> Result<HashMap<String, JoypadKey>, String> {
-    match binding {
+fn build_keyboard_control_hm(binding: &KeyboardBinding) -> Result<HashMap<String, JoypadKey>, String> {
+    match *binding {
         QWERTY => {
             let mut hm = HashMap::new();
             hm.insert("W".into(), JoypadKey::Up);
@@ -99,13 +99,13 @@ fn build_keyboard_control_hm(binding: KeyboardBinding) -> Result<HashMap<String,
                          format!("could not load the input config file : {}",
                                  filepath.display())
                      }));
-            keyboard_hm_from_config(&file_content[..], format!("{}", filepath.display()))
+            keyboard_hm_from_config(&file_content[..], &format!("{}", filepath.display()))
         }
     }
 }
 
 fn keyboard_hm_from_config(config_str: &str,
-                           config_file: String)
+                           config_file: &str)
                            -> Result<HashMap<String, JoypadKey>, String> {
     let mut hm = HashMap::new();
     let table_value = match config_str.parse::<toml::Value>() {
@@ -121,7 +121,7 @@ fn keyboard_hm_from_config(config_str: &str,
             warn!(concat!("input config file \"{}\" does not specify",
                           "any input configuration, reverting to QWERTY."),
                   config_file);
-            return build_keyboard_control_hm(QWERTY);
+            return build_keyboard_control_hm(&QWERTY);
         }
     };
     let keyboard_input = match input.get("keyboard") {
@@ -130,11 +130,11 @@ fn keyboard_hm_from_config(config_str: &str,
             warn!(concat!("input config file \"{}\" does not specify",
                           " keyboard input, reverting to QWERTY."),
                   config_file);
-            return build_keyboard_control_hm(QWERTY);
+            return build_keyboard_control_hm(&QWERTY);
         }
     };
 
-    for key in JOYPAD_KEYS.iter() {
+    for key in &JOYPAD_KEYS {
         let key_symbol = match keyboard_input.get(&key.to_string()) {
             Some(value) => {
                 match *value {
@@ -148,7 +148,7 @@ fn keyboard_hm_from_config(config_str: &str,
             },
             None => {
                 warn!("no key specified for \"{}\" in input config, reverting to QWERTY", key);
-                return build_keyboard_control_hm(QWERTY);
+                return build_keyboard_control_hm(&QWERTY);
             }
         };
         if hm.insert(key_symbol.into(), JoypadKey::from_str(key).unwrap()).is_some() {

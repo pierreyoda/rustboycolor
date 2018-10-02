@@ -14,7 +14,7 @@ extern crate getopts;
 extern crate toml;
 
 extern crate rustboylib;
-use backend::{EmulatorBackend, sdl2};
+use backend::sdl2;
 use input::KeyboardBinding;
 
 fn print_usage(opts: &getopts::Options) {
@@ -59,9 +59,8 @@ fn app_options_from_matches(matches: &getopts::Matches) -> config::EmulatorAppCo
 
 fn main() {
     // Logger initialization
-    match logger::init_console_logger() {
-        Err(error) => panic!(format!("Logging setup error : {}", error.description())),
-        _ => (),
+    if let Err(error) = logger::init_console_logger() {
+        panic!(format!("Logging setup error : {}", error.description()));
     }
 
     // Program options
@@ -88,7 +87,7 @@ fn main() {
         print_usage(&opts);
         return;
     }
-    println!("");
+    println!();
     let rom = if !matches.free.is_empty() {
         matches.free[0].clone()
     } else {

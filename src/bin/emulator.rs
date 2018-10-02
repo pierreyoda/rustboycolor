@@ -1,7 +1,6 @@
 use std::path::Path;
 use std::sync::mpsc::{channel, Sender, Receiver};
 use std::thread;
-use std::time::Duration;
 
 use rustboylib::{cpu, mmu, mbc};
 use super::backend::{EmulatorBackend, BackendMessage};
