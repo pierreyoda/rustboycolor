@@ -4,6 +4,250 @@ use super::test_cpu;
 use memory::Memory;
 use registers::{Z_FLAG, N_FLAG, H_FLAG, C_FLAG};
 
+// RL : rotate left
+macro_rules! test_RL_r_X {
+    ($ ( $name: ident : ($instr: expr, $x: ident), )* ) => {
+    $(
+        #[test]
+        fn $name() {
+            {
+                let machine = test_cpu(&[0xCB, $instr], |cpu| {
+                    cpu.regs.f = N_FLAG | H_FLAG | C_FLAG;
+                    cpu.regs.$x = 0b_0010_0101;
+                });
+                assert_eq!(machine.clock_cycles(), 8);
+                assert_eq!(machine.cpu.regs.$x, 0b_0100_1011);
+                assert_eq!(machine.cpu.regs.f, 0);
+            }
+            {
+                let machine = test_cpu(&[0xCB, $instr], |cpu| {
+                    cpu.regs.f = N_FLAG | H_FLAG;
+                    cpu.regs.$x = 0b_1000_0000;
+                });
+                assert_eq!(machine.clock_cycles(), 8);
+                assert_eq!(machine.cpu.regs.$x, 0);
+                assert_eq!(machine.cpu.regs.f, Z_FLAG | C_FLAG);
+            }
+        }
+    )*
+    }
+}
+test_RL_r_X! {
+    test_CB_RL_r_b: (0x10, b),
+    test_CB_RL_r_c: (0x11, c),
+    test_CB_RL_r_d: (0x12, d),
+    test_CB_RL_r_e: (0x13, e),
+    test_CB_RL_r_h: (0x14, h),
+    test_CB_RL_r_l: (0x15, l),
+    test_CB_RL_r_a: (0x17, a),
+}
+#[test]
+fn test_CB_RL_HLm() {
+    {
+        let mut machine = test_cpu(&[0xCB, 0x16], |cpu| {
+            cpu.regs.f = N_FLAG | H_FLAG | C_FLAG;
+            cpu.regs.set_hl(0xC3B9);
+            cpu.mem.write_byte(cpu.regs.hl(), 0b_0010_0101);
+        });
+        assert_eq!(machine.clock_cycles(), 16);
+        assert_eq!(machine.cpu.mem.read_byte(0xC3B9), 0b_0100_1011);
+        assert_eq!(machine.cpu.regs.f, 0);
+    }
+    {
+        let mut machine = test_cpu(&[0xCB, 0x16], |cpu| {
+            cpu.regs.f = N_FLAG | H_FLAG;
+            cpu.regs.set_hl(0xC3B9);
+            cpu.mem.write_byte(cpu.regs.hl(), 0b_1000_0000);
+        });
+        assert_eq!(machine.clock_cycles(), 16);
+        assert_eq!(machine.cpu.mem.read_byte(0xC3B9), 0);
+        assert_eq!(machine.cpu.regs.f, Z_FLAG | C_FLAG);
+    }
+}
+
+// RLC : rotate left with carry
+macro_rules! test_RLC_r_X {
+    ($ ( $name: ident : ($instr: expr, $x: ident), )* ) => {
+    $(
+        #[test]
+        fn $name() {
+            {
+                let machine = test_cpu(&[0xCB, $instr], |cpu| {
+                    cpu.regs.f = N_FLAG | H_FLAG;
+                    cpu.regs.$x = 0b_1010_0101;
+                });
+                assert_eq!(machine.clock_cycles(), 8);
+                assert_eq!(machine.cpu.regs.$x, 0b_0100_1011);
+                assert_eq!(machine.cpu.regs.f, C_FLAG);
+            }
+            {
+                let machine = test_cpu(&[0xCB, $instr], |cpu| {
+                    cpu.regs.f = N_FLAG | H_FLAG;
+                    cpu.regs.$x = 0;
+                });
+                assert_eq!(machine.clock_cycles(), 8);
+                assert_eq!(machine.cpu.regs.$x, 0);
+                assert_eq!(machine.cpu.regs.f, Z_FLAG);
+            }
+        }
+    )*
+    }
+}
+test_RLC_r_X! {
+    test_CB_RLC_r_b: (0x00, b),
+    test_CB_RLC_r_c: (0x01, c),
+    test_CB_RLC_r_d: (0x02, d),
+    test_CB_RLC_r_e: (0x03, e),
+    test_CB_RLC_r_h: (0x04, h),
+    test_CB_RLC_r_l: (0x05, l),
+    test_CB_RLC_r_a: (0x07, a),
+}
+#[test]
+fn test_CB_RLC_HLm() {
+    {
+        let mut machine = test_cpu(&[0xCB, 0x06], |cpu| {
+            cpu.regs.f = N_FLAG | H_FLAG;
+            cpu.regs.set_hl(0xC3B9);
+            cpu.mem.write_byte(cpu.regs.hl(), 0b_1010_0101);
+        });
+        assert_eq!(machine.clock_cycles(), 16);
+        assert_eq!(machine.cpu.mem.read_byte(0xC3B9), 0b_0100_1011);
+        assert_eq!(machine.cpu.regs.f, C_FLAG);
+    }
+    {
+        let mut machine = test_cpu(&[0xCB, 0x06], |cpu| {
+            cpu.regs.f = N_FLAG | H_FLAG;
+            cpu.regs.set_hl(0xC3B9);
+            cpu.mem.write_byte(cpu.regs.hl(), 0);
+        });
+        assert_eq!(machine.clock_cycles(), 16);
+        assert_eq!(machine.cpu.mem.read_byte(0xC3B9), 0);
+        assert_eq!(machine.cpu.regs.f, Z_FLAG);
+    }
+}
+
+// RR : rotate right
+macro_rules! test_RR_r_X {
+    ($ ( $name: ident : ($instr: expr, $x: ident), )* ) => {
+    $(
+        #[test]
+        fn $name() {
+            {
+                let machine = test_cpu(&[0xCB, $instr], |cpu| {
+                    cpu.regs.f = N_FLAG | H_FLAG | C_FLAG;
+                    cpu.regs.$x = 0b_1010_0100;
+                });
+                assert_eq!(machine.clock_cycles(), 8);
+                assert_eq!(machine.cpu.regs.$x, 0b_1101_0010);
+                assert_eq!(machine.cpu.regs.f, 0);
+            }
+            {
+                let machine = test_cpu(&[0xCB, $instr], |cpu| {
+                    cpu.regs.f = N_FLAG | H_FLAG;
+                    cpu.regs.$x = 0b_0000_0001;
+                });
+                assert_eq!(machine.clock_cycles(), 8);
+                assert_eq!(machine.cpu.regs.$x, 0);
+                assert_eq!(machine.cpu.regs.f, Z_FLAG | C_FLAG);
+            }
+        }
+    )*
+    }
+}
+test_RR_r_X! {
+    test_CB_RR_r_b: (0x18, b),
+    test_CB_RR_r_c: (0x19, c),
+    test_CB_RR_r_d: (0x1A, d),
+    test_CB_RR_r_e: (0x1B, e),
+    test_CB_RR_r_h: (0x1C, h),
+    test_CB_RR_r_l: (0x1D, l),
+    test_CB_RR_r_a: (0x1F, a),
+}
+#[test]
+fn test_CB_RR_HLm() {
+    {
+        let mut machine = test_cpu(&[0xCB, 0x1E], |cpu| {
+            cpu.regs.f = N_FLAG | H_FLAG | C_FLAG;
+            cpu.regs.set_hl(0xC3B9);
+            cpu.mem.write_byte(cpu.regs.hl(), 0b_1010_0100);
+        });
+        assert_eq!(machine.clock_cycles(), 16);
+        assert_eq!(machine.cpu.mem.read_byte(0xC3B9), 0b_1101_0010);
+        assert_eq!(machine.cpu.regs.f, 0);
+    }
+    {
+        let mut machine = test_cpu(&[0xCB, 0x1E], |cpu| {
+            cpu.regs.f = N_FLAG | H_FLAG;
+            cpu.regs.set_hl(0xC3B9);
+            cpu.mem.write_byte(cpu.regs.hl(), 0b_0000_0001);
+        });
+        assert_eq!(machine.clock_cycles(), 16);
+        assert_eq!(machine.cpu.mem.read_byte(0xC3B9), 0);
+        assert_eq!(machine.cpu.regs.f, Z_FLAG | C_FLAG);
+    }
+}
+
+// RRC : rotate right with carry
+macro_rules! test_RRC_r_X {
+    ($ ( $name: ident : ($instr: expr, $x: ident), )* ) => {
+    $(
+        #[test]
+        fn $name() {
+            {
+                let machine = test_cpu(&[0xCB, $instr], |cpu| {
+                    cpu.regs.f = N_FLAG | H_FLAG;
+                    cpu.regs.$x = 0b_1010_0101;
+                });
+                assert_eq!(machine.clock_cycles(), 8);
+                assert_eq!(machine.cpu.regs.$x, 0b_1101_0010);
+                assert_eq!(machine.cpu.regs.f, C_FLAG);
+            }
+            {
+                let machine = test_cpu(&[0xCB, $instr], |cpu| {
+                    cpu.regs.f = N_FLAG | H_FLAG;
+                    cpu.regs.$x = 0;
+                });
+                assert_eq!(machine.clock_cycles(), 8);
+                assert_eq!(machine.cpu.regs.$x, 0);
+                assert_eq!(machine.cpu.regs.f, Z_FLAG);
+            }
+        }
+    )*
+    }
+}
+test_RRC_r_X! {
+    test_CB_RRC_r_b: (0x08, b),
+    test_CB_RRC_r_c: (0x09, c),
+    test_CB_RRC_r_d: (0x0A, d),
+    test_CB_RRC_r_e: (0x0B, e),
+    test_CB_RRC_r_h: (0x0C, h),
+    test_CB_RRC_r_l: (0x0D, l),
+    test_CB_RRC_r_a: (0x0F, a),
+}
+#[test]
+fn test_CB_RRC_HLm() {
+    {
+        let mut machine = test_cpu(&[0xCB, 0x0E], |cpu| {
+            cpu.regs.f = N_FLAG | H_FLAG;
+            cpu.regs.set_hl(0xC3B9);
+            cpu.mem.write_byte(cpu.regs.hl(), 0b_1010_0101);
+        });
+        assert_eq!(machine.clock_cycles(), 16);
+        assert_eq!(machine.cpu.mem.read_byte(0xC3B9), 0b_1101_0010);
+        assert_eq!(machine.cpu.regs.f, C_FLAG);
+    }
+    {
+        let mut machine = test_cpu(&[0xCB, 0x0E], |cpu| {
+            cpu.regs.f = N_FLAG | H_FLAG;
+            cpu.regs.set_hl(0xC3B9);
+            cpu.mem.write_byte(cpu.regs.hl(), 0);
+        });
+        assert_eq!(machine.clock_cycles(), 16);
+        assert_eq!(machine.cpu.mem.read_byte(0xC3B9), 0);
+        assert_eq!(machine.cpu.regs.f, Z_FLAG);
+    }
+}
+
 // SLA : shift left preserving the sign
 macro_rules! test_SLA_r_X {
     ($ ( $name: ident : ($instr: expr, $x: ident), )* ) => {

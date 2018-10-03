@@ -259,8 +259,8 @@ impl<M> Cpu<M> where M: Memory {
     fn alu_rl(&mut self, v: u8) -> u8 {
         let c  = (v & 0x80) == 0x80;
         let r = (v << 1) | (if self.regs.flag(C_FLAG) { 0x01 } else { 0x00 });
+        self.regs.f = 0;
         self.regs.set_flag(Z_FLAG, r == 0x0);
-        self.regs.set_flag(N_FLAG | H_FLAG, false);
         self.regs.set_flag(C_FLAG, c);
         r
     }
@@ -268,8 +268,8 @@ impl<M> Cpu<M> where M: Memory {
     fn alu_rlc(&mut self, v: u8) -> u8 {
         let c  = (v & 0x80) == 0x80;
         let r = (v << 1) | (if c { 0x01 } else { 0x00 });
+        self.regs.f = 0;
         self.regs.set_flag(Z_FLAG, r == 0x0);
-        self.regs.set_flag(N_FLAG | H_FLAG, false);
         self.regs.set_flag(C_FLAG, c);
         r
     }
@@ -278,8 +278,8 @@ impl<M> Cpu<M> where M: Memory {
     fn alu_rr(&mut self, v: u8) -> u8 {
         let c  = (v & 0x01) == 0x01;
         let r = (v >> 1) | (if self.regs.flag(C_FLAG) { 0x80 } else { 0x00 });
+        self.regs.f = 0;
         self.regs.set_flag(Z_FLAG, r == 0x0);
-        self.regs.set_flag(N_FLAG | H_FLAG, false);
         self.regs.set_flag(C_FLAG, c);
         r
     }
@@ -287,8 +287,8 @@ impl<M> Cpu<M> where M: Memory {
     fn alu_rrc(&mut self, v: u8) -> u8 {
         let c  = (v & 0x01) == 0x01;
         let r = (v >> 1) | (if c { 0x80 } else { 0x00 });
+        self.regs.f = 0;
         self.regs.set_flag(Z_FLAG, r == 0x0);
-        self.regs.set_flag(N_FLAG | H_FLAG, false);
         self.regs.set_flag(C_FLAG, c);
         r
     }
