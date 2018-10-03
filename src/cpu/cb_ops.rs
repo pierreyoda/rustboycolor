@@ -17,20 +17,20 @@ macro_rules! impl_rot_reg {
 
 macro_rules! sla {
     ($s: ident, $v: expr) => ({
-        let carry  = ($v & 0x80) == 0x80;
+        let carry = ($v & 0x80) == 0x80;
         let result = $v << 1;
+        $s.regs.f = 0;
         $s.regs.set_flag(Z_FLAG, result == 0x0);
-        $s.regs.set_flag(N_FLAG | H_FLAG, false);
         $s.regs.set_flag(C_FLAG, carry);
         $v = result;
     })
 }
 macro_rules! sra {
     ($s: ident, $v: expr) => ({
-        let carry  = ($v & 0x01) == 0x01;
+        let carry = ($v & 0x01) == 0x01;
         let result = ($v >> 1) | ($v & 0x80);
+        $s.regs.f = 0;
         $s.regs.set_flag(Z_FLAG, result == 0x0);
-        $s.regs.set_flag(N_FLAG | H_FLAG, false);
         $s.regs.set_flag(C_FLAG, carry);
         $v = result;
     })
@@ -39,8 +39,8 @@ macro_rules! srl {
     ($s: ident, $v: expr) => ({
         let carry  = ($v & 0x01) == 0x01;
         let result = $v >> 1;
+        $s.regs.f = 0;
         $s.regs.set_flag(Z_FLAG, result == 0x0);
-        $s.regs.set_flag(N_FLAG | H_FLAG, false);
         $s.regs.set_flag(C_FLAG, carry);
         $v = result;
     })
