@@ -635,6 +635,12 @@ impl<M> Cpu<M> where M: Memory {
         self.regs.pc = self.fetch_word();
         4
     }
+    // JP_HLm : jump to (HL)
+    pub fn JP_HLm(&mut self) -> CycleType {
+        self.regs.pc = self.regs.hl();
+        1
+    }
+
     // JP_NZ_nn : absolute jump to 16-bit address if the zero flag is not set
     pub fn JP_NZ_nn(&mut self) -> CycleType {
         let nn = self.fetch_word();
@@ -645,20 +651,15 @@ impl<M> Cpu<M> where M: Memory {
         let nn = self.fetch_word();
         if !self.regs.flag(C_FLAG) { self.regs.pc = nn; 4 } else { 3 }
     }
-    // JP_NZ_nn : absolute jump to 16-bit address if the zero flag is set
+    // JP_Z_nn : absolute jump to 16-bit address if the zero flag is set
     pub fn JP_Z_nn(&mut self) -> CycleType {
         let nn = self.fetch_word();
         if self.regs.flag(Z_FLAG) { self.regs.pc = nn; 4 } else { 3 }
     }
-    // JP_NC_nn : absolute jump to 16-bit address if the carry flag is set
+    // JP_C_nn : absolute jump to 16-bit address if the carry flag is set
     pub fn JP_C_nn(&mut self) -> CycleType {
         let nn = self.fetch_word();
         if self.regs.flag(C_FLAG) { self.regs.pc = nn; 4 } else { 3 }
-    }
-    // JP_HLm : jump to (HL)
-    pub fn JP_HLm(&mut self) -> CycleType {
-        self.regs.pc = self.regs.hl();
-        1
     }
 
     // JR_n : relative jump by signed immediate byte
@@ -750,12 +751,12 @@ impl<M> Cpu<M> where M: Memory {
     }
 
     // RST_xxH : call routine at address 0x00XX
-    pub fn RST_00H(&mut self) -> CycleType { self.cpu_jr(0x0000); 4 }
-    pub fn RST_08H(&mut self) -> CycleType { self.cpu_jr(0x0008); 4 }
-    pub fn RST_10H(&mut self) -> CycleType { self.cpu_jr(0x0010); 4 }
-    pub fn RST_18H(&mut self) -> CycleType { self.cpu_jr(0x0018); 4 }
-    pub fn RST_20H(&mut self) -> CycleType { self.cpu_jr(0x0020); 4 }
-    pub fn RST_28H(&mut self) -> CycleType { self.cpu_jr(0x0028); 4 }
-    pub fn RST_30H(&mut self) -> CycleType { self.cpu_jr(0x0030); 4 }
-    pub fn RST_38H(&mut self) -> CycleType { self.cpu_jr(0x0038); 4 }
+    pub fn RST_00H(&mut self) -> CycleType { self.cpu_call(0x0000); 4 }
+    pub fn RST_08H(&mut self) -> CycleType { self.cpu_call(0x0008); 4 }
+    pub fn RST_10H(&mut self) -> CycleType { self.cpu_call(0x0010); 4 }
+    pub fn RST_18H(&mut self) -> CycleType { self.cpu_call(0x0018); 4 }
+    pub fn RST_20H(&mut self) -> CycleType { self.cpu_call(0x0020); 4 }
+    pub fn RST_28H(&mut self) -> CycleType { self.cpu_call(0x0028); 4 }
+    pub fn RST_30H(&mut self) -> CycleType { self.cpu_call(0x0030); 4 }
+    pub fn RST_38H(&mut self) -> CycleType { self.cpu_call(0x0038); 4 }
 }

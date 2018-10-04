@@ -1,10 +1,12 @@
-mod load; // load/store/move instructions
 mod cb; // CB-prefixed instructions
+mod control; // control flow instructions
+mod load; // load/store/move instructions
 
 use super::super::memory::Memory;
 use super::{Cpu, CycleType};
 
 const OPCODE_END: u8 = 0xD3;
+const OPCODES_LIMIT: u32 = 100;
 
 pub struct TestMachine {
     cpu: Cpu<TestMemory>,
@@ -32,8 +34,14 @@ pub fn test_cpu<F: Fn(&mut Cpu<TestMemory>) -> ()>(instructions: &[u8], init: F)
     instrs.push(OPCODE_END);
     let mut machine = TestMachine::with_instructions(&instrs).init_cpu(init);
 
-    while machine.cpu.mem.memory[machine.cpu.regs.pc as usize] != OPCODE_END {
+    let mut count = 0;
+    while machine.cpu.mem.memory[machine.cpu.regs.pc as usize] != OPCODE_END
+        && count <= OPCODES_LIMIT {
         machine.cpu.step();
+        count += 1;
+    }
+    if count == OPCODES_LIMIT {
+        assert!(false, "test_cpu: opcodes limit reached");
     }
 
     machine

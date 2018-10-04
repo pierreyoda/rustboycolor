@@ -10,6 +10,6 @@ pub trait Memory {
     fn write_byte(&mut self, address: u16, byte: u8);
     fn write_word(&mut self, address: u16, word: u16) {
         self.write_byte(address  , (word & 0x00FF) as u8);
-        self.write_byte(address+1, (word & 0xFF00) as u8);
+        self.write_byte(address+1, ((word & 0xFF00) >> 8) as u8);
     }
 }

@@ -93,13 +93,13 @@ impl<M> Cpu<M> where M: Memory {
     /// Fetch the next byte in memory.
     fn fetch_byte(&mut self) -> u8 {
         let b = self.mem.read_byte(self.regs.pc);
-        self.regs.pc += 1;
+        self.regs.pc = self.regs.pc.wrapping_add(1);
         b
     }
     /// Fetch the next word in memory.
     fn fetch_word(&mut self) -> u16 {
         let w = self.mem.read_word(self.regs.pc);
-        self.regs.pc += 2;
+        self.regs.pc = self.regs.pc.wrapping_add(2);
         w
     }
 
@@ -114,6 +114,7 @@ impl<M> Cpu<M> where M: Memory {
         }
         let mut step_cycles = self.handle_interrupt();
         self.opcode = self.fetch_byte();
+        // println!("OP={:0>2X} PC={:0>4X} SP={:0>4X}", self.opcode, self.regs.pc, self.regs.sp);
         step_cycles += self.dispatch_array[self.opcode as usize](self);
         self.cycles += step_cycles;
         step_cycles
@@ -167,13 +168,13 @@ impl<M> Cpu<M> where M: Memory {
     /// Push a 16-bit value to the stack.
     /// NB : on this Z80-derived CPU, the stack grows from top down
     fn stack_push(&mut self, value: u16) {
-        self.regs.sp -= 2;
+        self.regs.sp = self.regs.sp.wrapping_sub(2);
         self.mem.write_word(self.regs.sp, value);
     }
     /// Pop a 16-bit value from the stack.
     fn stack_pop(&mut self) -> u16 {
         let value = self.mem.read_word(self.regs.sp);
-        self.regs.sp += 2;
+        self.regs.sp = self.regs.sp.wrapping_add(2);
         value
     }
 
@@ -187,7 +188,7 @@ impl<M> Cpu<M> where M: Memory {
     /// Perform a relative jump by the signed immediate byte.
     fn cpu_jr(&mut self, b: u8) -> CycleType {
         let n = b as i8 as i16 as u16;
-        self.regs.pc = ((self.regs.pc as usize) + (n as usize)) as u16;
+        self.regs.pc = self.regs.pc.wrapping_add(n);
         3
     }
 
