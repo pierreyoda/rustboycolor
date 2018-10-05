@@ -206,7 +206,7 @@ impl<M> Cpu<M> where M: Memory {
         let a = self.regs.a;
         let c = if add_c && self.regs.flag(C_FLAG) { 1 } else { 0 };
         let r = (a as u16) + (b as u16) + (c as u16);
-        self.regs.set_flag(Z_FLAG, r == 0x0);
+        self.regs.set_flag(Z_FLAG, r & 0xFF == 0x0);
         self.regs.set_flag(N_FLAG, false);
         self.regs.set_flag(H_FLAG, (a & 0x0F) + (b & 0x0F) + c > 0x0F);
         self.regs.set_flag(C_FLAG, r > 0xFF);
@@ -218,7 +218,7 @@ impl<M> Cpu<M> where M: Memory {
         let a = self.regs.a;
         let c = if sub_c && self.regs.flag(C_FLAG) { 1 } else { 0 };
         let r = a.wrapping_sub(b).wrapping_sub(c);
-        self.regs.set_flag(Z_FLAG, r == 0x0);
+        self.regs.set_flag(Z_FLAG, r & 0xFF == 0x0);
         self.regs.set_flag(N_FLAG, true);
         self.regs.set_flag(H_FLAG, (a & 0x0F) < (b & 0x0F) + c);
         self.regs.set_flag(C_FLAG, (a  as u16) < (b as u16) + (c as u16));
@@ -228,23 +228,19 @@ impl<M> Cpu<M> where M: Memory {
     /// Logical AND against register A.
     fn alu_and(&mut self, b: u8) {
         let r = self.regs.a & b;
-        self.regs.set_flag(Z_FLAG, r == 0x0);
-        self.regs.set_flag(H_FLAG, true);
-        self.regs.set_flag(N_FLAG | C_FLAG, false);
+        self.regs.f = H_FLAG | if r == 0x0 { Z_FLAG } else { 0x0 };
         self.regs.a = r;
     }
     /// Logical OR against register A.
     fn alu_or(&mut self, b: u8) {
         let r = self.regs.a | b;
-        self.regs.set_flag(Z_FLAG, r == 0x0);
-        self.regs.set_flag(N_FLAG | H_FLAG | C_FLAG, false);
+        self.regs.f = if r == 0x0 { Z_FLAG } else { 0x0 };
         self.regs.a = r;
     }
     /// Logical XOR against register A.
     fn alu_xor(&mut self, b: u8) {
         let r = self.regs.a ^ b;
-        self.regs.set_flag(Z_FLAG, r == 0x0);
-        self.regs.set_flag(N_FLAG | H_FLAG | C_FLAG, false);
+        self.regs.f = if r == 0x0 { Z_FLAG } else { 0x0 };
         self.regs.a = r;
     }
     /// Compare against register A.

@@ -1,3 +1,4 @@
+mod alu8; // 8 bits ALU instructions
 mod cb; // CB-prefixed instructions
 mod control; // control flow instructions
 mod load; // load/store/move instructions
