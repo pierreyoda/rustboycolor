@@ -13,31 +13,31 @@ pub const WY: usize = 0xFF4A;
 pub const WX: usize = 0xFF4B;
 
 pub enum LcdControl {
-    BgDisplayEnable = 1 << 0,
-    ObjDisplayEnable = 1 << 1,
-    ObjSize = 1 << 2,
-    BgTileMapDisplaySelect = 1 << 3,
-    BgWindowTileDataSelect = 1 << 4,
-    WindowDisplayEnable = 1 << 5,
-    WindowTileMapDisplaySelect = 1 << 6,
-    LcdDisplayEnable = 1 << 7,
+    BgDisplayEnable = 0,
+    ObjDisplayEnable = 1,
+    ObjSize = 2,
+    BgTileMapDisplaySelect = 3,
+    BgWindowTileDataSelect = 4,
+    WindowDisplayEnable = 5,
+    WindowTileMapDisplaySelect = 6,
+    LcdDisplayEnable = 7,
 }
 impl LcdControl {
     pub fn is_set(self, register: u8) -> bool {
-        let v = self as u8;
+        let v = self as usize;
         ((register >> v) & 0x01) == 0x01
     }
 }
 
 pub enum LcdControllerStatus {
-    HBlankInterrupt = 1 << 3,
-    VBlankInterrupt = 1 << 4,
-    OamInterrupt = 1 << 5,
-    LyCoincidenceInterrupt = 1 << 6,
+    HBlankInterrupt = 3,
+    VBlankInterrupt = 4,
+    OamInterrupt = 5,
+    LyCoincidenceInterrupt = 6,
 }
 impl LcdControllerStatus {
     pub fn is_set(self, register: u8) -> bool {
-        let v = self as u8;
+        let v = self as usize;
         ((register >> v) & 0x01) == 0x01
     }
 
@@ -47,6 +47,49 @@ impl LcdControllerStatus {
 
     /// Set the register's bit 2 to true if LYC=LY, false otherwise.
     pub fn with_coincidence_flag(register: u8, coincidence: bool) -> u8 {
-        (register & 0xFB) | if coincidence { 0x01 } else { 0x00 }
+        (register & 0xFB) | if coincidence { 0x04 } else { 0x00 }
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::LcdControl::*;
+    use super::LcdControllerStatus;
+    use super::LcdControllerStatus::*;
+
+    #[test]
+    fn test_lcd_control_is_set() {
+        assert_eq!(BgDisplayEnable.is_set(1 << 0), true);
+        assert_eq!(ObjDisplayEnable.is_set(1 << 1), true);
+        assert_eq!(ObjSize.is_set(1 << 2), true);
+        assert_eq!(BgTileMapDisplaySelect.is_set(1 << 3), true);
+        assert_eq!(BgWindowTileDataSelect.is_set(1 << 4), true);
+        assert_eq!(WindowDisplayEnable.is_set(1 << 5), true);
+        assert_eq!(WindowTileMapDisplaySelect.is_set(1 << 6), true);
+        assert_eq!(LcdDisplayEnable.is_set(1 << 7), true);
+    }
+
+    #[test]
+    fn test_lcdc_status_is_set() {
+        assert_eq!(HBlankInterrupt.is_set(1 << 3), true);
+        assert_eq!(VBlankInterrupt.is_set(1 << 4), true);
+        assert_eq!(OamInterrupt.is_set(1 << 5), true);
+        assert_eq!(LyCoincidenceInterrupt.is_set(1 << 6), true);
+    }
+
+    #[test]
+    fn test_lcdc_status_with_mode() {
+        use gpu::GpuMode::*;
+        let lcdc_status = 0b_0110_1011;
+        assert_eq!(LcdControllerStatus::with_mode(lcdc_status, H_Blank), 0b_0110_1000);
+        assert_eq!(LcdControllerStatus::with_mode(lcdc_status, V_Blank), 0b_0110_1001);
+        assert_eq!(LcdControllerStatus::with_mode(lcdc_status, OAM_Read), 0b_0110_1010);
+        assert_eq!(LcdControllerStatus::with_mode(lcdc_status, VRAM_Read), 0b_0110_1011);
+    }
+
+    #[test]
+    fn test_lcdc_status_with_coincidence_flag() {
+        assert_eq!(LcdControllerStatus::with_coincidence_flag(0b_1011_0011, true), 0b_1011_0111);
+        assert_eq!(LcdControllerStatus::with_coincidence_flag(0b_1011_0111, false), 0b_1011_0011);
     }
 }
