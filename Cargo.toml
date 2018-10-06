@@ -12,6 +12,11 @@ path = "src/bin/main.rs"
 name = "rustboylib"
 path = "src/lib.rs"
 
+[features]
+default = []
+
+tracing = []
+
 [dependencies]
 log = "0.3.8"
 getopts = "0.2.17"

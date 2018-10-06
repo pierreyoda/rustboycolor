@@ -5,6 +5,9 @@ mod ops;
 mod cb_ops;
 #[cfg(test)] mod test;
 
+#[cfg(feature = "tracing")] use std::fs::File;
+#[cfg(feature = "tracing")] use std::io::Write;
+
 use irq::{Interrupt, INTERRUPT_FLAG_ADDRESS, INTERRUPT_ENABLE_ADDRESS};
 use memory::Memory;
 use registers::{Registers, Z_FLAG, N_FLAG, H_FLAG, C_FLAG};
@@ -37,6 +40,9 @@ pub struct Cpu<M> {
     /// The dispatching array used for decoding the CB-prefixed additional
     /// instructions.
     cb_dispatch_array: [CpuInstruction<M>; 256],
+    /// Output file for the CPU tracing.
+    #[cfg(feature = "tracing")]
+    trace_file: File,
 }
 
 impl<M> Cpu<M> where M: Memory {
@@ -52,6 +58,8 @@ impl<M> Cpu<M> where M: Memory {
             opcode: 0x0,
             dispatch_array: dispatch_array(),
             cb_dispatch_array: cb_dispatch_array(),
+            #[cfg(feature = "tracing")]
+            trace_file: File::create("trace_cpu.log").expect("CPU tracing file creation error"),
         }
     }
 
@@ -114,7 +122,15 @@ impl<M> Cpu<M> where M: Memory {
         }
         let mut step_cycles = self.handle_interrupt();
         self.opcode = self.fetch_byte();
-        // println!("OP={:0>2X} PC={:0>4X} SP={:0>4X}", self.opcode, self.regs.pc, self.regs.sp);
+        #[cfg(feature = "tracing")]
+        {
+        write!(
+            &mut self.trace_file,
+            "OP={:0>2X} PC={:0>4X} AF={:0>4X} BC={:0>4X} DE={:0>4X} HL={:0>4X} SP={:0>4X}\n",
+            self.opcode, self.regs.pc, self.regs.af(), self.regs.bc(),
+            self.regs.de(), self.regs.hl(), self.regs.sp,
+        );
+        }
         step_cycles += self.dispatch_array[self.opcode as usize](self);
         self.cycles += step_cycles;
         step_cycles

@@ -157,7 +157,7 @@ mod test {
     use super::PaletteIndexRegister;
 
     #[test]
-    fn test_PaletteIndexRegister_decoding() {
+    fn test_palette_index_register_decoding() {
         let index = PaletteIndexRegister::new(0xAD);
         assert_eq!(index.raw_value(), 0xAD);
         assert_eq!(index.high_byte(), true);
