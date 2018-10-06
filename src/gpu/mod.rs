@@ -1,12 +1,16 @@
+mod background;
 mod cgb;
 mod palette;
+mod registers;
 
-use super::cpu::CycleType;
-use super::memory::Memory;
-use super::irq::{Interrupt, IrqHandler};
+use cpu::CycleType;
+use memory::Memory;
+use irq::{Interrupt, IrqHandler};
 
 use self::GpuMode::*;
+use self::background::Tile;
 use self::palette::{PaletteClassic, PaletteGrayShade};
+use self::registers::{LcdControl, LcdControllerStatus};
 
 /// The width of the Game Boy's screen, in pixels.
 pub const SCREEN_W: usize = 160;
@@ -33,77 +37,22 @@ impl RGB {
 /// fully defined by its RGB color.
 pub type ScreenData = [RGB; SCREEN_W * SCREEN_H];
 
-/// A tile is an area of 8x8 pixels.
-#[derive(Copy, Clone, Debug, Eq, PartialEq)]
-struct Tile {
-    /// Each tile occupies 16 bytes, where 2 bytes represent a line:
-    /// byte 0-1 = first line (upper 8 pixels)
-    /// byte 2-3 = second lines
-    /// etc.
-    /// For each line, the first byte defines the bit 0 of the color numbers
-    /// and the second byte defines the bit 1. In both cases, bit 7 is the
-    /// leftmost pixel and bit 0 the rightmost.
-    /// Each pixel thus has a color number from 0 to 3 wich is translated into
-    /// colors or shades of gray according to the current palettes.
-    raw_data: [u8; 16],
-    /// Cached internal state better suited for rendering.
-    data: [[u8; 8]; 8],
-}
-
-impl Tile {
-    pub fn new(raw_data: [u8; 16]) -> Tile {
-        let mut new_tile = Tile {
-            raw_data: raw_data,
-            data: [[0x00; 8]; 8],
-        };
-        new_tile.update();
-        new_tile
-    }
-
-    /// Update the tile's internal state to match its raw value.
-    pub fn update(&mut self) {
-        for y in 0..8 {
-            let line_lo = self.raw_data[y * 2];
-            let line_hi = self.raw_data[y * 2 + 1];
-            for x in 0..8 {
-                let color = ((line_hi >> (7 - x)) & 0x01) << 1 | ((line_lo >> (7 - x)) & 0x01);
-                debug_assert!(color < 4);
-                self.data[y][x] = color;
-            }
-        }
-    }
-
-    pub fn data(&self) -> &[[u8; 8]; 8] {
-        &self.data
-    }
-    pub fn data_mut(&mut self) -> &mut [[u8; 8]; 8] {
-        &mut self.data
-    }
-}
-
 /// The different modes a GPU can spend its time in.
 #[allow(non_camel_case_types)]
-enum GpuMode {
+#[derive(Clone)]
+pub enum GpuMode {
     H_Blank = 0,
     V_Blank = 1,
     OAM_Read = 2,
     VRAM_Read = 3,
 }
 
-/// The GPU registers' addresses.
-mod regs {
-    pub const STAT: usize = 0xFF41;
-    pub const SCY: usize = 0xFF42;
-    pub const SCX: usize = 0xFF43;
-    pub const LY: usize = 0xFF44; // read-only
-    pub const LYC: usize = 0xFF45;
-    pub const BGP: usize = 0xFF47; // ignored in CGB mode
-    pub const OBP_0: usize = 0xFF48; // ignored in CGB mode
-    pub const OBP_1: usize = 0xFF49; // ignored in CGB mode
-    pub const WY: usize = 0xFF4A;
-    pub const WX: usize = 0xFF4B;
-}
+pub const H_BLANK_CYCLES: CycleType = 204;
+pub const V_BLANK_CYCLES: CycleType = 456;
+pub const OAM_READ_CYCLES: CycleType = 80;
+pub const VRAM_READ_CYCLES: CycleType = 172;
 
+/// The GPU registers' addresses.
 /// The structure holding and emulating the GPU state.
 ///
 /// Time durations are expressed in CPU clock cycles with a CPU clock speed of
@@ -117,11 +66,19 @@ pub struct Gpu {
     mode: GpuMode,
     /// The number of cycles spent in the current mode.
     mode_clock: CycleType,
+    /// LCD Control Register
+    lcd_control: u8,
+    /// LCDC Status Register
+    lcdc_status: u8,
     /// The index of the current scanline.
     /// Can take any value between 0 and 153, with values between 144 and 153
     /// indicating a V-Blank period.
     /// Writing to the LY register resets it to 0.
     ly: usize,
+    /// LY comparison value.
+    /// When both are equal, the coincident bit in the STAT register is set
+    /// and (if enabled in the STAT register) a LCD STAT interrupt is requested.
+    lyc: usize,
     /// Horizontal position of the top-left corner of the on-screen background.
     scroll_x: u8,
     /// Vertical position of the top-left corner of the on-screen background.
@@ -161,7 +118,10 @@ impl Gpu {
             },
             mode: H_Blank,
             mode_clock: 0,
+            lcd_control: 0,
+            lcdc_status: 0,
             ly: 0,
+            lyc: 0,
             scroll_x: 0,
             scroll_y: 0,
             window_x: 0,
@@ -175,56 +135,82 @@ impl Gpu {
         }
     }
 
-    /// Advance the GPU simulation.
+    /// Advance the GPU simulation forward by the given amount of clock ticks.
+    ///
+    /// Loops through OAM_Read, VRAM_Read and H_Blank modes to draw the 144 lines,
+    /// then switches to V_Blank mode for 10 lines before starting over.
     pub fn step(&mut self, ticks: CycleType, irq_handler: &mut IrqHandler) {
+        use self::LcdControllerStatus::*;
+
+        if !LcdControl::LcdDisplayEnable.is_set(self.lcd_control) {
+            return;
+        }
+
         self.mode_clock += ticks;
 
         match self.mode {
             // scanline, accessing OAM
-            OAM_Read => {
-                if self.mode_clock >= 80 {
-                    self.switch_mode(VRAM_Read)
-                }
+            OAM_Read if self.mode_clock >= OAM_READ_CYCLES => {
+                self.mode_clock -= OAM_READ_CYCLES;
+                self.switch_mode(VRAM_Read);
             }
             // scanline, accessing VRAM
-            VRAM_Read => {
-                if self.mode_clock >= 172 {
-                    // end of scanline
-                    self.switch_mode(H_Blank);
-                    self.render_scanline();
-                    // TODO : throw LCD_Stat interrupt here ?
+            VRAM_Read if self.mode_clock >= VRAM_READ_CYCLES => {
+                self.mode_clock -= VRAM_READ_CYCLES;
+                // end of scanline
+                self.render_scanline();
+                self.switch_mode(H_Blank);
+                if HBlankInterrupt.is_set(self.lcdc_status) {
+                    irq_handler.request_interrupt(Interrupt::LCD_Stat);
                 }
             }
             // horizontal blank
-            H_Blank => {
-                if self.mode_clock >= 204 {
-                    self.ly += 1;
-                    if self.ly == SCREEN_H {
-                        self.switch_mode(V_Blank);
-                        self.dirty = true; // the framebuffer can be rendered
-                        irq_handler.request_interrupt(Interrupt::V_Blank);
-                    } else {
-                        self.switch_mode(OAM_Read);
+            H_Blank if self.mode_clock >= H_BLANK_CYCLES => {
+                self.mode_clock -= H_BLANK_CYCLES;
+                self.ly += 1;
+                if self.ly == SCREEN_H { // last H_BLANK: render framebuffer
+                    self.switch_mode(V_Blank);
+                    self.dirty = true;
+                    irq_handler.request_interrupt(Interrupt::V_Blank);
+                    if VBlankInterrupt.is_set(self.lcdc_status) {
+                        irq_handler.request_interrupt(Interrupt::LCD_Stat);
+                    }
+                } else { // move to next line
+                    self.switch_mode(OAM_Read);
+                    if OamInterrupt.is_set(self.lcdc_status) {
+                        irq_handler.request_interrupt(Interrupt::LCD_Stat);
                     }
                 }
             }
             // vertical blank (10 lines)
-            V_Blank => {
-                if self.mode_clock >= 456 {
-                    self.mode_clock = 0;
-                    self.ly += 1;
-                    if self.ly == SCREEN_H + 10 {
-                        self.switch_mode(OAM_Read);
-                        self.ly = 0;
+            V_Blank if self.mode_clock >= V_BLANK_CYCLES => {
+                self.mode_clock -= V_BLANK_CYCLES;
+                self.ly += 1;
+                if self.ly == SCREEN_H + 10 { // last V_BLANK
+                    self.ly = 0;
+                    self.switch_mode(OAM_Read);
+                    if OamInterrupt.is_set(self.lcdc_status) {
+                        irq_handler.request_interrupt(Interrupt::LCD_Stat);
                     }
                 }
+            },
+            _ => {},
+        }
+
+        // LYC/LY comparison
+        if self.lyc == self.ly {
+            self.lcdc_status = LcdControllerStatus::with_coincidence_flag(self.lcdc_status, true);
+            if LyCoincidenceInterrupt.is_set(self.lcdc_status) {
+                irq_handler.request_interrupt(Interrupt::LCD_Stat);
             }
+        } else {
+            self.lcdc_status = LcdControllerStatus::with_coincidence_flag(self.lcdc_status, false);
         }
     }
 
     /// Switch the current GPU mode.
     fn switch_mode(&mut self, new_mode: GpuMode) {
-        self.mode_clock = 0;
+        self.lcdc_status = LcdControllerStatus::with_mode(self.lcdc_status, new_mode.clone());
         self.mode = new_mode;
     }
 
@@ -234,7 +220,7 @@ impl Gpu {
 
 impl Memory for Gpu {
     fn read_byte(&mut self, address: u16) -> u8 {
-        use self::regs::*;
+        use self::registers::*;
         use self::cgb::regs as r;
 
         let a = address as usize;
@@ -263,6 +249,8 @@ impl Memory for Gpu {
                 // return self.vram_bank[bank_address];
                 0
             }
+            CONTROL => self.lcd_control,
+            STAT => self.lcdc_status,
             SCY => self.scroll_y,
             SCX => self.scroll_x,
             LY => self.ly as u8,
@@ -274,8 +262,9 @@ impl Memory for Gpu {
             _ => 0,
         }
     }
+
     fn write_byte(&mut self, address: u16, byte: u8) {
-        use self::regs::*;
+        use self::registers::*;
         use self::cgb::regs as r;
 
         let a = address as usize;
@@ -309,6 +298,8 @@ impl Memory for Gpu {
                 }
                 // self.vram_bank[bank_address] = byte;
             }
+            CONTROL => self.lcd_control = byte,
+            STAT => self.lcdc_status = byte,
             SCY => self.scroll_y = byte,
             SCX => self.scroll_x = byte,
             LY => self.ly = 0,
@@ -318,53 +309,6 @@ impl Memory for Gpu {
             WY => self.window_y = byte,
             WX => self.window_x = byte,
             _ => (),
-        }
-    }
-}
-
-#[cfg(test)]
-mod test {
-    use super::Tile;
-
-    #[test]
-    fn test_tile_update() {
-        // Source for the Tile example: http://fms.komkon.org/GameBoy/Tech/Software.html
-        // .33333..                          .33333.. -> 0b0111_1100 -> 0x7C
-        // 22...22.                                      0b0111_1100 -> 0x7C
-        // 11...11.                          22...22. -> 0b0000_0000 -> 0x00
-        // 2222222.                                      0b1100_0110 -> 0xC6
-        // 33...33.                          11...11. -> 0b1100_0110 -> 0xC6
-        // 22...22.                                      0b0000_0000 -> 0x00
-        // 11...11.                          2222222. -> 0b0000_0000 -> 0x00
-        // ........                                      0b1111_1110 -> 0xFE
-        // 33...33. -> 0b1100_0110 -> 0xC6
-        // 0b1100_0110 -> 0xC6
-        // 22...22. -> 0b0000_0000 -> 0x00
-        // 0b1100_0110 -> 0xC6
-        // 11...11. -> 0b1100_0110 -> 0xC6
-        // 0b0000_0000 -> 0x00
-        // ........ -> 0b0000_0000 -> 0x00
-        // 0b0000_0000 -> 0x00
-        //
-        let tile = Tile::new([
-            0x7C, 0x7C, 0x00, 0xC6, 0xC6, 0x00, 0x00, 0xFE, 0xC6, 0xC6, 0x00, 0xC6, 0xC6, 0x00,
-            0x00, 0x00,
-        ]);
-        let data = tile.data();
-        let data_test = [
-            [0, 3, 3, 3, 3, 3, 0, 0],
-            [2, 2, 0, 0, 0, 2, 2, 0],
-            [1, 1, 0, 0, 0, 1, 1, 0],
-            [2, 2, 2, 2, 2, 2, 2, 0],
-            [3, 3, 0, 0, 0, 3, 3, 0],
-            [2, 2, 0, 0, 0, 2, 2, 0],
-            [1, 1, 0, 0, 0, 1, 1, 0],
-            [0, 0, 0, 0, 0, 0, 0, 0],
-        ];
-        for (y, line) in data.iter().enumerate() {
-            for (x, color_value) in line.iter().enumerate() {
-                assert_eq!(*color_value, data_test[y][x]);
-            }
         }
     }
 }

@@ -182,7 +182,7 @@ mod test {
     use super::PaletteGrayShade::*;
 
     #[test]
-    fn test_PaletteGrayShade_values() {
+    fn test_palette_gray_shade_values() {
         assert_eq!(White as u8, 0b00);
         assert_eq!(LightGray as u8, 0b01);
         assert_eq!(DarkGray as u8, 0b10);
@@ -190,7 +190,7 @@ mod test {
     }
 
     #[test]
-    fn test_PaletteGrayShade_to_RGB() {
+    fn test_palette_gray_shade_to_rgb() {
         assert_eq!(White.to_rgb(), PALETTE_CLASSIC_RGB[0]);
         assert_eq!(LightGray.to_rgb(), PALETTE_CLASSIC_RGB[1]);
         assert_eq!(DarkGray.to_rgb(), PALETTE_CLASSIC_RGB[2]);
@@ -198,7 +198,7 @@ mod test {
     }
 
     #[test]
-    fn test_PaletteClassic() {
+    fn test_palette_classic() {
         let mut palette = PaletteClassic::new();
         palette.set(0b_1011_0001);
         let colors = palette.data();
@@ -210,7 +210,7 @@ mod test {
     }
 
     #[test]
-    fn test_PaletteColorValue() {
+    fn test_palette_color_value() {
         let mut color = PaletteColorValue::new(0x0000);
         assert_eq!(color.raw_low(), 0x00);
         assert_eq!(color.raw_high(), 0x00);
