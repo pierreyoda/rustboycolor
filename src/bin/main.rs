@@ -4,32 +4,23 @@ mod emulator;
 mod input;
 mod logger;
 
-use std::env;
 use std::path::Path;
 use std::error::Error;
 
 #[macro_use]
 extern crate log;
-extern crate getopts;
+extern crate clap;
 extern crate toml;
+
+use clap::{App, Arg, ArgMatches};
 
 extern crate rustboylib;
 use backend::sdl2;
 use input::KeyboardBinding;
 
-fn print_usage(opts: &getopts::Options) {
-    let brief = concat!("rustboycolor : Game Boy (Color) emulator.\n\nUsage:\n",
-                        "   rustboycolor [OPTIONS] ROM_FILE\n");
-    println!("{}", opts.usage(&brief));
-}
-
-fn app_options_from_matches(matches: &getopts::Matches) -> config::EmulatorAppConfig {
-
-    let config_file = match matches.opt_str("c") {
-        Some(file) => file,
-        None => "config.toml".to_string(),
-    };
-    let keyboard_binding = match matches.opt_str("k") {
+fn app_options_from_matches(matches: &ArgMatches) -> config::EmulatorAppConfig {
+    let config_file = matches.value_of("config").unwrap_or("config.toml");
+    let keyboard_binding = match matches.value_of("keyboard") {
         Some(binding) => {
             match &binding[..] {
                 "QWERTY" => KeyboardBinding::QWERTY,
@@ -38,14 +29,14 @@ fn app_options_from_matches(matches: &getopts::Matches) -> config::EmulatorAppCo
                     warn!("Unkown keyboard binding '{}', reverting to QWERTY or configuration \
                            file.",
                           binding);
-                    KeyboardBinding::FromConfigFile(config_file.clone())
+                    KeyboardBinding::FromConfigFile(config_file.into())
                 }
             }
         }
-        _ => KeyboardBinding::FromConfigFile(config_file.clone()),
+        _ => KeyboardBinding::FromConfigFile(config_file.into()),
     };
 
-    let config = match config::EmulatorAppConfig::from_file(&config_file[..]) {
+    let config = match config::EmulatorAppConfig::from_file(&config_file) {
         Ok(c) => c,
         Err(e) => {
             warn!("cannot use the configuration file \"{}\": {}",
@@ -64,41 +55,34 @@ fn main() {
     }
 
     // Program options
-    let args: Vec<String> = env::args().collect();
-    let mut opts = getopts::Options::new();
-    opts.optflag("h", "help", "Print this help menu.");
-    opts.optopt("k",
-                "keyboard",
-                "The keyboard configuration to use. QWERTY by default. A custom binding can be \
-                 defined in the configuration file.",
-                "QWERTY/AZERTY");
-    opts.optopt("c",
-                "config",
-                "The TOML configuration file to use. './config.toml' by default",
-                "");
-    let matches = match opts.parse(&args[1..]) {
-        Ok(m) => m,
-        Err(why) => {
-            error!("{}", why);
-            return;
-        }
-    };
-    if matches.opt_present("h") {
-        print_usage(&opts);
-        return;
-    }
-    println!();
-    let rom = if !matches.free.is_empty() {
-        matches.free[0].clone()
-    } else {
-        print_usage(&opts);
-        return;
-    };
+    let matches = App::new("rustboycolor")
+        .version("alpha")
+        .about("Game Boy (Color) emulator")
+        .arg(Arg::with_name("keyboard")
+            .help("Sets the keyboard configuration to use. QWERTY by default. \
+                   A custom binding can be defined in the configuration file.")
+            .short("k")
+            .long("keyboard")
+            .value_name("QWERTY/AZERTY")
+            .takes_value(true))
+        .arg(Arg::with_name("config")
+            .help("Sets the configuration file to use. './config.toml' by default.")
+            .short("c")
+            .long("config")
+            .value_name("CONFIG_FILE")
+            .takes_value(true))
+        .arg(Arg::with_name("ROM_FILE")
+            .help("The ROM file to play.")
+            .required(true)
+            .index(1))
+        .get_matches();
+
+    let rom = matches.value_of("ROM_FILE").unwrap();
 
     // Application launch
     let rom_path = Path::new(&rom);
     app_options_from_matches(&matches)
-        .title("RustBoyColor - SDL 2")
+        .title("RustBoyColor - SDL2")
         .create_with_backend(Box::new(sdl2::BackendSDL2))
         .run(&rom_path, true);
 }

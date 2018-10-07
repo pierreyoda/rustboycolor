@@ -19,8 +19,12 @@ tracing = []
 
 [dependencies]
 log = "0.3.8"
-getopts = "0.2.17"
 toml = "0.4.5"
+
+[dependencies.clap]
+version = "2.32.0"
+default-features = false
+features = ["suggestions", "color", "vec_map", "wrap_help"]
 
 [dependencies.sdl2]
 version = "0.30.0"
