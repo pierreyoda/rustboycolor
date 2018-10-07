@@ -11,6 +11,9 @@ const ZRAM_SIZE: usize = 0x0080;
 
 pub trait MemoryManagementUnit {
     fn step(&mut self, ticks: CycleType) -> CycleType;
+    fn interrupt_enable(&self) -> u8;
+    fn interrupt_flag(&self) -> u8;
+    fn set_interrupt_flag(&mut self, flag: u8);
 }
 
 /// The Game Boy (Color)'s Memory Management Unit, interfacing between
@@ -40,13 +43,12 @@ pub struct MMU {
 }
 
 /// MMU subcomponent passed around to throw interrupt requests from various
-/// components, who should use the 'request_interrupt' method and not directly
-/// manipulate the registers.
+/// components.
 struct MachineIrqHandler {
     /// Interrupt Enable Register.
-    pub ie_reg: u8,
+    ie_reg: u8,
     /// Interrupt Flag Register.
-    pub if_reg: u8,
+    if_reg: u8,
 }
 
 impl MachineIrqHandler {
@@ -101,6 +103,10 @@ impl MemoryManagementUnit for MMU {
         self.gpu.step(gpu_ticks, &mut self.irq_handler);
         gpu_ticks
     }
+
+    fn interrupt_enable(&self) -> u8 { self.irq_handler.ie_reg }
+    fn interrupt_flag(&self) -> u8 { self.irq_handler.if_reg }
+    fn set_interrupt_flag(&mut self, flag: u8) { self.irq_handler.if_reg = flag; }
 }
 
 // MMU implements the Memory trait to provide transparent interfacing

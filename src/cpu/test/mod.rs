@@ -72,7 +72,8 @@ impl Memory for TestMemory {
 }
 
 impl MemoryManagementUnit for TestMemory {
-    fn step(&mut self, _: CycleType) -> CycleType {
-        0
-    }
+    fn step(&mut self, _: CycleType) -> CycleType { 0 }
+    fn interrupt_enable(&self) -> u8 { 0 }
+    fn interrupt_flag(&self) -> u8 { 0 }
+    fn set_interrupt_flag(&mut self, _: u8) {}
 }

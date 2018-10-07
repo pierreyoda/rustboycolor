@@ -5,7 +5,6 @@ mod input;
 mod logger;
 
 use std::path::Path;
-use std::error::Error;
 
 #[macro_use]
 extern crate log;

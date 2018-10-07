@@ -12,7 +12,7 @@ pub trait IrqHandler {
 pub struct EmptyIrqHandler;
 
 impl IrqHandler for EmptyIrqHandler {
-    fn request_interrupt(&mut self, interrupt: Interrupt) {}
+    fn request_interrupt(&mut self, _: Interrupt) {}
 }
 
 /// The different interrupts used in the Game Boy.

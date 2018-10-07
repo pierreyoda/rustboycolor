@@ -130,13 +130,16 @@ where
     fn cpu_step(&mut self) -> CycleType {
         if self.halted {
             // if any interrupt occured, resume execution
-            let if_reg = self.mem.read_byte(INTERRUPT_FLAG_ADDRESS);
-            if self.if_reg_before_halt != if_reg {
+            if self.if_reg_before_halt != self.mem.interrupt_flag() {
                 self.halted = false;
             }
             return 1; // NOP
         }
-        let mut step_cycles = self.handle_interrupt();
+        match self.handle_interrupt() {
+            0 => {}
+            n => return n,
+        }
+
         self.opcode = self.fetch_byte();
         #[cfg(feature = "tracing")]
         {
@@ -152,7 +155,7 @@ where
                 self.regs.sp,
             );
         }
-        step_cycles += self.dispatch_array[self.opcode as usize](self);
+        let step_cycles = self.dispatch_array[self.opcode as usize](self);
         self.cycles += step_cycles;
         step_cycles
     }
@@ -161,26 +164,29 @@ where
         if !self.ime {
             return 0;
         }
-        let ie_reg = self.mem.read_byte(INTERRUPT_ENABLE_ADDRESS);
-        let if_reg = self.mem.read_byte(INTERRUPT_FLAG_ADDRESS);
+        let ie_reg = self.mem.interrupt_enable();
+        let if_reg = self.mem.interrupt_flag();
         let interrupts = ie_reg & if_reg;
         if interrupts == 0x00 {
             return 0;
         }
+        #[cfg(feature = "tracing")]
+        {
+            write!(&mut self.trace_file, "INT {:0>2X}", interrupts);
+        }
+
         // check the interrupts by order of priority
         for i in 0..5 {
             let interrupt_vector = match Interrupt::from_u8(interrupts & (1 << i)) {
                 Some(interrupt) => interrupt.address(),
                 None => continue,
             };
-            self.mem
-                .write_byte(INTERRUPT_FLAG_ADDRESS, interrupts & !(1 << i));
+            self.mem.set_interrupt_flag(if_reg & !(1 << i));
             self.ime = false;
             self.cpu_call(interrupt_vector);
+            break;
         }
-
-        // TO CHECK : cycles count
-        0
+        4
     }
 
     /// Called when encountering the '0xCB' prefix.
