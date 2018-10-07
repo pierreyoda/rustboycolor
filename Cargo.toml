@@ -18,8 +18,8 @@ default = []
 tracing = []
 
 [dependencies]
-log = "0.3.8"
-toml = "0.4.5"
+log = "0.4.5"
+toml = "0.4.8"
 
 [dependencies.clap]
 version = "2.32.0"
