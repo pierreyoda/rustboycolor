@@ -1,22 +1,26 @@
-mod background;
 mod cgb;
 mod palette;
 mod registers;
+mod tile;
+
+use std::cmp;
 
 use cpu::CycleType;
 use memory::Memory;
 use irq::{Interrupt, IrqHandler};
 
 use self::GpuMode::*;
-use self::background::Tile;
 use self::palette::{PaletteClassic, PaletteGrayShade};
 use self::registers::{LcdControl, LcdControllerStatus};
+use self::tile::{Tile, TILES_IN_SCREEN};
 
 /// The width of the Game Boy's screen, in pixels.
 pub const SCREEN_W: usize = 160;
 /// The height of the Game Boy's screen, in pixels.
 pub const SCREEN_H: usize = 144;
 
+const BACKGROUND_WIDTH: usize = 256;
+const BACKGROUND_HEIGHT: usize = 256;
 const TILEMAP_SIZE: usize = 0x400;
 
 /// Simple RGB color representation.
@@ -131,7 +135,7 @@ impl Gpu {
             ob_palettes: [PaletteClassic::new(); 2],
             tileset: [Tile::new([0x00; 16]); 384],
             tilemaps: [[0x00; TILEMAP_SIZE]; 2],
-            dirty: false,
+            dirty: true,
         }
     }
 
@@ -215,7 +219,68 @@ impl Gpu {
     }
 
     /// Write the current scanline in the framebuffer.
-    fn render_scanline(&mut self) {}
+    fn render_scanline(&mut self) {
+        let y = self.ly;
+        self.render_line_tiles(y);
+        self.render_line_sprites(y);
+    }
+
+    fn render_line_tiles(&mut self, y: usize) {
+        let palette_data = self.bg_palette.data();
+        // background line
+        if LcdControl::BgDisplayEnable.is_set(self.lcd_control) {
+            for x in 0..SCREEN_W {
+                let background_x = (self.scroll_x as usize + x) % BACKGROUND_WIDTH;
+                let background_y = (self.scroll_y as usize + y) % BACKGROUND_HEIGHT;
+
+                println!("Y={} X={} BX={} BY={}", y, x, background_x, background_y);
+                let tile = self.get_tile(background_x, background_y,
+                    LcdControl::BgTileMapDisplaySelect.is_set(self.lcd_control));
+                let (x_offset, y_offset) = (background_x % 8, background_y % 8);
+                let color_index = tile.data()[y_offset][x_offset] as usize;
+                self.frame_buffer[y * SCREEN_W + x] = palette_data[color_index].to_rgb();
+            }
+        }
+        // window line
+        if LcdControl::WindowDisplayEnable.is_set(self.lcd_control) {
+            let x_start = cmp::max(self.window_x as i32 - 7, 0) as usize;
+            for x in x_start..SCREEN_W {
+                let window_x = (self.scroll_x as usize + x) % BACKGROUND_WIDTH;
+                let window_y = (self.scroll_y as usize + y) % BACKGROUND_HEIGHT;
+
+                let tile = self.get_tile(window_x, window_y,
+                    LcdControl::WindowTileMapDisplaySelect.is_set(self.lcd_control));
+                let (x_offset, y_offset) = (window_x % 8, window_y % 8);
+                let color_index = tile.data()[y_offset][x_offset] as usize;
+                self.frame_buffer[y * SCREEN_W + x] = palette_data[color_index].to_rgb();
+            }
+        }
+    }
+
+    fn render_line_sprites(&mut self, y: usize) {
+        if !LcdControl::ObjDisplayEnable.is_set(self.lcd_control) { return; }
+        // TODO
+    }
+
+    fn get_tile(&self, x: usize, y: usize, tilemap_1: bool) -> Tile {
+        let index = (y / 8) * TILES_IN_SCREEN + x / 8;
+        let tile_index = if tilemap_1 {
+            self.tilemaps[1][index] as usize
+        } else {
+            self.tilemaps[0][index] as usize
+        };
+
+        if LcdControl::BgWindowTileDataSelect.is_set(self.lcd_control) {
+            self.tileset[index]
+        } else {
+            let offset = tile_index as i8 as i32;
+            self.tileset[(256i32 + offset) as usize]
+        }
+    }
+
+    pub fn screen_data(&self) -> Vec<RGB> {
+        self.frame_buffer.to_vec()
+    }
 }
 
 impl Memory for Gpu {
@@ -233,27 +298,31 @@ impl Memory for Gpu {
                 r::BGP_DATA => return data.get_bg_color(),
                 r::OBP_INDEX => return data.ob_palette_index.raw_value(),
                 r::OBP_DATA => return data.get_ob_color(),
-                _ => {}
+                _ => {},
             }
         }
         match a {
-            0x8000...0x9FFF => {
-                // Video RAM
-                let bank_address = a & 0x1FFF;
-                if self.cgb_mode {
-                    let data = self.cgb_data.as_ref().unwrap();
-                    if data.vram_bank_selector & 0x01 == 0x01 {
-                        // return data.vram_bank[bank_address];
-                    }
-                }
-                // return self.vram_bank[bank_address];
-                0
-            }
+            0x8000...0x97FF => { // tileset
+                let addr = a - 0x8000;
+                let tile_index = addr / 16;
+                let data_index = addr % 16;
+                debug_assert!(tile_index < 384);
+                self.tileset[tile_index].raw_byte(data_index)
+            },
+            0x9800...0x9BFF => { // tilemap 0
+                let addr = a - 0x9800;
+                self.tilemaps[0][addr]
+            },
+            0x9C00...0x9FFF => { // tilemap 1
+                let addr = a - 0x9C00;
+                self.tilemaps[1][addr]
+            },
             CONTROL => self.lcd_control,
             STAT => self.lcdc_status,
             SCY => self.scroll_y,
             SCX => self.scroll_x,
             LY => self.ly as u8,
+            LYC => self.lyc as u8,
             BGP => self.bg_palette.raw(),
             OBP_0 => self.ob_palettes[0].raw(),
             OBP_1 => self.ob_palettes[1].raw(),
@@ -287,22 +356,28 @@ impl Memory for Gpu {
             }
         }
         match a {
-            0x8000...0x9FFF => {
-                // Video RAM
-                let bank_address = a & 0x1FFF;
-                if self.cgb_mode {
-                    let data = self.cgb_data.as_mut().unwrap();
-                    if data.vram_bank_selector & 0x01 == 0x01 {
-                        // data.vram_bank[bank_address] = byte;
-                    }
-                }
-                // self.vram_bank[bank_address] = byte;
-            }
+            0x8000...0x97FF => {
+                let addr = a - 0x8000;
+                let tile_index = addr / 16;
+                let data_index = addr % 16;
+                debug_assert!(tile_index < 384);
+                self.tileset[tile_index].update_raw_byte(data_index, byte)
+            },
+            0x9800...0x9BFF => {
+                let addr = a - 0x9800;
+                self.tilemaps[0][addr] = byte;
+            },
+            0x9C00...0x9FFF => {
+                let addr = a - 0x9C00;
+                self.tilemaps[1][addr] = byte;
+            },
             CONTROL => self.lcd_control = byte,
-            STAT => self.lcdc_status = byte,
+            // LCDC Status: bits 2 to 0 are read-only
+            STAT => self.lcdc_status = (byte & 0xF8) | (self.lcdc_status & 0x07),
             SCY => self.scroll_y = byte,
             SCX => self.scroll_x = byte,
             LY => self.ly = 0,
+            LYC => self.lyc = byte as usize,
             BGP => self.bg_palette.set(byte),
             OBP_0 => self.ob_palettes[0].set(byte),
             OBP_1 => self.ob_palettes[1].set(byte),

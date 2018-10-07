@@ -1,16 +1,19 @@
+mod cb_ops;
 /// Module emulating the behavior of the Sharp LR35902 processor powering the
 /// Game Boy (Color).
-
 mod ops;
-mod cb_ops;
-#[cfg(test)] mod test;
+#[cfg(test)]
+mod test;
 
-#[cfg(feature = "tracing")] use std::fs::File;
-#[cfg(feature = "tracing")] use std::io::Write;
+#[cfg(feature = "tracing")]
+use std::fs::File;
+#[cfg(feature = "tracing")]
+use std::io::Write;
 
-use irq::{Interrupt, INTERRUPT_FLAG_ADDRESS, INTERRUPT_ENABLE_ADDRESS};
+use irq::{Interrupt, INTERRUPT_ENABLE_ADDRESS, INTERRUPT_FLAG_ADDRESS};
 use memory::Memory;
-use registers::{Registers, Z_FLAG, N_FLAG, H_FLAG, C_FLAG};
+use mmu::MemoryManagementUnit;
+use registers::{Registers, C_FLAG, H_FLAG, N_FLAG, Z_FLAG};
 
 /// The CPU clock speed for the Game Boy (Classic), in Hz.
 pub const CPU_CLOCK_SPEED: u32 = 4_194_304;
@@ -27,7 +30,7 @@ pub struct Cpu<M> {
     pub halted: bool,
     /// The CPU's registers.
     pub regs: Registers,
-    /// The memory on which the CPU operates.
+    /// The MMU on which the CPU operates.
     pub mem: M,
     /// Interrupt master enable switch.
     pub ime: bool,
@@ -45,8 +48,11 @@ pub struct Cpu<M> {
     trace_file: File,
 }
 
-impl<M> Cpu<M> where M: Memory {
-    /// Return a new, initialized Cpu instance operating on the given 'Memory'.
+impl<M> Cpu<M>
+where
+    M: Memory + MemoryManagementUnit,
+{
+    /// Return a new, initialized Cpu instance operating on the given MMU.
     pub fn new(mem: M) -> Cpu<M> {
         Cpu {
             cycles: 0,
@@ -65,6 +71,7 @@ impl<M> Cpu<M> where M: Memory {
 
     /// Simulate the effects of the power-up sequence.
     /// Source: http://gbdev.gg8.se/wiki/articles/Power_Up_Sequence
+    /// TODO: CGB mode
     pub fn post_bios(&mut self) {
         self.regs.set_af(0x01B0);
         self.regs.set_bc(0x0013);
@@ -111,25 +118,39 @@ impl<M> Cpu<M> where M: Memory {
         w
     }
 
-    /// Advance the CPU simulation and return the number of CPU machine cycles
+    /// Advance the machine simulation and return the number of CPU clock cycles
     /// spent.
     pub fn step(&mut self) -> CycleType {
+        let clock_cycles = self.cpu_step() * 4;
+        self.mem.step(clock_cycles)
+    }
+
+    /// Advance the CPU simulation and return the number of CPU machine cycles
+    /// spent.
+    fn cpu_step(&mut self) -> CycleType {
         if self.halted {
             // if any interrupt occured, resume execution
             let if_reg = self.mem.read_byte(INTERRUPT_FLAG_ADDRESS);
-            if self.if_reg_before_halt != if_reg { self.halted = false; }
+            if self.if_reg_before_halt != if_reg {
+                self.halted = false;
+            }
             return 1; // NOP
         }
         let mut step_cycles = self.handle_interrupt();
         self.opcode = self.fetch_byte();
         #[cfg(feature = "tracing")]
         {
-        write!(
-            &mut self.trace_file,
-            "OP={:0>2X} PC={:0>4X} AF={:0>4X} BC={:0>4X} DE={:0>4X} HL={:0>4X} SP={:0>4X}\n",
-            self.opcode, self.regs.pc, self.regs.af(), self.regs.bc(),
-            self.regs.de(), self.regs.hl(), self.regs.sp,
-        );
+            write!(
+                &mut self.trace_file,
+                "OP={:0>2X} PC={:0>4X} AF={:0>4X} BC={:0>4X} DE={:0>4X} HL={:0>4X} SP={:0>4X}\n",
+                self.opcode,
+                self.regs.pc,
+                self.regs.af(),
+                self.regs.bc(),
+                self.regs.de(),
+                self.regs.hl(),
+                self.regs.sp,
+            );
         }
         step_cycles += self.dispatch_array[self.opcode as usize](self);
         self.cycles += step_cycles;
@@ -137,19 +158,23 @@ impl<M> Cpu<M> where M: Memory {
     }
 
     fn handle_interrupt(&mut self) -> CycleType {
-        if !self.ime { return 0; }
+        if !self.ime {
+            return 0;
+        }
         let ie_reg = self.mem.read_byte(INTERRUPT_ENABLE_ADDRESS);
         let if_reg = self.mem.read_byte(INTERRUPT_FLAG_ADDRESS);
         let interrupts = ie_reg & if_reg;
-        if interrupts == 0x00 { return 0; }
+        if interrupts == 0x00 {
+            return 0;
+        }
         // check the interrupts by order of priority
         for i in 0..5 {
-            let interrupt_vector = match Interrupt::from_u8(
-                interrupts & (1 << i)) {
+            let interrupt_vector = match Interrupt::from_u8(interrupts & (1 << i)) {
                 Some(interrupt) => interrupt.address(),
-                None            => continue,
+                None => continue,
             };
-            self.mem.write_byte(INTERRUPT_FLAG_ADDRESS, interrupts & !(1 << i));
+            self.mem
+                .write_byte(INTERRUPT_FLAG_ADDRESS, interrupts & !(1 << i));
             self.ime = false;
             self.cpu_call(interrupt_vector);
         }
@@ -167,16 +192,14 @@ impl<M> Cpu<M> where M: Memory {
     /// Called when an unknown opcode is encountered.
     /// TODO improved behavior
     pub fn opcode_unknown(&mut self) -> CycleType {
-        warn!("CPU : unknown opcode 0x{:0>2X} ; halting",
-                 self.opcode);
+        warn!("CPU : unknown opcode 0x{:0>2X} ; halting", self.opcode);
         self.halted = true;
         0
     }
     /// Called when an unknown CB-prefixed opcode is encountered.
     /// TODO improved behavior
     pub fn cb_opcode_unknown(&mut self) -> CycleType {
-        warn!("CPU : unknown opcode 0xCB{:0>2X} ; halting",
-                 self.opcode);
+        warn!("CPU : unknown opcode 0xCB{:0>2X} ; halting", self.opcode);
         self.halted = true;
         0
     }
@@ -212,7 +235,8 @@ impl<M> Cpu<M> where M: Memory {
     fn alu_add16(&mut self, a: u16, b: u16) -> u16 {
         let r = (a as u32) + (b as u32);
         self.regs.set_flag(N_FLAG, false);
-        self.regs.set_flag(H_FLAG, (a & 0x0FFF) + (b & 0x0FFF) > 0x0FFF);
+        self.regs
+            .set_flag(H_FLAG, (a & 0x0FFF) + (b & 0x0FFF) > 0x0FFF);
         self.regs.set_flag(C_FLAG, r > 0xFFFF);
         r as u16
     }
@@ -220,11 +244,16 @@ impl<M> Cpu<M> where M: Memory {
     /// Add 'b' (and C if add_c is true) to register A.
     fn alu_add(&mut self, b: u8, add_c: bool) {
         let a = self.regs.a;
-        let c = if add_c && self.regs.flag(C_FLAG) { 1 } else { 0 };
+        let c = if add_c && self.regs.flag(C_FLAG) {
+            1
+        } else {
+            0
+        };
         let r = (a as u16) + (b as u16) + (c as u16);
         self.regs.set_flag(Z_FLAG, r & 0xFF == 0x0);
         self.regs.set_flag(N_FLAG, false);
-        self.regs.set_flag(H_FLAG, (a & 0x0F) + (b & 0x0F) + c > 0x0F);
+        self.regs
+            .set_flag(H_FLAG, (a & 0x0F) + (b & 0x0F) + c > 0x0F);
         self.regs.set_flag(C_FLAG, r > 0xFF);
         self.regs.a = r as u8;
     }
@@ -232,12 +261,17 @@ impl<M> Cpu<M> where M: Memory {
     /// Substract 'b' (and C if sub_c is true) from register A.
     fn alu_sub(&mut self, b: u8, sub_c: bool) {
         let a = self.regs.a;
-        let c = if sub_c && self.regs.flag(C_FLAG) { 1 } else { 0 };
+        let c = if sub_c && self.regs.flag(C_FLAG) {
+            1
+        } else {
+            0
+        };
         let r = a.wrapping_sub(b).wrapping_sub(c);
         self.regs.set_flag(Z_FLAG, r & 0xFF == 0x0);
         self.regs.set_flag(N_FLAG, true);
         self.regs.set_flag(H_FLAG, (a & 0x0F) < (b & 0x0F) + c);
-        self.regs.set_flag(C_FLAG, (a  as u16) < (b as u16) + (c as u16));
+        self.regs
+            .set_flag(C_FLAG, (a as u16) < (b as u16) + (c as u16));
         self.regs.a = r;
     }
 
@@ -270,7 +304,7 @@ impl<M> Cpu<M> where M: Memory {
 
     /// Rotate left.
     fn alu_rl(&mut self, v: u8) -> u8 {
-        let c  = (v & 0x80) == 0x80;
+        let c = (v & 0x80) == 0x80;
         let r = (v << 1) | (if self.regs.flag(C_FLAG) { 0x01 } else { 0x00 });
         self.regs.f = 0;
         self.regs.set_flag(Z_FLAG, r == 0x0);
@@ -279,7 +313,7 @@ impl<M> Cpu<M> where M: Memory {
     }
     /// Rotate left with carry.
     fn alu_rlc(&mut self, v: u8) -> u8 {
-        let c  = (v & 0x80) == 0x80;
+        let c = (v & 0x80) == 0x80;
         let r = (v << 1) | (if c { 0x01 } else { 0x00 });
         self.regs.f = 0;
         self.regs.set_flag(Z_FLAG, r == 0x0);
@@ -289,7 +323,7 @@ impl<M> Cpu<M> where M: Memory {
 
     /// Rotate right.
     fn alu_rr(&mut self, v: u8) -> u8 {
-        let c  = (v & 0x01) == 0x01;
+        let c = (v & 0x01) == 0x01;
         let r = (v >> 1) | (if self.regs.flag(C_FLAG) { 0x80 } else { 0x00 });
         self.regs.f = 0;
         self.regs.set_flag(Z_FLAG, r == 0x0);
@@ -298,7 +332,7 @@ impl<M> Cpu<M> where M: Memory {
     }
     /// Rotate right with carry.
     fn alu_rrc(&mut self, v: u8) -> u8 {
-        let c  = (v & 0x01) == 0x01;
+        let c = (v & 0x01) == 0x01;
         let r = (v >> 1) | (if c { 0x80 } else { 0x00 });
         self.regs.f = 0;
         self.regs.set_flag(Z_FLAG, r == 0x0);
@@ -312,7 +346,9 @@ impl<M> Cpu<M> where M: Memory {
 type CpuInstruction<M> = fn(&mut Cpu<M>) -> CycleType;
 
 macro_rules! cpu_instruction {
-    ($cpu_method: ident) => (Cpu::<M>::$cpu_method)
+    ($cpu_method: ident) => {
+        Cpu::<M>::$cpu_method
+    };
 }
 
 /// Return the dispatching array for the CPU to use, i.e. the array where
@@ -325,7 +361,7 @@ macro_rules! cpu_instruction {
 /// http://imrannazar.com/Gameboy-Z80-Opcode-Map
 /// http://www.z80.info/index.htm
 /// http://z80-heaven.wikidot.com/
-fn dispatch_array<M: Memory>() -> [CpuInstruction<M>; 256] {
+fn dispatch_array<M: Memory + MemoryManagementUnit>() -> [CpuInstruction<M>; 256] {
     // the default value is the method opcode_unknown
     let mut dispatch_array = [Cpu::<M>::opcode_unknown as CpuInstruction<M>; 256];
 
@@ -605,10 +641,9 @@ fn dispatch_array<M: Memory>() -> [CpuInstruction<M>; 256] {
 }
 
 /// Same as 'dispatch_array()' but for the additional, CB-prefixed instructions.
-fn cb_dispatch_array<M: Memory>() -> [CpuInstruction<M>; 256] {
+fn cb_dispatch_array<M: Memory + MemoryManagementUnit>() -> [CpuInstruction<M>; 256] {
     // the default value is the method cb_opcode_unknown
-    let mut cb_dispatch_array = [Cpu::<M>::cb_opcode_unknown
-        as CpuInstruction<M>; 256];
+    let mut cb_dispatch_array = [Cpu::<M>::cb_opcode_unknown as CpuInstruction<M>; 256];
 
     cb_dispatch_array[0x00] = cpu_instruction!(RLC_r_b);
     cb_dispatch_array[0x01] = cpu_instruction!(RLC_r_c);

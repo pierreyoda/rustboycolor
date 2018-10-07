@@ -46,8 +46,7 @@ impl MBC for MBC0 {
         }
     }
 
-    fn rom_control(&mut self, address: u16, value: u8) {}
-
+    fn rom_control(&mut self, _: u16, _: u8) {}
     fn ram_write(&mut self, address: u16, value: u8) {
         if self.eram.is_some() {
             self.eram.unwrap()[(address as usize) & 0x1FFF] = value;

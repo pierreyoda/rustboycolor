@@ -1,3 +1,5 @@
+pub const TILES_IN_SCREEN: usize = 32;
+
 /// A tile is an area of 8x8 pixels.
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub struct Tile {
@@ -12,6 +14,7 @@ pub struct Tile {
     /// colors or shades of gray according to the current palettes.
     raw_data: [u8; 16],
     /// Cached internal state better suited for rendering.
+    /// First index is Y coordinate, second index is X coordinate.
     data: [[u8; 8]; 8],
 }
 
@@ -21,12 +24,21 @@ impl Tile {
             raw_data: raw_data,
             data: [[0x00; 8]; 8],
         };
-        new_tile.update();
+        new_tile.cache();
         new_tile
     }
 
+    pub fn raw_byte(&self, index: usize) -> u8 {
+        self.raw_data[index]
+    }
+
+    pub fn update_raw_byte(&mut self, index: usize, byte: u8) {
+        self.raw_data[index] = byte;
+        self.cache();
+    }
+
     /// Update the tile's internal state to match its raw value.
-    pub fn update(&mut self) {
+    fn cache(&mut self) {
         for y in 0..8 {
             let line_lo = self.raw_data[y * 2];
             let line_hi = self.raw_data[y * 2 + 1];
@@ -48,7 +60,7 @@ mod test {
     use super::Tile;
 
     #[test]
-    fn test_tile_update() {
+    fn test_tile_cache() {
         // Source for the Tile example: http://fms.komkon.org/GameBoy/Tech/Software.html
         // .33333..                          .33333.. -> 0b0111_1100 -> 0x7C
         // 22...22.                                      0b0111_1100 -> 0x7C

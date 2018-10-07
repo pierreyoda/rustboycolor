@@ -5,9 +5,12 @@ use std::sync::mpsc::{Sender, Receiver};
 extern crate sdl2;
 use self::sdl2::event::Event;
 use self::sdl2::keyboard::Keycode;
-use self::sdl2::pixels::Color;
+use self::sdl2::pixels::{Color, PixelFormatEnum};
+use self::sdl2::rect::Rect;
+use self::sdl2::render::{Texture, TextureCreator, WindowCanvas};
+use self::sdl2::video::WindowContext;
 
-use rustboylib::gpu::{SCREEN_W, SCREEN_H};
+use rustboylib::gpu::{RGB, SCREEN_W, SCREEN_H};
 use super::{EmulatorBackend, BackendMessage};
 use config::EmulatorAppConfig;
 use input::get_key_bindings;
@@ -15,6 +18,28 @@ use emulator::EmulationMessage;
 
 /// The SDL 2 backend, using rust-sdl2.
 pub struct BackendSDL2;
+
+impl BackendSDL2 {
+    fn render_display<'a>(tc: &'a TextureCreator<WindowContext>, wc: &mut WindowCanvas,
+        frame_buffer: &[RGB], scale_h: u32, scale_v: u32) -> Texture<'a> {
+        let (w, w_scale) = (SCREEN_W as i32, scale_h as i32);
+        let (h, h_scale) = (SCREEN_H as i32, scale_v as i32);
+        let mut texture = tc.create_texture_target(PixelFormatEnum::RGB24,
+            (SCREEN_W as u32) * scale_h, (SCREEN_H as u32) * scale_v)
+            .expect("BackendSDL2::render_display: texture creation error");
+        wc.with_texture_canvas(&mut texture,  |texture_canvas| {
+            for y in 0i32..(h as i32) {
+                for x in 0i32..(w as i32) {
+                    let color = frame_buffer[(y * w  + x) as usize];
+                    texture_canvas.set_draw_color(Color::RGB(color.r, color.g, color.b));
+                    texture_canvas.fill_rect(Rect::new(x * w_scale, y * h_scale, scale_h, scale_v))
+                        .expect("BackendSDL2::render_display: texture canvas fill rect error");
+                }
+            }
+        });
+        texture
+    }
+}
 
 impl EmulatorBackend for BackendSDL2 {
     fn run(&mut self,
@@ -130,6 +155,12 @@ impl EmulatorBackend for BackendSDL2 {
             match rx.try_recv() {
                 Ok(emulation_message) => {
                     match emulation_message {
+                        UpdateDisplay(frame_buffer) => {
+                            let texture = BackendSDL2::render_display(&texture_creator,
+                                &mut canvas, &frame_buffer, scale_h as u32, scale_v as u32);
+                            canvas.copy(&texture, None, Some(Rect::new(0, 0, w, h)))
+                                .expect("BackendSDL2: canvas texture copy error");
+                        },
                         Finished => break 'ui,
                     }
                 }

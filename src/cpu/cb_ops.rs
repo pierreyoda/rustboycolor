@@ -1,5 +1,6 @@
 use super::{Cpu, CycleType};
 use memory::Memory;
+use mmu::MemoryManagementUnit;
 use registers::{Z_FLAG, N_FLAG, H_FLAG, C_FLAG};
 
 //
@@ -109,7 +110,7 @@ macro_rules! impl_SET_b_HLm {
 // the code. Notations used :
 // - (X) means the value stored in memory at the X address
 #[allow(non_snake_case)]
-impl<M> Cpu<M> where M: Memory {
+impl<M> Cpu<M> where M: Memory + MemoryManagementUnit {
 
     //
     // --- ROTATE ---

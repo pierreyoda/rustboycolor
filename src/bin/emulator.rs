@@ -1,13 +1,18 @@
 use std::path::Path;
 use std::sync::mpsc::{channel, Sender, Receiver};
 use std::thread;
+use std::time::Duration;
 
-use rustboylib::{cpu, mmu, mbc};
-use super::backend::{EmulatorBackend, BackendMessage};
-use super::config::EmulatorAppConfig;
+use rustboylib::{cpu, gpu, mmu, mbc};
+use rustboylib::cpu::{CycleType, CPU_CLOCK_SPEED};
+use rustboylib::gpu::RGB;
+use backend::{EmulatorBackend, BackendMessage};
+use config::EmulatorAppConfig;
 
 /// Message emitted by the emulation loop to the UI backend.
 pub enum EmulationMessage {
+    /// Update the display.
+    UpdateDisplay(Vec<RGB>),
     /// Signal that the emulation is finished, emitted either after a
     /// 'BackendMessage::Quit' signal was received or when the virtual machine
     /// finished the execution of its cartridge.
@@ -49,7 +54,7 @@ impl<'a> EmulatorApplication<'a> {
                 return false;
             }
         };
-        thread::spawn(move || {
+        thread::Builder::new().name("rustboylib_vm".into()).spawn(move || {
             let mmu = mmu::MMU::new(mbc, false, skip_bios);
             let mut cpu = cpu::Cpu::<mmu::MMU>::new(mmu);
             if skip_bios {
@@ -76,8 +81,8 @@ fn emulation_loop(cpu: &mut cpu::Cpu<mmu::MMU>,
 
     let mut running = true;
     // target CPU clock cycles per second
-    // 1 machine cycle = 4 clock cycles
-    // let cpu_cycles_per_s = ()
+    let frame_ticks = (CPU_CLOCK_SPEED / 1000 * 16) as CycleType;
+    let mut ticks: CycleType = 0;
 
     'vm: loop {
         // Signals from the UI
@@ -100,8 +105,14 @@ fn emulation_loop(cpu: &mut cpu::Cpu<mmu::MMU>,
             _ => {}
         }
 
-        cpu.step();
+        while ticks < frame_ticks {
+            ticks += cpu.step();
+        }
+        ticks -= frame_ticks;
+        if let Some(frame_buffer) = cpu.mem.frame_buffer() {
+            tx.send(UpdateDisplay(frame_buffer)).unwrap();
+        }
 
-        // thread::sleep(Duration::from_millis(25));
+        // thread::sleep(Duration::from_millis(1));
     }
 }

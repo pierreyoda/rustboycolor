@@ -1,12 +1,17 @@
-use super::irq::{Interrupt, IrqHandler};
-use super::bios::GB_BIOS;
-use super::memory::Memory;
-use super::gpu::Gpu;
-use super::mbc::{MBC};
-use super::joypad::{Joypad, JoypadKey};
+use irq::{Interrupt, IrqHandler};
+use bios::GB_BIOS;
+use cpu::CycleType;
+use memory::Memory;
+use gpu::{Gpu, RGB};
+use mbc::{MBC};
+use joypad::{Joypad, JoypadKey};
 
 const WRAM_SIZE: usize = 0x2000;
 const ZRAM_SIZE: usize = 0x0080;
+
+pub trait MemoryManagementUnit {
+    fn step(&mut self, ticks: CycleType) -> CycleType;
+}
 
 /// The Game Boy (Color)'s Memory Management Unit, interfacing between
 /// its CPU and the different memory components (RAM, ROM banks...).
@@ -77,6 +82,25 @@ impl MMU {
     pub fn key_up(&mut self, key: &JoypadKey) {
         self.joypad.key_up(key);
     }
+
+    /// If the GPU's framebuffer is marked as dirty, return it
+    /// and set its dirty flag as false.
+    pub fn frame_buffer(&mut self) -> Option<Vec<RGB>> {
+        if self.gpu.dirty {
+            self.gpu.dirty = false;
+            Some(self.gpu.screen_data())
+        } else {
+            None
+        }
+    }
+}
+
+impl MemoryManagementUnit for MMU {
+    fn step(&mut self, ticks: CycleType) -> CycleType {
+        let gpu_ticks = ticks; // TODO: DMA
+        self.gpu.step(gpu_ticks, &mut self.irq_handler);
+        gpu_ticks
+    }
 }
 
 // MMU implements the Memory trait to provide transparent interfacing
@@ -115,6 +139,10 @@ impl Memory for MMU {
             0xFF00            => self.joypad.read_byte(address),
             // Interrupt Flag Register
             0xFF0F            => self.irq_handler.if_reg,
+            /// GPU registers
+            0xFF40 ... 0xFF4F => self.gpu.read_byte(address),
+            // GPU registers (CGB mode)
+            0xFF68 ... 0xFF6B => self.gpu.read_byte(address),
             // Zero-page RAM
             0xFF80 ... 0xFFFE => self.zram[a & 0x7F],
             // Interrupt Enable Register
@@ -134,7 +162,12 @@ impl Memory for MMU {
             0xFE00 ... 0xFE9F => self.gpu.write_byte(address, byte),
             0xFEA0 ... 0xFEFF => {},
             0xFF00            => self.joypad.write_byte(address, byte),
+            0xFF02 if byte == 0x81 => { // DEBUG serial print
+                print!("{}", self.read_byte(0xFF01) as char);
+            },
             0xFF0F            => self.irq_handler.if_reg = byte,
+            0xFF40 ... 0xFF4F => self.gpu.write_byte(address, byte),
+            0xFF68 ... 0xFF6B => self.gpu.write_byte(address, byte),
             0xFF80 ... 0xFFFE => self.zram[a & 0x7F] = byte,
             0xFFFF            => self.irq_handler.ie_reg = byte,
             _ => (),

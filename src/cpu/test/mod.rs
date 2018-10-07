@@ -1,10 +1,11 @@
-mod alu8; // 8 bits ALU instructions
-mod cb; // CB-prefixed instructions
+mod alu8;    // 8 bits ALU instructions
+mod cb;      // CB-prefixed instructions
 mod control; // control flow instructions
 mod load; // load/store/move instructions
 
-use super::super::memory::Memory;
 use super::{Cpu, CycleType};
+use memory::Memory;
+use mmu::MemoryManagementUnit;
 
 const OPCODE_END: u8 = 0xD3;
 const OPCODES_LIMIT: u32 = 100;
@@ -37,7 +38,8 @@ pub fn test_cpu<F: Fn(&mut Cpu<TestMemory>) -> ()>(instructions: &[u8], init: F)
 
     let mut count = 0;
     while machine.cpu.mem.memory[machine.cpu.regs.pc as usize] != OPCODE_END
-        && count <= OPCODES_LIMIT {
+        && count <= OPCODES_LIMIT
+    {
         machine.cpu.step();
         count += 1;
     }
@@ -66,5 +68,11 @@ impl Memory for TestMemory {
     }
     fn write_byte(&mut self, address: u16, byte: u8) {
         self.memory[address as usize] = byte;
+    }
+}
+
+impl MemoryManagementUnit for TestMemory {
+    fn step(&mut self, _: CycleType) -> CycleType {
+        0
     }
 }
