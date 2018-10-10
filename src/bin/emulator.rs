@@ -55,7 +55,7 @@ impl<'a> EmulatorApplication<'a> {
             }
         };
         thread::Builder::new().name("rustboylib_vm".into()).spawn(move || {
-            let mmu = mmu::MMU::new(mbc, false, skip_bios);
+            let mmu = mmu::MMU::new(mbc, false, skip_bios, None);
             let mut cpu = cpu::Cpu::<mmu::MMU>::new(mmu);
             if skip_bios {
                 cpu.post_bios();

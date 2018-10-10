@@ -221,7 +221,7 @@ impl Gpu {
     /// Write the current scanline in the framebuffer.
     fn render_scanline(&mut self) {
         let y = self.ly;
-        self.render_line_tiles(y);
+        //self.render_line_tiles(y);
         self.render_line_sprites(y);
     }
 

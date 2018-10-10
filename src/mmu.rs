@@ -1,10 +1,11 @@
-use irq::{Interrupt, IrqHandler};
 use bios::GB_BIOS;
 use cpu::CycleType;
-use memory::Memory;
 use gpu::{Gpu, RGB};
-use mbc::{MBC};
+use irq::{Interrupt, IrqHandler};
 use joypad::{Joypad, JoypadKey};
+use mbc::{MBC};
+use memory::Memory;
+use serial::{Serial, SerialCallback};
 
 const WRAM_SIZE: usize = 0x2000;
 const ZRAM_SIZE: usize = 0x0080;
@@ -34,6 +35,8 @@ pub struct MMU {
     mbc: Box<MBC + 'static>,
     /// The joypad controller.
     joypad: Joypad,
+    /// The serial port.
+    serial: Serial,
     /// Interrupt Request handler.
     irq_handler: MachineIrqHandler,
     /// 8K of internal working RAM.
@@ -64,13 +67,15 @@ impl IrqHandler for MachineIrqHandler {
 }
 
 impl MMU {
-    pub fn new(mbc: Box<MBC>, cgb_mode: bool, skip_bios: bool) -> MMU {
+    pub fn new(mbc: Box<MBC>, cgb_mode: bool, skip_bios: bool,
+        serial_callback: Option<SerialCallback>) -> MMU {
         MMU {
             in_bios: !skip_bios,
             bios: &GB_BIOS,
             gpu: Gpu::new(cgb_mode),
             mbc: mbc,
             joypad: Joypad::new(),
+            serial: Serial::new(serial_callback),
             irq_handler: MachineIrqHandler::new(),
             wram: [0x0; WRAM_SIZE],
             zram: [0x0; ZRAM_SIZE],
@@ -143,6 +148,10 @@ impl Memory for MMU {
             0xFEA0 ... 0xFEFF => 0x00,
             // joypad
             0xFF00            => self.joypad.read_byte(address),
+            // SB - Serial Transfer Data
+            0xFF01            => self.serial.read_data(),
+            // SC - Serial Transfer Control
+            0xFF02            => self.serial.read_control(),
             // Interrupt Flag Register
             0xFF0F            => self.irq_handler.if_reg,
             /// GPU registers
@@ -168,9 +177,8 @@ impl Memory for MMU {
             0xFE00 ... 0xFE9F => self.gpu.write_byte(address, byte),
             0xFEA0 ... 0xFEFF => {},
             0xFF00            => self.joypad.write_byte(address, byte),
-            0xFF02 if byte == 0x81 => { // DEBUG serial print
-                print!("{}", self.read_byte(0xFF01) as char);
-            },
+            0xFF01            => self.serial.write_data(byte),
+            0xFF02            => self.serial.write_control(byte),
             0xFF0F            => self.irq_handler.if_reg = byte,
             0xFF40 ... 0xFF4F => self.gpu.write_byte(address, byte),
             0xFF68 ... 0xFF6B => self.gpu.write_byte(address, byte),
