@@ -1,5 +1,5 @@
-use super::irq::{Interrupt, IrqHandler};
-use super::memory::Memory;
+use irq::{Interrupt, IrqHandler};
+use memory::Memory;
 use self::JoypadKey::*;
 
 pub const JOYPAD_ADDRESS: u16 = 0xFF00;
@@ -53,7 +53,7 @@ impl JoypadKey {
 /// 1 : if 0, left / B button is pressed
 /// 0 : if 0, right / A button is pressed
 ///
-/// TODO :
+/// TODO:
 /// On a real device, the down and left directions cannot be simultaneously
 /// pressed with respectively the up and right directions.
 ///
@@ -117,6 +117,7 @@ impl Memory for Joypad {
         self.selection = match byte & 0x30 {
             JOYPAD_SELECT_DIRECTIONAL => 1, // bit 4 = row 1
             JOYPAD_SELECT_BUTTON => 2, // bit 5 = row 2
+            0x30 => 0,
             0x00 => 0,
             _ => unreachable!(),
         }
@@ -128,8 +129,8 @@ mod test {
     use super::{Joypad, JoypadKey, JOYPAD_KEYS, JOYPAD_ADDRESS,
         JOYPAD_SELECT_DIRECTIONAL, JOYPAD_SELECT_BUTTON};
     use super::JoypadKey::*;
-    use super::super::memory::Memory;
-    use super::super::irq::EmptyIrqHandler;
+    use memory::Memory;
+    use irq::EmptyIrqHandler;
 
     #[test]
     fn test_keys_from_str() {
