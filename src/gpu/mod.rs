@@ -12,7 +12,7 @@ use irq::{Interrupt, IrqHandler};
 use self::GpuMode::*;
 use self::palette::{PaletteClassic, PaletteGrayShade};
 use self::registers::{LcdControl, LcdControllerStatus};
-use self::tile::{Tile, TILES_IN_SCREEN};
+use self::tile::Tile;
 
 /// The width of the Game Boy's screen, in pixels.
 pub const SCREEN_W: usize = 160;
@@ -221,7 +221,7 @@ impl Gpu {
     /// Write the current scanline in the framebuffer.
     fn render_scanline(&mut self) {
         let y = self.ly;
-        //self.render_line_tiles(y);
+        self.render_line_tiles(y);
         self.render_line_sprites(y);
     }
 
@@ -233,7 +233,6 @@ impl Gpu {
                 let background_x = (self.scroll_x as usize + x) % BACKGROUND_WIDTH;
                 let background_y = (self.scroll_y as usize + y) % BACKGROUND_HEIGHT;
 
-                println!("Y={} X={} BX={} BY={}", y, x, background_x, background_y);
                 let tile = self.get_tile(background_x, background_y,
                     LcdControl::BgTileMapDisplaySelect.is_set(self.lcd_control));
                 let (x_offset, y_offset) = (background_x % 8, background_y % 8);
@@ -257,25 +256,25 @@ impl Gpu {
         }
     }
 
+    fn get_tile(&self, x: usize, y: usize, tilemap_2: bool) -> Tile {
+        let index = (y / 8) * 32 + x / 8;
+        let tile_index = if tilemap_2 {
+            self.tilemaps[1][index]
+        } else {
+            self.tilemaps[0][index]
+        };
+
+        let tileset_index = if LcdControl::BgWindowTileDataSelect.is_set(self.lcd_control) {
+            tile_index as usize
+        } else {
+            256 + (tile_index as i8 as i16) as usize
+        };
+        self.tileset[tileset_index]
+    }
+
     fn render_line_sprites(&mut self, y: usize) {
         if !LcdControl::ObjDisplayEnable.is_set(self.lcd_control) { return; }
         // TODO
-    }
-
-    fn get_tile(&self, x: usize, y: usize, tilemap_1: bool) -> Tile {
-        let index = (y / 8) * TILES_IN_SCREEN + x / 8;
-        let tile_index = if tilemap_1 {
-            self.tilemaps[1][index] as usize
-        } else {
-            self.tilemaps[0][index] as usize
-        };
-
-        if LcdControl::BgWindowTileDataSelect.is_set(self.lcd_control) {
-            self.tileset[index]
-        } else {
-            let offset = tile_index as i8 as i32;
-            self.tileset[(256i32 + offset) as usize]
-        }
     }
 
     pub fn screen_data(&self) -> Vec<RGB> {

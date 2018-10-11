@@ -1,5 +1,3 @@
-pub const TILES_IN_SCREEN: usize = 32;
-
 /// A tile is an area of 8x8 pixels.
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub struct Tile {

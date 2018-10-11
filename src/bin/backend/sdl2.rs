@@ -36,7 +36,7 @@ impl BackendSDL2 {
                         .expect("BackendSDL2::render_display: texture canvas fill rect error");
                 }
             }
-        });
+        }).expect("BackendSDL2::render_display: texture canvas error");
         texture
     }
 }
@@ -84,7 +84,7 @@ impl EmulatorBackend for BackendSDL2 {
         let mut canvas = window.into_canvas().accelerated().build().unwrap();
         let texture_creator = canvas.texture_creator();
         canvas.set_draw_color(Color::RGB(0, 0, 0));
-        canvas.present();
+        canvas.clear();
         let mut events = sdl_context.event_pump().unwrap();
 
         let font = ttf_context.load_font(Path::new("assets/OpenSans-Regular.ttf"), 48)
@@ -166,8 +166,6 @@ impl EmulatorBackend for BackendSDL2 {
                 }
                 _ => {}
             }
-
-            canvas.clear();
 
             // FPS count
             fps += 1;
