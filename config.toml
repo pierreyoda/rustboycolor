@@ -6,7 +6,7 @@
     width        = 800
     height       = 600
     force_aspect = true
-    show_fps     = true
+    show_fps     = false
 
 [input]
     [input.keyboard]
@@ -16,10 +16,10 @@
     Down   = "Down"
     Left   = "Left"
     Right  = "Right"
-    Select = "Numpad1"
-    Start  = "Numpad3"
-    A      = "E"
-    B      = "T"
+    Select = "X"
+    Start  = "V"
+    A      = "T"
+    B      = "E"
 
     [input.gamepad]
     # TODO
