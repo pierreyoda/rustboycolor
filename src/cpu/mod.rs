@@ -10,7 +10,7 @@ use std::fs::File;
 #[cfg(feature = "tracing")]
 use std::io::Write;
 
-use irq::{Interrupt, INTERRUPT_ENABLE_ADDRESS, INTERRUPT_FLAG_ADDRESS};
+use irq::Interrupt;
 use memory::Memory;
 use mmu::MemoryManagementUnit;
 use registers::{Registers, C_FLAG, H_FLAG, N_FLAG, Z_FLAG};
@@ -145,7 +145,7 @@ where
         {
             write!(
                 &mut self.trace_file,
-                "OP={:0>2X} PC={:0>4X} AF={:0>4X} BC={:0>4X} DE={:0>4X} HL={:0>4X} SP={:0>4X}\n",
+                "OP={:0>2X} PC={:0>4X} AF={:0>4X} BC={:0>4X} DE={:0>4X} HL={:0>4X} SP={:0>4X}",
                 self.opcode,
                 self.regs.pc,
                 self.regs.af(),
@@ -156,6 +156,10 @@ where
             );
         }
         let step_cycles = self.dispatch_array[self.opcode as usize](self);
+        #[cfg(feature = "tracing")]
+        {
+            write!(&mut self.trace_file, " CY={}\n", step_cycles);
+        }
         self.cycles += step_cycles;
         step_cycles
     }
@@ -172,7 +176,7 @@ where
         }
         #[cfg(feature = "tracing")]
         {
-            write!(&mut self.trace_file, "INT {:0>2X}", interrupts);
+            write!(&mut self.trace_file, "INT {:0>2X}\n", interrupts);
         }
 
         // check the interrupts by order of priority
@@ -245,6 +249,16 @@ where
             .set_flag(H_FLAG, (a & 0x0FFF) + (b & 0x0FFF) > 0x0FFF);
         self.regs.set_flag(C_FLAG, r > 0xFFFF);
         r as u16
+    }
+
+    /// Add an 8-bit signed value to a 16-bit value.
+    fn alu_add16_signed(&mut self, a: u16, s: i8) -> u16 {
+        let b = s as i16 as u16;
+        self.regs.set_flag(Z_FLAG | N_FLAG, false);
+        self.regs
+            .set_flag(H_FLAG, (a & 0x000F) + (b & 0x000F) > 0x000F);
+        self.regs.set_flag(C_FLAG, (a & 0x00FF) + (b & 0x00FF) > 0x00FF);
+        a.wrapping_add(b)
     }
 
     /// Add 'b' (and C if add_c is true) to register A.

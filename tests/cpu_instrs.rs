@@ -43,7 +43,7 @@ macro_rules! test_blargg_cpu_instrs {
 test_blargg_cpu_instrs! {
     test_cpu_instrs_01: "01-special",
     //test_cpu_instrs_02: "02-interrupts",
-    //test_cpu_instrs_03: "03-op sp,hl",
+    test_cpu_instrs_03: "03-op sp,hl",
     test_cpu_instrs_04: "04-op r,imm",
     test_cpu_instrs_05: "05-op rp",
     test_cpu_instrs_06: "06-ld r,r",
@@ -51,5 +51,5 @@ test_blargg_cpu_instrs! {
     test_cpu_instrs_08: "08-misc instrs",
     test_cpu_instrs_09: "09-op r,r",
     test_cpu_instrs_10: "10-bit ops",
-    //test_cpu_instrs_11: "11-op a,(hl)",
+    test_cpu_instrs_11: "11-op a,(hl)",
 }

@@ -305,7 +305,8 @@ impl<M> Cpu<M> where M: Memory + MemoryManagementUnit {
 
     // LDHL_SP_n : add signed 8-bit immediate to SP and save the result in HL
     pub fn LDHL_SP_n(&mut self) -> CycleType {
-        let v = (self.fetch_byte() as i8 as i16 as u16) + self.regs.sp;
+        let (sp, n) = (self.regs.sp, self.fetch_byte());
+        let v = self.alu_add16_signed(sp, n as i8);
         self.regs.set_hl(v);
         3
     }
@@ -366,7 +367,7 @@ impl<M> Cpu<M> where M: Memory + MemoryManagementUnit {
     // ADD_SP_n : add signed 8-bit immediate to SP
     pub fn ADD_SP_n(&mut self) -> CycleType {
         let (sp, n) = (self.regs.sp, self.fetch_byte());
-        self.regs.sp = self.alu_add16(sp, n as i8 as i16 as u16);
+        self.regs.sp = self.alu_add16_signed(sp, n as i8);
         4
     }
 
@@ -411,7 +412,7 @@ impl<M> Cpu<M> where M: Memory + MemoryManagementUnit {
     // SUB_HLm : substract (HL) from register A
     pub fn SUB_HLm(&mut self) -> CycleType {
         let v = self.mem.read_byte(self.regs.hl());
-        self.alu_add(v, false);
+        self.alu_sub(v, false);
         2
     }
 
@@ -426,7 +427,7 @@ impl<M> Cpu<M> where M: Memory + MemoryManagementUnit {
     // SBC_HLm : substract (HL) and carry flag from register A
     pub fn SBC_HLm(&mut self) -> CycleType {
         let v = self.mem.read_byte(self.regs.hl());
-        self.alu_add(v, true);
+        self.alu_sub(v, true);
         2
     }
 
