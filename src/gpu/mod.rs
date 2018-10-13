@@ -1,9 +1,10 @@
 mod cgb;
 mod palette;
 mod registers;
+mod sprite;
 mod tile;
 
-use std::cmp;
+use std::cmp::{max, Ordering};
 
 use cpu::CycleType;
 use memory::Memory;
@@ -12,6 +13,7 @@ use irq::{Interrupt, IrqHandler};
 use self::GpuMode::*;
 use self::palette::{PaletteClassic, PaletteGrayShade};
 use self::registers::{LcdControl, LcdControllerStatus};
+use self::sprite::{Sprite, SpriteFlags, OAM_SIZE};
 use self::tile::Tile;
 
 /// The width of the Game Boy's screen, in pixels.
@@ -24,7 +26,7 @@ const BACKGROUND_HEIGHT: usize = 256;
 const TILEMAP_SIZE: usize = 0x400;
 
 /// Simple RGB color representation.
-#[derive(Copy, Clone, Eq, PartialEq, Debug)]
+#[derive(Copy, Clone, PartialEq, Eq, Debug)]
 pub struct RGB {
     pub r: u8,
     pub g: u8,
@@ -43,7 +45,7 @@ pub type ScreenData = [RGB; SCREEN_W * SCREEN_H];
 
 /// The different modes a GPU can spend its time in.
 #[allow(non_camel_case_types)]
-#[derive(Clone)]
+#[derive(Clone, PartialEq, Eq)]
 pub enum GpuMode {
     H_Blank = 0,
     V_Blank = 1,
@@ -55,6 +57,12 @@ pub const H_BLANK_CYCLES: CycleType = 204;
 pub const V_BLANK_CYCLES: CycleType = 456;
 pub const OAM_READ_CYCLES: CycleType = 80;
 pub const VRAM_READ_CYCLES: CycleType = 172;
+
+/// Value returned when trying to read VRAM/OAM when in the wrong GPU mode:
+/// - VRAM is accessible in every mode except 'VRAM_Read'
+/// - OAM is accessible only in 'H_Blank' or 'V_Blank' mode.
+/// Writes will be ignored in the wrong GPU mode.
+const UNDEFINED_READ: u8 = 0xFF;
 
 /// The GPU registers' addresses.
 /// The structure holding and emulating the GPU state.
@@ -105,6 +113,8 @@ pub struct Gpu {
     tileset: [Tile; 384],
     /// The two tilemaps in VRAM.
     tilemaps: [[u8; TILEMAP_SIZE]; 2],
+    /// The Sprite Attribute Table in OAM (Object Attribute Memory).
+    sprites: [Sprite; OAM_SIZE],
     /// Should the screen be redrawn by the frontend ?
     /// Must be externally set to false after that.
     pub dirty: bool,
@@ -135,6 +145,7 @@ impl Gpu {
             ob_palettes: [PaletteClassic::new(); 2],
             tileset: [Tile::new([0x00; 16]); 384],
             tilemaps: [[0x00; TILEMAP_SIZE]; 2],
+            sprites: [Sprite::new(); OAM_SIZE],
             dirty: true,
         }
     }
@@ -221,11 +232,12 @@ impl Gpu {
     /// Write the current scanline in the framebuffer.
     fn render_scanline(&mut self) {
         let y = self.ly;
-        self.render_line_tiles(y);
-        self.render_line_sprites(y);
+        let mut bg_priority = [false; SCREEN_W];
+        //self.render_line_tiles(y, &mut bg_priority);
+        self.render_line_sprites(y, &bg_priority);
     }
 
-    fn render_line_tiles(&mut self, y: usize) {
+    fn render_line_tiles(&mut self, y: usize, bg_priority: &mut [bool; SCREEN_W]) {
         let palette_data = self.bg_palette.data();
         // background line
         if LcdControl::BgDisplayEnable.is_set(self.lcd_control) {
@@ -237,12 +249,14 @@ impl Gpu {
                     LcdControl::BgTileMapDisplaySelect.is_set(self.lcd_control));
                 let (x_offset, y_offset) = (background_x % 8, background_y % 8);
                 let color_index = tile.data()[y_offset][x_offset] as usize;
-                self.frame_buffer[y * SCREEN_W + x] = palette_data[color_index].to_rgb();
+                let color = palette_data[color_index];
+                bg_priority[x] = color != PaletteGrayShade::White;
+                self.frame_buffer[y * SCREEN_W + x] = color.to_rgb();
             }
         }
         // window line
         if LcdControl::WindowDisplayEnable.is_set(self.lcd_control) {
-            let x_start = cmp::max(self.window_x as i32 - 7, 0) as usize;
+            let x_start = max(self.window_x as i32 - 7, 0) as usize;
             for x in x_start..SCREEN_W {
                 let window_x = (self.scroll_x as usize + x) % BACKGROUND_WIDTH;
                 let window_y = (self.scroll_y as usize + y) % BACKGROUND_HEIGHT;
@@ -251,7 +265,9 @@ impl Gpu {
                     LcdControl::WindowTileMapDisplaySelect.is_set(self.lcd_control));
                 let (x_offset, y_offset) = (window_x % 8, window_y % 8);
                 let color_index = tile.data()[y_offset][x_offset] as usize;
-                self.frame_buffer[y * SCREEN_W + x] = palette_data[color_index].to_rgb();
+                let color = palette_data[color_index];
+                bg_priority[x] = color != PaletteGrayShade::White;
+                self.frame_buffer[y * SCREEN_W + x] = color.to_rgb();
             }
         }
     }
@@ -272,9 +288,79 @@ impl Gpu {
         self.tileset[tileset_index]
     }
 
-    fn render_line_sprites(&mut self, y: usize) {
-        if !LcdControl::ObjDisplayEnable.is_set(self.lcd_control) { return; }
-        // TODO
+    fn render_line_sprites(&mut self, y: usize, bg_priority: &[bool; SCREEN_W]) {
+        // if !LcdControl::ObjDisplayEnable.is_set(self.lcd_control) { return; }
+        let ly = y as u8;
+        let height = if LcdControl::ObjSize.is_set(self.lcd_control) {
+            16
+        } else {
+            8
+        };
+
+        let mut visible_sprites: Vec<(usize, &Sprite)> = self.sprites.iter()
+            .filter(|sprite| {
+                let sprite_y = sprite.y().wrapping_sub(16);
+                sprite_y <= ly && sprite_y.wrapping_add(height) >= ly
+            })
+            .take(10) // 10 sprites maximum per scanline
+            .enumerate() // get OAM index for ordering
+            .collect();
+        visible_sprites.sort_by(|&(a_index, a), &(b_index, b)| {
+            if self.cgb_mode {
+                return b_index.cmp(&a_index);
+            }
+            match b.x().cmp(&a.x()) {
+                Ordering::Equal => b_index.cmp(&a_index),
+                other => other,
+            }
+        });
+        for (_, sprite) in visible_sprites {
+            let (sprite_x, sprite_y) = (sprite.x().wrapping_sub(8), sprite.y().wrapping_sub(16));
+            let palette_data = if sprite.flags().contains(SpriteFlags::PALETTE) {
+                self.ob_palettes[1].data()
+            } else {
+                self.ob_palettes[0].data()
+            };
+
+            let tile_index = if height == 16 {
+                (sprite.tile_number() & 0xFE) as usize
+            } else {
+                sprite.tile_number() as usize
+            };
+            let mut y_offset = if sprite.flags().contains(SpriteFlags::FLIP_Y) {
+                (height - 1 - ly.wrapping_sub(sprite_y)) as usize
+            } else {
+                y - sprite_y as usize
+            };
+            let tile = if y_offset < 8 { // upper tile
+                &self.tileset[tile_index]
+            } else { // lower tile
+                y_offset = y_offset - 8;
+                &self.tileset[tile_index + 1]
+            };
+
+            for x in (0u8..8u8).rev() {
+                let x_pos = sprite_x.wrapping_add(x) as usize;
+                if x_pos >= SCREEN_W {
+                    continue;
+                }
+
+                let x_offset = if sprite.flags().contains(SpriteFlags::FLIP_X) {
+                    (7 - x) as usize
+                } else {
+                    x as usize
+                };
+                let color_index = tile.data()[y_offset][x_offset] as usize;
+                let color = palette_data[color_index];
+                if color == PaletteGrayShade::White {
+                    continue; // white is transparent for sprites
+                }
+                if !sprite.flags().contains(SpriteFlags::PRIORITY) || !bg_priority[x_pos] {
+                    self.frame_buffer[y * SCREEN_W + x_pos] = color.to_rgb();
+                    println!("sprite X={} Y={} {:?}", x_pos, y, self.frame_buffer[y*SCREEN_W+x_pos]);
+                }
+            }
+        }
     }
 
     pub fn screen_data(&self) -> Vec<RGB> {
@@ -302,19 +388,34 @@ impl Memory for Gpu {
         }
         match a {
             0x8000...0x97FF => { // tileset
+                if self.mode == VRAM_Read {
+                    return UNDEFINED_READ;
+                }
                 let addr = a - 0x8000;
                 let tile_index = addr / 16;
                 let data_index = addr % 16;
-                debug_assert!(tile_index < 384);
                 self.tileset[tile_index].raw_byte(data_index)
             },
             0x9800...0x9BFF => { // tilemap 0
+                if self.mode == VRAM_Read {
+                    return UNDEFINED_READ;
+                }
                 let addr = a - 0x9800;
                 self.tilemaps[0][addr]
             },
             0x9C00...0x9FFF => { // tilemap 1
+                if self.mode == VRAM_Read {
+                    return UNDEFINED_READ;
+                }
                 let addr = a - 0x9C00;
                 self.tilemaps[1][addr]
+            },
+            0xFE00...0xFE9F => { // OAM
+                if self.mode == OAM_Read || self.mode == VRAM_Read {
+                    return UNDEFINED_READ;
+                }
+                let addr = a - 0xFE00;
+                self.sprites[addr / 4].read_data(addr % 4)
             },
             CONTROL => self.lcd_control,
             STAT => self.lcdc_status,
@@ -356,6 +457,9 @@ impl Memory for Gpu {
         }
         match a {
             0x8000...0x97FF => {
+                if self.mode == VRAM_Read {
+                    return;
+                }
                 let addr = a - 0x8000;
                 let tile_index = addr / 16;
                 let data_index = addr % 16;
@@ -363,12 +467,25 @@ impl Memory for Gpu {
                 self.tileset[tile_index].update_raw_byte(data_index, byte)
             },
             0x9800...0x9BFF => {
+                if self.mode == VRAM_Read {
+                    return;
+                }
                 let addr = a - 0x9800;
                 self.tilemaps[0][addr] = byte;
             },
             0x9C00...0x9FFF => {
+                if self.mode == VRAM_Read {
+                    return;
+                }
                 let addr = a - 0x9C00;
                 self.tilemaps[1][addr] = byte;
+            },
+            0xFE00...0xFE9F => {
+                if self.mode == OAM_Read || self.mode == VRAM_Read {
+                    return;
+                }
+                let addr = a - 0xFE00;
+                self.sprites[addr / 4].write_data(addr % 4, byte);
             },
             CONTROL => self.lcd_control = byte,
             // LCDC Status: bits 2 to 0 are read-only

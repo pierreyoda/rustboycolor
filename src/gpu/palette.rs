@@ -143,7 +143,7 @@ impl PaletteColorValue {
 
     fn compute_rgb(raw_value: u16) -> RGB {
         // the color values are on 5 bits, which means 32 values
-        // we thus need to multiply by 8 to reach the 256 RGB scale
+        // we need to multiply by 8 to reach the 256 RGB scale
         RGB {
             r: (((raw_value >> 0) & 0x001F) as u8) * 8,
             g: (((raw_value >> 5) & 0x001F) as u8) * 8,
