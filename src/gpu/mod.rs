@@ -315,6 +315,7 @@ impl Gpu {
             }
         });
         for (_, sprite) in visible_sprites {
+            self.frame_buffer[y * SCREEN_W + 79] = RGB::new(255, 100, 100);
             let (sprite_x, sprite_y) = (sprite.x().wrapping_sub(8), sprite.y().wrapping_sub(16));
             let palette_data = if sprite.flags().contains(SpriteFlags::PALETTE) {
                 self.ob_palettes[1].data()
