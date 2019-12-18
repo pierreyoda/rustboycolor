@@ -342,3 +342,9 @@ fn test_LDH_A_A() {
     assert_eq!(machine.clock_cycles(), 8);
     assert_eq!(machine.cpu.regs.a, 0x9A);
 }
+
+// LDHL_SP_n : add signed 8-bit immediate to SP and save the result in HL
+#[test]
+fn test_LDHL_SP_n() {
+    // let machine = test_cpu(&[0xF8, 0xC3], |cpu| {});
+}
