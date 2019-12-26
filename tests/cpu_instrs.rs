@@ -2,7 +2,7 @@ use std::cell::RefCell;
 use std::path::Path;
 use std::rc::Rc;
 
-extern crate rustboylib;
+
 use rustboylib::cpu::Cpu;
 use rustboylib::mbc;
 use rustboylib::mmu::MMU;

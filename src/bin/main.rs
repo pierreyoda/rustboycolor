@@ -8,16 +8,16 @@ use std::path::Path;
 
 #[macro_use]
 extern crate log;
-extern crate clap;
-extern crate toml;
+
+
 
 use clap::{App, Arg, ArgMatches};
 
-extern crate rustboylib;
+
 use crate::backend::sdl2;
 use crate::input::KeyboardBinding;
 
-fn app_options_from_matches(matches: &ArgMatches) -> config::EmulatorAppConfig {
+fn app_options_from_matches(matches: &ArgMatches<'_>) -> config::EmulatorAppConfig {
     let config_file = matches.value_of("config").unwrap_or("config.toml");
     let keyboard_binding = match matches.value_of("keyboard") {
         Some(binding) => match &binding[..] {

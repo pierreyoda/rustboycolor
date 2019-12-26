@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::path::Path;
 use std::sync::mpsc::{Receiver, Sender};
 use std::time::{Duration, Instant};
-extern crate sdl2;
+use sdl2;
 use self::sdl2::event::Event;
 use self::sdl2::keyboard::Keycode;
 use self::sdl2::pixels::{Color, PixelFormatEnum};

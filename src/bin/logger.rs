@@ -8,11 +8,11 @@ const LOG_LEVEL: Level = Level::Trace;
 struct ConsoleLogger;
 
 impl Log for ConsoleLogger {
-    fn enabled(&self, metadata: &Metadata) -> bool {
+    fn enabled(&self, metadata: &Metadata<'_>) -> bool {
         metadata.level() <= LOG_LEVEL
     }
 
-    fn log(&self, record: &Record) {
+    fn log(&self, record: &Record<'_>) {
         if self.enabled(record.metadata()) {
             println!("{} - {}", record.level(), record.args());
         }

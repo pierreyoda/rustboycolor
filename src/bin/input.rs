@@ -23,7 +23,7 @@ pub enum KeyboardBinding {
 }
 
 impl fmt::Debug for KeyboardBinding {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match *self {
             QWERTY => write!(f, "QWERTY"),
             AZERTY => write!(f, "AZERTY"),

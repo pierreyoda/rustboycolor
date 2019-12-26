@@ -3,6 +3,7 @@ name = "rustboycolor"
 version = "0.1.0"
 authors = ["pierreyoda <pierreyoda@users.noreply.github.com>"]
 autobins = false
+edition = "2018"
 
 [[bin]]
 name = "rustboycolor"
