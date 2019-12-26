@@ -2,7 +2,7 @@
 
 use super::test_cpu;
 use crate::memory::Memory;
-use crate::registers::{Z_FLAG, N_FLAG, H_FLAG, C_FLAG};
+use crate::registers::{C_FLAG, H_FLAG, N_FLAG, Z_FLAG};
 
 // RL : rotate left
 macro_rules! test_RL_r_X {

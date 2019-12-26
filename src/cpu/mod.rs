@@ -257,7 +257,8 @@ where
         self.regs.set_flag(Z_FLAG | N_FLAG, false);
         self.regs
             .set_flag(H_FLAG, (a & 0x000F) + (b & 0x000F) > 0x000F);
-        self.regs.set_flag(C_FLAG, (a & 0x00FF) + (b & 0x00FF) > 0x00FF);
+        self.regs
+            .set_flag(C_FLAG, (a & 0x00FF) + (b & 0x00FF) > 0x00FF);
         a.wrapping_add(b)
     }
 

@@ -1,7 +1,6 @@
 /// Simple logging facilities using the log crate.
-
 extern crate log;
-use log::{Log, Level, Metadata, Record, SetLoggerError};
+use log::{Level, Log, Metadata, Record, SetLoggerError};
 
 const LOG_LEVEL: Level = Level::Trace;
 

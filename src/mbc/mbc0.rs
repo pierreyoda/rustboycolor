@@ -1,6 +1,5 @@
 /// Used by small games who can fit in the 32 KB of ROM and the GameBoy's 8 KB
 /// of external RAM.
-
 use super::{CartridgeHeader, MBC};
 
 pub const ROM_SIZE: usize = 0x10000;

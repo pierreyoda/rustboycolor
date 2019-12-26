@@ -1,7 +1,7 @@
-use std::path::Path;
 use std::collections::HashMap;
-use std::time::{Instant, Duration};
-use std::sync::mpsc::{Sender, Receiver};
+use std::path::Path;
+use std::sync::mpsc::{Receiver, Sender};
+use std::time::{Duration, Instant};
 extern crate sdl2;
 use self::sdl2::event::Event;
 use self::sdl2::keyboard::Keycode;
@@ -10,50 +10,65 @@ use self::sdl2::rect::Rect;
 use self::sdl2::render::{Texture, TextureCreator, WindowCanvas};
 use self::sdl2::video::WindowContext;
 
-use rustboylib::gpu::{RGB, SCREEN_W, SCREEN_H};
-use super::{EmulatorBackend, BackendMessage};
+use super::{BackendMessage, EmulatorBackend};
 use crate::config::EmulatorAppConfig;
-use crate::input::get_key_bindings;
 use crate::emulator::EmulationMessage;
+use crate::input::get_key_bindings;
+use rustboylib::gpu::{RGB, SCREEN_H, SCREEN_W};
 
 /// The SDL 2 backend, using rust-sdl2.
 pub struct BackendSDL2;
 
 impl BackendSDL2 {
-    fn render_display<'a>(tc: &'a TextureCreator<WindowContext>, wc: &mut WindowCanvas,
-        frame_buffer: &[RGB], scale_h: u32, scale_v: u32) -> Texture<'a> {
+    fn render_display<'a>(
+        tc: &'a TextureCreator<WindowContext>,
+        wc: &mut WindowCanvas,
+        frame_buffer: &[RGB],
+        scale_h: u32,
+        scale_v: u32,
+    ) -> Texture<'a> {
         let (w, w_scale) = (SCREEN_W as i32, scale_h as i32);
         let (h, h_scale) = (SCREEN_H as i32, scale_v as i32);
-        let mut texture = tc.create_texture_target(PixelFormatEnum::RGB24,
-            (SCREEN_W as u32) * scale_h, (SCREEN_H as u32) * scale_v)
+        let mut texture = tc
+            .create_texture_target(
+                PixelFormatEnum::RGB24,
+                (SCREEN_W as u32) * scale_h,
+                (SCREEN_H as u32) * scale_v,
+            )
             .expect("BackendSDL2::render_display: texture creation error");
-        wc.with_texture_canvas(&mut texture,  |texture_canvas| {
+        wc.with_texture_canvas(&mut texture, |texture_canvas| {
             for y in 0i32..(h as i32) {
                 for x in 0i32..(w as i32) {
-                    let color = frame_buffer[(y * w  + x) as usize];
+                    let color = frame_buffer[(y * w + x) as usize];
                     texture_canvas.set_draw_color(Color::RGB(color.r, color.g, color.b));
-                    texture_canvas.fill_rect(Rect::new(x * w_scale, y * h_scale, scale_h, scale_v))
+                    texture_canvas
+                        .fill_rect(Rect::new(x * w_scale, y * h_scale, scale_h, scale_v))
                         .expect("BackendSDL2::render_display: texture canvas fill rect error");
                 }
             }
-        }).expect("BackendSDL2::render_display: texture canvas error");
+        })
+        .expect("BackendSDL2::render_display: texture canvas error");
         texture
     }
 }
 
 impl EmulatorBackend for BackendSDL2 {
-    fn run(&mut self,
-           config: EmulatorAppConfig,
-           tx: Sender<BackendMessage>,
-           rx: Receiver<EmulationMessage>) {
-        use crate::emulator::EmulationMessage::*;
+    fn run(
+        &mut self,
+        config: EmulatorAppConfig,
+        tx: Sender<BackendMessage>,
+        rx: Receiver<EmulationMessage>,
+    ) {
         use crate::backend::BackendMessage::*;
+        use crate::emulator::EmulationMessage::*;
 
         info!("starting the main application thread.");
 
         // Input bindings
-        let key_binds = match get_key_bindings::<Keycode>(&config.get_keyboard_binding(),
-                                                          &keycode_from_symbol_hm()) {
+        let key_binds = match get_key_bindings::<Keycode>(
+            &config.get_keyboard_binding(),
+            &keycode_from_symbol_hm(),
+        ) {
             Ok(hm) => hm,
             Err(why) => {
                 error!("SDL2 backend input : {}", why);
@@ -71,10 +86,12 @@ impl EmulatorBackend for BackendSDL2 {
         let sdl_context = sdl2::init().unwrap();
         let ttf_context = sdl2::ttf::init().unwrap();
         let video_subsystem = sdl_context.video().unwrap();
-        let window = match video_subsystem.window(config.get_title(), w, h)
-                                          .position_centered()
-                                          .opengl()
-                                          .build() {
+        let window = match video_subsystem
+            .window(config.get_title(), w, h)
+            .position_centered()
+            .opengl()
+            .build()
+        {
             Ok(window) => window,
             Err(why) => {
                 error!("SDL2 backend failed to create the window : {}", why);
@@ -87,7 +104,8 @@ impl EmulatorBackend for BackendSDL2 {
         canvas.clear();
         let mut events = sdl_context.event_pump().unwrap();
 
-        let font = ttf_context.load_font(Path::new("assets/OpenSans-Regular.ttf"), 48)
+        let font = ttf_context
+            .load_font(Path::new("assets/OpenSans-Regular.ttf"), 48)
             .expect("could not load 'assets/OpenSans-Regular.ttf'");
 
         // is the emulation paused ?
@@ -103,7 +121,9 @@ impl EmulatorBackend for BackendSDL2 {
         let fps_font_color = Color::RGBA(255, 255, 255, 255);
         let fps_target_rect = sdl2::rect::Rect::new(0, 0, 70, 40);
         let fps_surface = font.render("0").blended(fps_font_color).unwrap();
-        let mut fps_texture = texture_creator.create_texture_from_surface(&fps_surface).unwrap();
+        let mut fps_texture = texture_creator
+            .create_texture_from_surface(&fps_surface)
+            .unwrap();
 
         // Main loop
         'ui: loop {
@@ -114,7 +134,10 @@ impl EmulatorBackend for BackendSDL2 {
                         paused = true;
                         tx.send(Quit).unwrap();
                     }
-                    Event::KeyDown { keycode: Some(keycode), .. } => {
+                    Event::KeyDown {
+                        keycode: Some(keycode),
+                        ..
+                    } => {
                         if last_key.is_some() && keycode == last_key.unwrap() {
                             continue;
                         }
@@ -139,7 +162,10 @@ impl EmulatorBackend for BackendSDL2 {
                         }
                         last_key = Some(keycode);
                     }
-                    Event::KeyUp { keycode: Some(keycode), .. } if !paused => {
+                    Event::KeyUp {
+                        keycode: Some(keycode),
+                        ..
+                    } if !paused => {
                         if let Some(keypad_key) = key_binds.get(&keycode) {
                             tx.send(KeyUp(*keypad_key)).unwrap();
                         }
@@ -153,17 +179,21 @@ impl EmulatorBackend for BackendSDL2 {
 
             // Signals from the VM
             match rx.try_recv() {
-                Ok(emulation_message) => {
-                    match emulation_message {
-                        UpdateDisplay(frame_buffer) => {
-                            let texture = BackendSDL2::render_display(&texture_creator,
-                                &mut canvas, &frame_buffer, scale_h as u32, scale_v as u32);
-                            canvas.copy(&texture, None, Some(Rect::new(0, 0, w, h)))
-                                .expect("BackendSDL2: canvas texture copy error");
-                        },
-                        Finished => break 'ui,
+                Ok(emulation_message) => match emulation_message {
+                    UpdateDisplay(frame_buffer) => {
+                        let texture = BackendSDL2::render_display(
+                            &texture_creator,
+                            &mut canvas,
+                            &frame_buffer,
+                            scale_h as u32,
+                            scale_v as u32,
+                        );
+                        canvas
+                            .copy(&texture, None, Some(Rect::new(0, 0, w, h)))
+                            .expect("BackendSDL2: canvas texture copy error");
                     }
-                }
+                    Finished => break 'ui,
+                },
                 _ => {}
             }
 
@@ -175,10 +205,14 @@ impl EmulatorBackend for BackendSDL2 {
                 fps = 0;
 
                 let surface = font.render(&text[..]).blended(fps_font_color).unwrap();
-                fps_texture = texture_creator.create_texture_from_surface(&surface).unwrap();
+                fps_texture = texture_creator
+                    .create_texture_from_surface(&surface)
+                    .unwrap();
             }
             if show_fps {
-                canvas.copy(&fps_texture, None, Some(fps_target_rect)).unwrap();
+                canvas
+                    .copy(&fps_texture, None, Some(fps_target_rect))
+                    .unwrap();
             }
 
             canvas.present();
@@ -232,9 +266,9 @@ pub fn keycode_from_symbol_hm() -> HashMap<String, Keycode> {
 #[cfg(test)]
 mod test {
     use super::sdl2::keyboard::Keycode;
-    use rustboylib::joypad::JoypadKey;
     use crate::input::get_key_bindings;
     use crate::input::KeyboardBinding::FromConfigFile;
+    use rustboylib::joypad::JoypadKey;
 
     #[test]
     fn test_keyboard_hm_from_config() {
@@ -242,7 +276,8 @@ mod test {
         let key_binds = get_key_bindings::<Keycode>(
             &FromConfigFile("tests/backend_input.toml".into()),
             &keycode_symbol_hm,
-        ).unwrap();
+        )
+        .unwrap();
         assert_eq!(*key_binds.get(&Keycode::Up).unwrap(), JoypadKey::Up);
         assert_eq!(*key_binds.get(&Keycode::Down).unwrap(), JoypadKey::Down);
         assert_eq!(*key_binds.get(&Keycode::Left).unwrap(), JoypadKey::Left);

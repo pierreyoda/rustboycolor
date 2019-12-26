@@ -1,3 +1,5 @@
+use std::fs::File;
+use std::io::Read;
 /// The MBC module implements the different Memory Bank Controllers and the
 /// interface for the MMU to use.
 /// MBCs allow the game cartridge to have access to more address space by
@@ -5,10 +7,7 @@
 ///
 /// Main reference for the implementation :
 /// http://bgb.bircd.org/pandocs.htm (Pan Docs)
-
 use std::path::Path;
-use std::io::Read;
-use std::fs::File;
 
 mod mbc0;
 mod mbc1;
@@ -72,11 +71,9 @@ pub trait MBC {
 /// TODO : state saving with battery-backed RAM
 pub fn load_cartridge(filepath: &Path) -> crate::ResultStr<Box<dyn MBC + Send>> {
     let mut data = Vec::<u8>::new();
-    r#try!(
-        File::open(filepath)
-            .and_then(|mut f| f.read_to_end(&mut data))
-            .map_err(|_| "could not load the file as a gameboy ROM")
-    );
+    r#try!(File::open(filepath)
+        .and_then(|mut f| f.read_to_end(&mut data))
+        .map_err(|_| "could not load the file as a gameboy ROM"));
     match data[CartridgeHeader::address(MBC_Type).unwrap()] {
         // MBC0 : no MBC
         0x00 => {

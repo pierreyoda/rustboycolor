@@ -1,10 +1,9 @@
 /// Can address up to 125 ROM banks of 16KB each (i.e. 2MB of ROM at most) and
 /// supports 0, 2, 8 or 32 KB of RAM (eventually battery-buffered).
-
 use std::iter;
 
-use super::{CartridgeHeader, MBC};
 use super::CartridgeHeader::*;
+use super::{CartridgeHeader, MBC};
 
 pub struct MBC1 {
     rom: Vec<u8>,
@@ -63,8 +62,7 @@ impl MBC for MBC1 {
         if !self.ram_enabled {
             return 0x00;
         }
-        let ram_bank =
-            if self.ram_mode { self.ram_bank } else { 0x00 };
+        let ram_bank = if self.ram_mode { self.ram_bank } else { 0x00 };
         self.ram[ram_bank * 0x2000 + ((address as usize) & 0x1FFF)]
     }
 
@@ -76,10 +74,11 @@ impl MBC for MBC1 {
             }
             // ROM bank number : lower 5 bits
             0x2000..=0x3FFF => {
-                self.rom_bank = (self.rom_bank & 0x60) + match (address as usize) & 0x1F {
-                    0x0 => 0x1,
-                    n => n,
-                };
+                self.rom_bank = (self.rom_bank & 0x60)
+                    + match (address as usize) & 0x1F {
+                        0x0 => 0x1,
+                        n => n,
+                    };
             }
             0x4000..=0x5FFF => {
                 let n = (address as usize) & 0x03;
@@ -103,8 +102,7 @@ impl MBC for MBC1 {
         if !self.ram_enabled {
             return;
         }
-        let ram_bank =
-            if self.ram_mode { self.ram_bank } else { 0x00 };
+        let ram_bank = if self.ram_mode { self.ram_bank } else { 0x00 };
         self.ram[ram_bank * 0x2000 + ((address as usize) & 0x1FFF)] = value;
     }
 }

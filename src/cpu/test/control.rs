@@ -2,7 +2,7 @@
 
 use super::{test_cpu, OPCODE_END};
 use crate::memory::Memory;
-use crate::registers::{Z_FLAG, C_FLAG};
+use crate::registers::{C_FLAG, Z_FLAG};
 
 // JP_nn : absolute jump to 16-bit address
 #[test]
@@ -66,7 +66,7 @@ fn test_JR_n() {
         assert_eq!(machine.cpu.regs.pc, 0x05);
     }
     {
-        let machine = test_cpu(&[OPCODE_END, 0x00, 0x18, 0xFC], |cpu| { cpu.regs.pc = 0x02 });
+        let machine = test_cpu(&[OPCODE_END, 0x00, 0x18, 0xFC], |cpu| cpu.regs.pc = 0x02);
         assert_eq!(machine.clock_cycles(), 12);
         assert_eq!(machine.cpu.regs.pc, 0x00);
     }
@@ -117,8 +117,8 @@ fn test_CALL_nn() {
         cpu.regs.sp = 0xFFFE;
         cpu.regs.pc = 0xA3E9;
         cpu.mem.write_byte(cpu.regs.pc, 0xCD); // CALL nn
-        cpu.mem.write_byte(cpu.regs.pc+1, 0x78);
-        cpu.mem.write_byte(cpu.regs.pc+2, 0xDF);
+        cpu.mem.write_byte(cpu.regs.pc + 1, 0x78);
+        cpu.mem.write_byte(cpu.regs.pc + 2, 0xDF);
         cpu.mem.write_byte(0xDF78, OPCODE_END);
     });
     assert_eq!(machine.clock_cycles(), 24);

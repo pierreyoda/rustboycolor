@@ -1,14 +1,14 @@
+use std::collections::HashMap;
 use std::fmt;
 use std::fs::File;
+use std::hash::Hash;
 use std::io::Read;
 use std::path::Path;
-use std::collections::HashMap;
-use std::hash::Hash;
 
 use toml;
 
-use rustboylib::joypad::{JoypadKey, JOYPAD_KEYS};
 use self::KeyboardBinding::*;
+use rustboylib::joypad::{JoypadKey, JOYPAD_KEYS};
 
 /// Enumerates the supported keyboard bindings for the virtual joypad.
 #[derive(Clone, PartialEq)]
@@ -43,10 +43,12 @@ impl fmt::Debug for KeyboardBinding {
 /// "{A..Z}"
 /// "F{0..12}"
 /// "Up" / "Down" / "Left" / "Right"
-pub fn get_key_bindings<Key>(binding: &KeyboardBinding,
-                             symbol_backend_key_hm: &HashMap<String, Key>)
-                             -> Result<HashMap<Key, JoypadKey>, String>
-    where Key: Hash + Eq + Copy
+pub fn get_key_bindings<Key>(
+    binding: &KeyboardBinding,
+    symbol_backend_key_hm: &HashMap<String, Key>,
+) -> Result<HashMap<Key, JoypadKey>, String>
+where
+    Key: Hash + Eq + Copy,
 {
     let mut hm = HashMap::new();
 
@@ -62,7 +64,9 @@ pub fn get_key_bindings<Key>(binding: &KeyboardBinding,
     Ok(hm)
 }
 
-fn build_keyboard_control_hm(binding: &KeyboardBinding) -> Result<HashMap<String, JoypadKey>, String> {
+fn build_keyboard_control_hm(
+    binding: &KeyboardBinding,
+) -> Result<HashMap<String, JoypadKey>, String> {
     match *binding {
         QWERTY => {
             let mut hm = HashMap::new();
@@ -94,68 +98,91 @@ fn build_keyboard_control_hm(binding: &KeyboardBinding) -> Result<HashMap<String
             let filepath = Path::new(&config_file[..]);
             let mut file_content = String::new();
             r#try!(File::open(filepath)
-                     .and_then(|mut f| f.read_to_string(&mut file_content))
-                     .map_err(|_| {
-                         format!("could not load the input config file : {}",
-                                 filepath.display())
-                     }));
+                .and_then(|mut f| f.read_to_string(&mut file_content))
+                .map_err(|_| {
+                    format!(
+                        "could not load the input config file : {}",
+                        filepath.display()
+                    )
+                }));
             keyboard_hm_from_config(&file_content[..], &format!("{}", filepath.display()))
         }
     }
 }
 
-fn keyboard_hm_from_config(config_str: &str,
-                           config_file: &str)
-                           -> Result<HashMap<String, JoypadKey>, String> {
+fn keyboard_hm_from_config(
+    config_str: &str,
+    config_file: &str,
+) -> Result<HashMap<String, JoypadKey>, String> {
     let mut hm = HashMap::new();
     let table_value = match config_str.parse::<toml::Value>() {
         Ok(value) => value,
-        Err(err) => return Err(format!("parsing error in input config file \"{}\" : {}",
-                                       config_file,
-                                       err)),
+        Err(err) => {
+            return Err(format!(
+                "parsing error in input config file \"{}\" : {}",
+                config_file, err
+            ))
+        }
     };
     let table = table_value.as_table().unwrap();
     let input = match table.get("input") {
         Some(value) => value.as_table().expect("no input section specified"),
         None => {
-            warn!(concat!("input config file \"{}\" does not specify",
-                          "any input configuration, reverting to QWERTY."),
-                  config_file);
+            warn!(
+                concat!(
+                    "input config file \"{}\" does not specify",
+                    "any input configuration, reverting to QWERTY."
+                ),
+                config_file
+            );
             return build_keyboard_control_hm(&QWERTY);
         }
     };
     let keyboard_input = match input.get("keyboard") {
-        Some(value) => value.as_table().expect("no input.keyboard subsection specified"),
+        Some(value) => value
+            .as_table()
+            .expect("no input.keyboard subsection specified"),
         None => {
-            warn!(concat!("input config file \"{}\" does not specify",
-                          " keyboard input, reverting to QWERTY."),
-                  config_file);
+            warn!(
+                concat!(
+                    "input config file \"{}\" does not specify",
+                    " keyboard input, reverting to QWERTY."
+                ),
+                config_file
+            );
             return build_keyboard_control_hm(&QWERTY);
         }
     };
 
     for key in &JOYPAD_KEYS {
         let key_symbol = match keyboard_input.get(&key.to_string()) {
-            Some(value) => {
-                match *value {
-                    toml::Value::String(ref s) => &s[..],
-                    _ => {
-                        return Err(format!("key \"{}\" does not have a String value in input \
-                                            config",
-                                           key))
-                    }
+            Some(value) => match *value {
+                toml::Value::String(ref s) => &s[..],
+                _ => {
+                    return Err(format!(
+                        "key \"{}\" does not have a String value in input \
+                         config",
+                        key
+                    ))
                 }
             },
             None => {
-                warn!("no key specified for \"{}\" in input config, reverting to QWERTY", key);
+                warn!(
+                    "no key specified for \"{}\" in input config, reverting to QWERTY",
+                    key
+                );
                 return build_keyboard_control_hm(&QWERTY);
             }
         };
-        if hm.insert(key_symbol.into(), JoypadKey::from_str(key).unwrap()).is_some() {
-            warn!("input config file \"{}\" binds key \"{}\" more than once, earlier \
-                   occurences will be erased",
-                  config_file,
-                  key_symbol);
+        if hm
+            .insert(key_symbol.into(), JoypadKey::from_str(key).unwrap())
+            .is_some()
+        {
+            warn!(
+                "input config file \"{}\" binds key \"{}\" more than once, earlier \
+                 occurences will be erased",
+                config_file, key_symbol
+            );
             // N.B. : the order of priority is the one defined in JOYPAD_KEYS
             // which may not be naturally the one written in the configuration file
         }
@@ -163,8 +190,10 @@ fn keyboard_hm_from_config(config_str: &str,
     if hm.len() == JOYPAD_KEYS.len() {
         Ok(hm)
     } else {
-        Err(format!("missing joypad key(s) in input config file \"{}\"",
-                    config_file))
+        Err(format!(
+            "missing joypad key(s) in input config file \"{}\"",
+            config_file
+        ))
     }
 }
 

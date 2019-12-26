@@ -5,10 +5,10 @@ use std::path::Path;
 
 use toml;
 
-use rustboylib::gpu::{SCREEN_W, SCREEN_H};
 use super::backend::EmulatorBackend;
 use super::emulator::EmulatorApplication;
 use super::input::KeyboardBinding;
+use rustboylib::gpu::{SCREEN_H, SCREEN_W};
 
 // Default display scale, i.e. the actual size (in pixels) of each individual GameBoy pixel.
 const DEFAULT_SCALE: u16 = 2;
@@ -74,7 +74,7 @@ impl EmulatorAppConfig {
             window_height: SCREEN_H as u16 * DEFAULT_SCALE,
             window_force_aspect: true,
             keyboard_binding: KeyboardBinding::QWERTY,
-            display_fps: false
+            display_fps: false,
         }
     }
 
@@ -86,21 +86,29 @@ impl EmulatorAppConfig {
         let file_path = Path::new(filepath);
         let mut file_content = String::new();
         r#try!(File::open(file_path)
-                 .and_then(|mut f| f.read_to_string(&mut file_content))
-                 .map_err(|_| format!("could not load the config file : {}", file_path.display())));
+            .and_then(|mut f| f.read_to_string(&mut file_content))
+            .map_err(|_| format!("could not load the config file : {}", file_path.display())));
 
         let table_value = match file_content.parse::<toml::Value>() {
             Ok(value) => value,
-            Err(err) => return Err(format!("parsing error in config file \"{}\" : {}",
-                                       file_path.display(),
-                                       err)),
+            Err(err) => {
+                return Err(format!(
+                    "parsing error in config file \"{}\" : {}",
+                    file_path.display(),
+                    err
+                ))
+            }
         };
         let table = table_value.as_table().unwrap();
 
-        info!("reading configuration from file \"{}\"...",
-              file_path.display());
+        info!(
+            "reading configuration from file \"{}\"...",
+            file_path.display()
+        );
         if let Some(value) = table.get("display") {
-            let display = value.as_table().expect("config file error : no display section");
+            let display = value
+                .as_table()
+                .expect("config file error : no display section");
             match lookup_bool_value("force_aspect", display) {
                 Ok(force_aspect) => config.window_force_aspect = force_aspect,
                 Err(error) => warn!("{}", error),
@@ -140,7 +148,10 @@ impl EmulatorAppConfig {
 
     /// Create the 'EmulatorApplication' with this configuration and the
     /// given backend to use.
-    pub fn create_with_backend<'a>(self, backend: Box<dyn EmulatorBackend>) -> EmulatorApplication<'a> {
+    pub fn create_with_backend<'a>(
+        self,
+        backend: Box<dyn EmulatorBackend>,
+    ) -> EmulatorApplication<'a> {
         EmulatorApplication::new(self, backend)
     }
 
@@ -163,14 +174,18 @@ fn lookup_bool_value(key: &'static str, table: &toml::value::Table) -> Result<bo
         match *value {
             toml::Value::Boolean(boolean) => Ok(boolean),
             _ => {
-                return Err(format!("config::lookup_bool_value : key '{}' does not correspond to \
-                                    a boolean",
-                                   key))
+                return Err(format!(
+                    "config::lookup_bool_value : key '{}' does not correspond to \
+                     a boolean",
+                    key
+                ))
             }
         }
     } else {
-        Err(format!("config::lookup_bool_value : key '{}' was not found in the given table",
-                    key))
+        Err(format!(
+            "config::lookup_bool_value : key '{}' was not found in the given table",
+            key
+        ))
     }
 }
 
@@ -179,13 +194,17 @@ fn lookup_int_value(key: &'static str, table: &toml::value::Table) -> Result<i64
         match *value {
             toml::Value::Integer(int) => Ok(int),
             _ => {
-                return Err(format!("config::lookup_int_value : key '{}' does not correspond to \
-                                    an integer",
-                                   key))
+                return Err(format!(
+                    "config::lookup_int_value : key '{}' does not correspond to \
+                     an integer",
+                    key
+                ))
             }
         }
     } else {
-        Err(format!("config::lookup_int_value : key '{}' was not found in the given table",
-                    key))
+        Err(format!(
+            "config::lookup_int_value : key '{}' was not found in the given table",
+            key
+        ))
     }
 }

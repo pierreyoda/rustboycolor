@@ -1,13 +1,12 @@
 use std::path::Path;
-use std::sync::mpsc::{channel, Sender, Receiver};
+use std::sync::mpsc::{channel, Receiver, Sender};
 use std::thread;
 
-
-use rustboylib::{cpu, mmu, mbc};
+use crate::backend::{BackendMessage, EmulatorBackend};
+use crate::config::EmulatorAppConfig;
 use rustboylib::cpu::{CycleType, CPU_CLOCK_SPEED};
 use rustboylib::gpu::RGB;
-use crate::backend::{EmulatorBackend, BackendMessage};
-use crate::config::EmulatorAppConfig;
+use rustboylib::{cpu, mbc, mmu};
 
 /// Message emitted by the emulation loop to the UI backend.
 pub enum EmulationMessage {
@@ -32,9 +31,10 @@ pub struct EmulatorApplication<'a> {
 }
 
 impl<'a> EmulatorApplication<'a> {
-    pub fn new(config: EmulatorAppConfig,
-               backend: Box<dyn EmulatorBackend>)
-               -> EmulatorApplication<'a> {
+    pub fn new(
+        config: EmulatorAppConfig,
+        backend: Box<dyn EmulatorBackend>,
+    ) -> EmulatorApplication<'a> {
         EmulatorApplication { config, backend }
     }
 
@@ -54,14 +54,16 @@ impl<'a> EmulatorApplication<'a> {
                 return false;
             }
         };
-        thread::Builder::new().name("rustboylib_vm".into()).spawn(move || {
-            let mmu = mmu::MMU::new(mbc, false, skip_bios, None);
-            let mut cpu = cpu::Cpu::<mmu::MMU>::new(mmu);
-            if skip_bios {
-                cpu.post_bios();
-            }
-            emulation_loop(&mut cpu, tx_vm, rx_vm);
-        });
+        thread::Builder::new()
+            .name("rustboylib_vm".into())
+            .spawn(move || {
+                let mmu = mmu::MMU::new(mbc, false, skip_bios, None);
+                let mut cpu = cpu::Cpu::<mmu::MMU>::new(mmu);
+                if skip_bios {
+                    cpu.post_bios();
+                }
+                emulation_loop(&mut cpu, tx_vm, rx_vm);
+            });
 
         // UI loop, in the emulator's thread (should be the main thread)
         self.backend.run(self.config.clone(), tx_ui, rx_ui);
@@ -71,11 +73,13 @@ impl<'a> EmulatorApplication<'a> {
 }
 
 /// Emulation loop leveraging the rustboylib crate to emulate a Game Boy (Color).
-fn emulation_loop(cpu: &mut cpu::Cpu<mmu::MMU>,
-                  tx: Sender<EmulationMessage>,
-                  rx: Receiver<BackendMessage>) {
-    use crate::emulator::EmulationMessage::*;
+fn emulation_loop(
+    cpu: &mut cpu::Cpu<mmu::MMU>,
+    tx: Sender<EmulationMessage>,
+    rx: Receiver<BackendMessage>,
+) {
     use crate::backend::BackendMessage::*;
+    use crate::emulator::EmulationMessage::*;
 
     info!("starting the emulation thread.");
 
@@ -87,21 +91,19 @@ fn emulation_loop(cpu: &mut cpu::Cpu<mmu::MMU>,
     'vm: loop {
         // Signals from the UI
         match rx.try_recv() {
-            Ok(backend_message) => {
-                match backend_message {
-                    UpdateRunStatus(run) => running = run,
-                    KeyDown(key) => cpu.mem.key_down(&key),
-                    KeyUp(key) => cpu.mem.key_up(&key),
-                    Step => {}
-                    Reset => {}
-                    Quit => {
-                        running = false;
-                        info!("terminating the emulation thread...");
-                        tx.send(Finished).unwrap();
-                        break 'vm;
-                    }
+            Ok(backend_message) => match backend_message {
+                UpdateRunStatus(run) => running = run,
+                KeyDown(key) => cpu.mem.key_down(&key),
+                KeyUp(key) => cpu.mem.key_up(&key),
+                Step => {}
+                Reset => {}
+                Quit => {
+                    running = false;
+                    info!("terminating the emulation thread...");
+                    tx.send(Finished).unwrap();
+                    break 'vm;
                 }
-            }
+            },
             _ => {}
         }
 

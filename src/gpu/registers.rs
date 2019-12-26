@@ -81,15 +81,33 @@ mod test {
     fn test_lcdc_status_with_mode() {
         use crate::gpu::GpuMode::*;
         let lcdc_status = 0b_0110_1011;
-        assert_eq!(LcdControllerStatus::with_mode(lcdc_status, H_Blank), 0b_0110_1000);
-        assert_eq!(LcdControllerStatus::with_mode(lcdc_status, V_Blank), 0b_0110_1001);
-        assert_eq!(LcdControllerStatus::with_mode(lcdc_status, OAM_Read), 0b_0110_1010);
-        assert_eq!(LcdControllerStatus::with_mode(lcdc_status, VRAM_Read), 0b_0110_1011);
+        assert_eq!(
+            LcdControllerStatus::with_mode(lcdc_status, H_Blank),
+            0b_0110_1000
+        );
+        assert_eq!(
+            LcdControllerStatus::with_mode(lcdc_status, V_Blank),
+            0b_0110_1001
+        );
+        assert_eq!(
+            LcdControllerStatus::with_mode(lcdc_status, OAM_Read),
+            0b_0110_1010
+        );
+        assert_eq!(
+            LcdControllerStatus::with_mode(lcdc_status, VRAM_Read),
+            0b_0110_1011
+        );
     }
 
     #[test]
     fn test_lcdc_status_with_coincidence_flag() {
-        assert_eq!(LcdControllerStatus::with_coincidence_flag(0b_1011_0011, true), 0b_1011_0111);
-        assert_eq!(LcdControllerStatus::with_coincidence_flag(0b_1011_0111, false), 0b_1011_0011);
+        assert_eq!(
+            LcdControllerStatus::with_coincidence_flag(0b_1011_0011, true),
+            0b_1011_0111
+        );
+        assert_eq!(
+            LcdControllerStatus::with_coincidence_flag(0b_1011_0111, false),
+            0b_1011_0011
+        );
     }
 }

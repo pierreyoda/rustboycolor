@@ -1,5 +1,5 @@
-mod alu8;    // 8 bits ALU instructions
-mod cb;      // CB-prefixed instructions
+mod alu8; // 8 bits ALU instructions
+mod cb; // CB-prefixed instructions
 mod control; // control flow instructions
 mod load; // load/store/move instructions
 
@@ -72,8 +72,14 @@ impl Memory for TestMemory {
 }
 
 impl MemoryManagementUnit for TestMemory {
-    fn step(&mut self, _: CycleType) -> CycleType { 0 }
-    fn interrupt_enable(&self) -> u8 { 0 }
-    fn interrupt_flag(&self) -> u8 { 0 }
+    fn step(&mut self, _: CycleType) -> CycleType {
+        0
+    }
+    fn interrupt_enable(&self) -> u8 {
+        0
+    }
+    fn interrupt_flag(&self) -> u8 {
+        0
+    }
     fn set_interrupt_flag(&mut self, _: u8) {}
 }

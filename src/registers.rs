@@ -95,18 +95,13 @@ impl Registers {
 
 impl fmt::Debug for Registers {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f,
-               concat!("A:{:0>2X} B:{:0>2X} C:{:0>2X} D:{:0>2X} E:{:0>2X} ",
-                       "F:{:0>8b} H:{:0>2X} L:{:0>2X} SP:{:0>4X} PC:{:0>4X}"),
-               self.a,
-               self.b,
-               self.c,
-               self.d,
-               self.e,
-               self.f,
-               self.h,
-               self.l,
-               self.sp,
-               self.pc)
+        write!(
+            f,
+            concat!(
+                "A:{:0>2X} B:{:0>2X} C:{:0>2X} D:{:0>2X} E:{:0>2X} ",
+                "F:{:0>8b} H:{:0>2X} L:{:0>2X} SP:{:0>4X} PC:{:0>4X}"
+            ),
+            self.a, self.b, self.c, self.d, self.e, self.f, self.h, self.l, self.sp, self.pc
+        )
     }
 }

@@ -1,8 +1,8 @@
 #![allow(non_snake_case)]
 
 use super::test_cpu;
-use crate::registers::{Z_FLAG, N_FLAG, H_FLAG, C_FLAG};
 use crate::memory::Memory;
+use crate::registers::{C_FLAG, H_FLAG, N_FLAG, Z_FLAG};
 
 // ADD_r_x : add register X to register A
 // we only perform deep testing here since alu_add is used by ALL instructions
@@ -252,7 +252,7 @@ fn test_XOR_HLm() {
     {
         let machine = test_cpu(&[0xAE], |cpu| {
             cpu.regs.f = N_FLAG | H_FLAG | C_FLAG;
-            cpu.regs.a  = 0b_0101_1101;
+            cpu.regs.a = 0b_0101_1101;
             cpu.regs.set_hl(0xAF3D);
             cpu.mem.write_byte(cpu.regs.hl(), cpu.regs.a);
         });

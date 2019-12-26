@@ -6,13 +6,13 @@ mod tile;
 use std::cmp;
 
 use crate::cpu::CycleType;
-use crate::memory::Memory;
 use crate::irq::{Interrupt, IrqHandler};
+use crate::memory::Memory;
 
-use self::GpuMode::*;
-use self::palette::{PaletteClassic};
+use self::palette::PaletteClassic;
 use self::registers::{LcdControl, LcdControllerStatus};
 use self::tile::Tile;
+use self::GpuMode::*;
 
 /// The width of the Game Boy's screen, in pixels.
 pub const SCREEN_W: usize = 160;
@@ -172,14 +172,16 @@ impl Gpu {
             H_Blank if self.mode_clock >= H_BLANK_CYCLES => {
                 self.mode_clock -= H_BLANK_CYCLES;
                 self.ly += 1;
-                if self.ly == SCREEN_H { // last H_BLANK: render framebuffer
+                if self.ly == SCREEN_H {
+                    // last H_BLANK: render framebuffer
                     self.switch_mode(V_Blank);
                     self.dirty = true;
                     irq_handler.request_interrupt(Interrupt::V_Blank);
                     if VBlankInterrupt.is_set(self.lcdc_status) {
                         irq_handler.request_interrupt(Interrupt::LCD_Stat);
                     }
-                } else { // move to next line
+                } else {
+                    // move to next line
                     self.switch_mode(OAM_Read);
                     if OamInterrupt.is_set(self.lcdc_status) {
                         irq_handler.request_interrupt(Interrupt::LCD_Stat);
@@ -190,15 +192,16 @@ impl Gpu {
             V_Blank if self.mode_clock >= V_BLANK_CYCLES => {
                 self.mode_clock -= V_BLANK_CYCLES;
                 self.ly += 1;
-                if self.ly == SCREEN_H + 10 { // last V_BLANK
+                if self.ly == SCREEN_H + 10 {
+                    // last V_BLANK
                     self.ly = 0;
                     self.switch_mode(OAM_Read);
                     if OamInterrupt.is_set(self.lcdc_status) {
                         irq_handler.request_interrupt(Interrupt::LCD_Stat);
                     }
                 }
-            },
-            _ => {},
+            }
+            _ => {}
         }
 
         // LYC/LY comparison
@@ -233,8 +236,11 @@ impl Gpu {
                 let background_x = (self.scroll_x as usize + x) % BACKGROUND_WIDTH;
                 let background_y = (self.scroll_y as usize + y) % BACKGROUND_HEIGHT;
 
-                let tile = self.get_tile(background_x, background_y,
-                    LcdControl::BgTileMapDisplaySelect.is_set(self.lcd_control));
+                let tile = self.get_tile(
+                    background_x,
+                    background_y,
+                    LcdControl::BgTileMapDisplaySelect.is_set(self.lcd_control),
+                );
                 let (x_offset, y_offset) = (background_x % 8, background_y % 8);
                 let color_index = tile.data()[y_offset][x_offset] as usize;
                 self.frame_buffer[y * SCREEN_W + x] = palette_data[color_index].to_rgb();
@@ -247,8 +253,11 @@ impl Gpu {
                 let window_x = (self.scroll_x as usize + x) % BACKGROUND_WIDTH;
                 let window_y = (self.scroll_y as usize + y) % BACKGROUND_HEIGHT;
 
-                let tile = self.get_tile(window_x, window_y,
-                    LcdControl::WindowTileMapDisplaySelect.is_set(self.lcd_control));
+                let tile = self.get_tile(
+                    window_x,
+                    window_y,
+                    LcdControl::WindowTileMapDisplaySelect.is_set(self.lcd_control),
+                );
                 let (x_offset, y_offset) = (window_x % 8, window_y % 8);
                 let color_index = tile.data()[y_offset][x_offset] as usize;
                 self.frame_buffer[y * SCREEN_W + x] = palette_data[color_index].to_rgb();
@@ -273,7 +282,9 @@ impl Gpu {
     }
 
     fn render_line_sprites(&mut self, _y: usize) {
-        if !LcdControl::ObjDisplayEnable.is_set(self.lcd_control) { return; }
+        if !LcdControl::ObjDisplayEnable.is_set(self.lcd_control) {
+            return;
+        }
         // TODO
     }
 
@@ -284,8 +295,8 @@ impl Gpu {
 
 impl Memory for Gpu {
     fn read_byte(&mut self, address: u16) -> u8 {
-        use self::registers::*;
         use self::cgb::regs as r;
+        use self::registers::*;
 
         let a = address as usize;
 
@@ -297,25 +308,28 @@ impl Memory for Gpu {
                 r::BGP_DATA => return data.get_bg_color(),
                 r::OBP_INDEX => return data.ob_palette_index.raw_value(),
                 r::OBP_DATA => return data.get_ob_color(),
-                _ => {},
+                _ => {}
             }
         }
         match a {
-            0x8000..=0x97FF => { // tileset
+            0x8000..=0x97FF => {
+                // tileset
                 let addr = a - 0x8000;
                 let tile_index = addr / 16;
                 let data_index = addr % 16;
                 debug_assert!(tile_index < 384);
                 self.tileset[tile_index].raw_byte(data_index)
-            },
-            0x9800..=0x9BFF => { // tilemap 0
+            }
+            0x9800..=0x9BFF => {
+                // tilemap 0
                 let addr = a - 0x9800;
                 self.tilemaps[0][addr]
-            },
-            0x9C00..=0x9FFF => { // tilemap 1
+            }
+            0x9C00..=0x9FFF => {
+                // tilemap 1
                 let addr = a - 0x9C00;
                 self.tilemaps[1][addr]
-            },
+            }
             CONTROL => self.lcd_control,
             STAT => self.lcdc_status,
             SCY => self.scroll_y,
@@ -332,8 +346,8 @@ impl Memory for Gpu {
     }
 
     fn write_byte(&mut self, address: u16, byte: u8) {
-        use self::registers::*;
         use self::cgb::regs as r;
+        use self::registers::*;
 
         let a = address as usize;
 
@@ -361,15 +375,15 @@ impl Memory for Gpu {
                 let data_index = addr % 16;
                 debug_assert!(tile_index < 384);
                 self.tileset[tile_index].update_raw_byte(data_index, byte)
-            },
+            }
             0x9800..=0x9BFF => {
                 let addr = a - 0x9800;
                 self.tilemaps[0][addr] = byte;
-            },
+            }
             0x9C00..=0x9FFF => {
                 let addr = a - 0x9C00;
                 self.tilemaps[1][addr] = byte;
-            },
+            }
             CONTROL => self.lcd_control = byte,
             // LCDC Status: bits 2 to 0 are read-only
             STAT => self.lcdc_status = (byte & 0xF8) | (self.lcdc_status & 0x07),

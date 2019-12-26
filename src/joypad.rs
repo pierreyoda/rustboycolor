@@ -1,12 +1,12 @@
+use self::JoypadKey::*;
 use crate::irq::{Interrupt, IrqHandler};
 use crate::memory::Memory;
-use self::JoypadKey::*;
 
 pub const JOYPAD_ADDRESS: u16 = 0xFF00;
-pub const JOYPAD_KEYS: [&'static str; 8] = ["Up", "Down", "Left", "Right",
-    "Select", "Start", "A", "B"];
+pub const JOYPAD_KEYS: [&'static str; 8] =
+    ["Up", "Down", "Left", "Right", "Select", "Start", "A", "B"];
 pub const JOYPAD_SELECT_DIRECTIONAL: u8 = 1 << 4;
-pub const JOYPAD_SELECT_BUTTON     : u8 = 1 << 5;
+pub const JOYPAD_SELECT_BUTTON: u8 = 1 << 5;
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum JoypadKey {
@@ -24,19 +24,18 @@ impl JoypadKey {
     /// Build and return a JoypadKey corresponding to the given symbol, if possible.
     pub fn from_str(symbol: &str) -> Option<JoypadKey> {
         match symbol {
-            "Up"     => Some(JoypadKey::Up),
-            "Down"   => Some(JoypadKey::Down),
-            "Right"  => Some(JoypadKey::Right),
-            "Left"   => Some(JoypadKey::Left),
-            "A"      => Some(JoypadKey::A),
-            "B"      => Some(JoypadKey::B),
+            "Up" => Some(JoypadKey::Up),
+            "Down" => Some(JoypadKey::Down),
+            "Right" => Some(JoypadKey::Right),
+            "Left" => Some(JoypadKey::Left),
+            "A" => Some(JoypadKey::A),
+            "B" => Some(JoypadKey::B),
             "Select" => Some(JoypadKey::Select),
-            "Start"  => Some(JoypadKey::Start),
-            _        => None,
+            "Start" => Some(JoypadKey::Start),
+            _ => None,
         }
     }
 }
-
 
 /// The structure representing the joypad on the Game Boy (Color).
 ///
@@ -75,28 +74,28 @@ impl Joypad {
 
     pub fn key_down(&mut self, key: &JoypadKey, irq_handler: &mut dyn IrqHandler) {
         match *key {
-            Down   => self.rows[0] &= 0x07,
-            Up     => self.rows[0] &= 0x0B,
-            Left   => self.rows[0] &= 0x0D,
-            Right  => self.rows[0] &= 0x0E,
-            Start  => self.rows[1] &= 0x07,
+            Down => self.rows[0] &= 0x07,
+            Up => self.rows[0] &= 0x0B,
+            Left => self.rows[0] &= 0x0D,
+            Right => self.rows[0] &= 0x0E,
+            Start => self.rows[1] &= 0x07,
             Select => self.rows[1] &= 0x0B,
-            B      => self.rows[1] &= 0x0D,
-            A      => self.rows[1] &= 0x0E,
+            B => self.rows[1] &= 0x0D,
+            A => self.rows[1] &= 0x0E,
         }
         irq_handler.request_interrupt(Interrupt::Joypad);
     }
 
     pub fn key_up(&mut self, key: &JoypadKey) {
         match *key {
-            Down   => self.rows[0] |= 0x08,
-            Up     => self.rows[0] |= 0x04,
-            Left   => self.rows[0] |= 0x02,
-            Right  => self.rows[0] |= 0x01,
-            Start  => self.rows[1] |= 0x08,
+            Down => self.rows[0] |= 0x08,
+            Up => self.rows[0] |= 0x04,
+            Left => self.rows[0] |= 0x02,
+            Right => self.rows[0] |= 0x01,
+            Start => self.rows[1] |= 0x08,
             Select => self.rows[1] |= 0x04,
-            B      => self.rows[1] |= 0x02,
-            A      => self.rows[1] |= 0x01,
+            B => self.rows[1] |= 0x02,
+            A => self.rows[1] |= 0x01,
         }
     }
 }
@@ -105,9 +104,9 @@ impl Memory for Joypad {
     fn read_byte(&mut self, address: u16) -> u8 {
         debug_assert!(address == JOYPAD_ADDRESS);
         match self.selection {
-            0     => 0x00,
+            0 => 0x00,
             1 | 2 => self.rows[self.selection - 1],
-            _     => unreachable!(),
+            _ => unreachable!(),
         }
     }
 
@@ -116,7 +115,7 @@ impl Memory for Joypad {
         // filter bits 4 and 5
         self.selection = match byte & 0x30 {
             JOYPAD_SELECT_DIRECTIONAL => 1, // bit 4 = row 1
-            JOYPAD_SELECT_BUTTON => 2, // bit 5 = row 2
+            JOYPAD_SELECT_BUTTON => 2,      // bit 5 = row 2
             0x30 => 0,
             0x00 => 0,
             _ => unreachable!(),
@@ -126,11 +125,13 @@ impl Memory for Joypad {
 
 #[cfg(test)]
 mod test {
-    use super::{Joypad, JoypadKey, JOYPAD_KEYS, JOYPAD_ADDRESS,
-        JOYPAD_SELECT_DIRECTIONAL, JOYPAD_SELECT_BUTTON};
     use super::JoypadKey::*;
-    use crate::memory::Memory;
+    use super::{
+        Joypad, JoypadKey, JOYPAD_ADDRESS, JOYPAD_KEYS, JOYPAD_SELECT_BUTTON,
+        JOYPAD_SELECT_DIRECTIONAL,
+    };
     use crate::irq::EmptyIrqHandler;
+    use crate::memory::Memory;
 
     #[test]
     fn test_keys_from_str() {
