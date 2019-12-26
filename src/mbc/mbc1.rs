@@ -29,7 +29,7 @@ impl MBC1 {
             0x02 => CartridgeHeader::ram_size(&data),
             // RAM+BATTERY
             0x03 => {
-                // TODO : state loading
+                // TODO: state loading
                 CartridgeHeader::ram_size(&data)
             }
             _ => 0,

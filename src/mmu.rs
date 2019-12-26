@@ -45,7 +45,7 @@ pub struct MMU {
     zram: [u8; ZRAM_SIZE],
 }
 
-/// MMU subcomponent passed around to throw interrupt requests from various
+/// MMU sub-component passed around to throw interrupt requests from various
 /// components.
 struct MachineIrqHandler {
     /// Interrupt Enable Register.
@@ -153,7 +153,7 @@ impl Memory for MMU {
             0x8000..=0x9FFF => self.gpu.read_byte(address),
             // cartridge external RAM
             0xA000..=0xBFFF => self.mbc.ram_read(address),
-            // working ram and its echo (TODO : RAM bank switch for GBC)
+            // working ram and its echo (TODO: RAM bank switch for GBC)
             0xC000..=0xFDFF => self.wram[a & 0x1FFF],
             // GPU : Object Attribute Memory
             0xFE00..=0xFE9F => self.gpu.read_byte(address),
@@ -167,7 +167,7 @@ impl Memory for MMU {
             0xFF02 => self.serial.read_control(),
             // Interrupt Flag Register
             0xFF0F => self.irq_handler.if_reg,
-            /// GPU registers
+            // GPU registers
             0xFF40..=0xFF4F => self.gpu.read_byte(address),
             // GPU registers (CGB mode)
             0xFF68..=0xFF6B => self.gpu.read_byte(address),

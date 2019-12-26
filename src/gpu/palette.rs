@@ -71,7 +71,7 @@ pub struct PaletteClassic {
 
 impl PaletteClassic {
     pub fn new() -> PaletteClassic {
-        // TODO : check default palette value
+        // TODO: check default palette value
         PaletteClassic {
             raw: 0xFF,
             data: [White, White, White, White],
@@ -161,7 +161,7 @@ pub struct PaletteColor {
 
 impl PaletteColor {
     pub fn new() -> PaletteColor {
-        // TODO : check default palette value
+        // TODO: check default palette value
         PaletteColor {
             data: [PaletteColorValue::new(0x0000); 4],
         }

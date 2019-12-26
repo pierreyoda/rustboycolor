@@ -85,9 +85,9 @@ impl EmulatorAppConfig {
 
         let file_path = Path::new(filepath);
         let mut file_content = String::new();
-        r#try!(File::open(file_path)
+        File::open(file_path)
             .and_then(|mut f| f.read_to_string(&mut file_content))
-            .map_err(|_| format!("could not load the config file : {}", file_path.display())));
+            .map_err(|_| format!("could not load the config file : {}", file_path.display()))?;
 
         let table_value = match file_content.parse::<toml::Value>() {
             Ok(value) => value,

@@ -10,8 +10,8 @@
 
 [input]
     [input.keyboard]
-    # TODO : multiple bindings ? (with 1 list per gameboy key...)
-    # TODO : enforce binding uniqueness (1 keyboard key = 1 gameboy key at most)
+    # TODO: multiple bindings ? (with 1 list per gameboy key...)
+    # TODO: enforce binding uniqueness (1 keyboard key = 1 gameboy key at most)
     Up     = "Up"
     Down   = "Down"
     Left   = "Left"

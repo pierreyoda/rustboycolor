@@ -37,7 +37,7 @@ macro_rules! impl_LD_r_n_x {
 }
 
 // --- Helper macros ---
-// TODO : use more methods instead
+// TODO: use more methods instead
 
 macro_rules! inc_byte {
     ($s: ident, $b: expr) => {{

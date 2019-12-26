@@ -5,7 +5,7 @@ use crate::registers::{C_FLAG, H_FLAG, N_FLAG, Z_FLAG};
 
 //
 // --- Helper and implementation macros ---
-// TODO : use more methods
+// TODO: use more methods
 //
 
 macro_rules! impl_rot_reg {

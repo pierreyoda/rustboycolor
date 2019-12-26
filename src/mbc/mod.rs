@@ -66,14 +66,14 @@ pub trait MBC {
 
 /// Try to load a cartridge from the given filepath and return the appropriate
 /// MBC with its content loaded in.
-/// TODO : read cartridge information
-/// TODO : cartridge header checksum validation
-/// TODO : state saving with battery-backed RAM
+/// TODO: read cartridge information
+/// TODO: cartridge header checksum validation
+/// TODO: state saving with battery-backed RAM
 pub fn load_cartridge(filepath: &Path) -> crate::ResultStr<Box<dyn MBC + Send>> {
     let mut data = Vec::<u8>::new();
-    r#try!(File::open(filepath)
+    File::open(filepath)
         .and_then(|mut f| f.read_to_end(&mut data))
-        .map_err(|_| "could not load the file as a gameboy ROM"));
+        .map_err(|_| "could not load the file as a gameboy ROM")?;
     match data[CartridgeHeader::address(MBC_Type).unwrap()] {
         // MBC0 : no MBC
         0x00 => {

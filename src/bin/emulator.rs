@@ -40,7 +40,7 @@ impl<'a> EmulatorApplication<'a> {
 
     /// Run the emulator application with the given cartridge.
     /// Return true if all went well, false otherwise.
-    /// TODO : more flexible run function (maybe a LoadRomCommand ?)
+    /// TODO: more flexible run function (maybe a LoadRomCommand ?)
     pub fn run(&mut self, rom_path: &Path, skip_bios: bool) -> bool {
         // Communication channels
         let (tx_vm, rx_ui) = channel::<EmulationMessage>();
@@ -54,7 +54,7 @@ impl<'a> EmulatorApplication<'a> {
                 return false;
             }
         };
-        thread::Builder::new()
+        match thread::Builder::new()
             .name("rustboylib_vm".into())
             .spawn(move || {
                 let mmu = mmu::MMU::new(mbc, false, skip_bios, None);
@@ -63,7 +63,13 @@ impl<'a> EmulatorApplication<'a> {
                     cpu.post_bios();
                 }
                 emulation_loop(&mut cpu, tx_vm, rx_vm);
-            });
+            }) {
+            Err(why) => {
+                error!("cannot spawn the VM thread: {}", why);
+                return false
+            },
+            _ => {},
+        }
 
         // UI loop, in the emulator's thread (should be the main thread)
         self.backend.run(self.config.clone(), tx_ui, rx_ui);
