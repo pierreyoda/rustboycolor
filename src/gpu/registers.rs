@@ -79,7 +79,7 @@ mod test {
 
     #[test]
     fn test_lcdc_status_with_mode() {
-        use gpu::GpuMode::*;
+        use crate::gpu::GpuMode::*;
         let lcdc_status = 0b_0110_1011;
         assert_eq!(LcdControllerStatus::with_mode(lcdc_status, H_Blank), 0b_0110_1000);
         assert_eq!(LcdControllerStatus::with_mode(lcdc_status, V_Blank), 0b_0110_1001);

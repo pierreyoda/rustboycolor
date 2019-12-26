@@ -1,13 +1,13 @@
 use std::path::Path;
 use std::sync::mpsc::{channel, Sender, Receiver};
 use std::thread;
-use std::time::Duration;
 
-use rustboylib::{cpu, gpu, mmu, mbc};
+
+use rustboylib::{cpu, mmu, mbc};
 use rustboylib::cpu::{CycleType, CPU_CLOCK_SPEED};
 use rustboylib::gpu::RGB;
-use backend::{EmulatorBackend, BackendMessage};
-use config::EmulatorAppConfig;
+use crate::backend::{EmulatorBackend, BackendMessage};
+use crate::config::EmulatorAppConfig;
 
 /// Message emitted by the emulation loop to the UI backend.
 pub enum EmulationMessage {
@@ -28,12 +28,12 @@ pub struct EmulatorApplication<'a> {
     config: EmulatorAppConfig,
     /// Pointer to the heap-allocated backend responsible for running the
     /// actual UI loop in the main thread.
-    backend: Box<EmulatorBackend + 'a>,
+    backend: Box<dyn EmulatorBackend + 'a>,
 }
 
 impl<'a> EmulatorApplication<'a> {
     pub fn new(config: EmulatorAppConfig,
-               backend: Box<EmulatorBackend>)
+               backend: Box<dyn EmulatorBackend>)
                -> EmulatorApplication<'a> {
         EmulatorApplication { config, backend }
     }
@@ -47,7 +47,7 @@ impl<'a> EmulatorApplication<'a> {
         let (tx_ui, rx_vm) = channel::<BackendMessage>();
 
         // VM loop, in a secondary thread
-        let mbc: Box<mbc::MBC + Send> = match mbc::load_cartridge(&rom_path) {
+        let mbc: Box<dyn mbc::MBC + Send> = match mbc::load_cartridge(&rom_path) {
             Ok(mbc) => mbc,
             Err(why) => {
                 error!("cannot load the cartridge : {}", why);
@@ -74,8 +74,8 @@ impl<'a> EmulatorApplication<'a> {
 fn emulation_loop(cpu: &mut cpu::Cpu<mmu::MMU>,
                   tx: Sender<EmulationMessage>,
                   rx: Receiver<BackendMessage>) {
-    use emulator::EmulationMessage::*;
-    use backend::BackendMessage::*;
+    use crate::emulator::EmulationMessage::*;
+    use crate::backend::BackendMessage::*;
 
     info!("starting the emulation thread.");
 

@@ -4,8 +4,8 @@ mod control; // control flow instructions
 mod load; // load/store/move instructions
 
 use super::{Cpu, CycleType};
-use memory::Memory;
-use mmu::MemoryManagementUnit;
+use crate::memory::Memory;
+use crate::mmu::MemoryManagementUnit;
 
 const OPCODE_END: u8 = 0xD3;
 const OPCODES_LIMIT: u32 = 100;

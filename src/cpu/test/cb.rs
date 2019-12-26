@@ -1,8 +1,8 @@
 #![allow(non_snake_case)]
 
 use super::test_cpu;
-use memory::Memory;
-use registers::{Z_FLAG, N_FLAG, H_FLAG, C_FLAG};
+use crate::memory::Memory;
+use crate::registers::{Z_FLAG, N_FLAG, H_FLAG, C_FLAG};
 
 // RL : rotate left
 macro_rules! test_RL_r_X {

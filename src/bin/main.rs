@@ -14,8 +14,8 @@ extern crate toml;
 use clap::{App, Arg, ArgMatches};
 
 extern crate rustboylib;
-use backend::sdl2;
-use input::KeyboardBinding;
+use crate::backend::sdl2;
+use crate::input::KeyboardBinding;
 
 fn app_options_from_matches(matches: &ArgMatches) -> config::EmulatorAppConfig {
     let config_file = matches.value_of("config").unwrap_or("config.toml");

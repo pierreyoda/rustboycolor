@@ -1,8 +1,8 @@
 #![allow(non_snake_case)]
 
 use super::test_cpu;
-use registers::{Z_FLAG, N_FLAG, H_FLAG, C_FLAG};
-use memory::Memory;
+use crate::registers::{Z_FLAG, N_FLAG, H_FLAG, C_FLAG};
+use crate::memory::Memory;
 
 // ADD_r_x : add register X to register A
 // we only perform deep testing here since alu_add is used by ALL instructions

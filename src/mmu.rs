@@ -1,11 +1,11 @@
-use bios::GB_BIOS;
-use cpu::CycleType;
-use gpu::{Gpu, RGB};
-use irq::{Interrupt, IrqHandler};
-use joypad::{Joypad, JoypadKey};
-use mbc::{MBC};
-use memory::Memory;
-use serial::{Serial, SerialCallback};
+use crate::bios::GB_BIOS;
+use crate::cpu::CycleType;
+use crate::gpu::{Gpu, RGB};
+use crate::irq::{Interrupt, IrqHandler};
+use crate::joypad::{Joypad, JoypadKey};
+use crate::mbc::{MBC};
+use crate::memory::Memory;
+use crate::serial::{Serial, SerialCallback};
 
 const WRAM_SIZE: usize = 0x2000;
 const ZRAM_SIZE: usize = 0x0080;
@@ -32,7 +32,7 @@ pub struct MMU {
     /// GPU.
     gpu: Gpu,
     /// The MBC interfacing with the cartridge ROM and (optionally) RAM banks.
-    mbc: Box<MBC + 'static>,
+    mbc: Box<dyn MBC + 'static>,
     /// The joypad controller.
     joypad: Joypad,
     /// The serial port.
@@ -67,7 +67,7 @@ impl IrqHandler for MachineIrqHandler {
 }
 
 impl MMU {
-    pub fn new(mbc: Box<MBC>, cgb_mode: bool, skip_bios: bool,
+    pub fn new(mbc: Box<dyn MBC>, cgb_mode: bool, skip_bios: bool,
         serial_callback: Option<SerialCallback>) -> MMU {
         MMU {
             in_bios: !skip_bios,
@@ -135,17 +135,17 @@ impl Memory for MMU {
                 }
             },
             // cartridge ROM
-            0x0000 ... 0x7FFF => self.mbc.rom_read(address),
+            0x0000 ..= 0x7FFF => self.mbc.rom_read(address),
             // GPU : background and sprite data
-            0x8000 ... 0x9FFF => self.gpu.read_byte(address),
+            0x8000 ..= 0x9FFF => self.gpu.read_byte(address),
             // cartridge external RAM
-            0xA000 ... 0xBFFF => self.mbc.ram_read(address),
+            0xA000 ..= 0xBFFF => self.mbc.ram_read(address),
             // working ram and its echo (TODO : RAM bank switch for GBC)
-            0xC000 ... 0xFDFF => self.wram[a & 0x1FFF],
+            0xC000 ..= 0xFDFF => self.wram[a & 0x1FFF],
             // GPU : Object Attribute Memory
-            0xFE00 ... 0xFE9F => self.gpu.read_byte(address),
+            0xFE00 ..= 0xFE9F => self.gpu.read_byte(address),
             // not usable
-            0xFEA0 ... 0xFEFF => 0x00,
+            0xFEA0 ..= 0xFEFF => 0x00,
             // joypad
             0xFF00            => self.joypad.read_byte(address),
             // SB - Serial Transfer Data
@@ -155,11 +155,11 @@ impl Memory for MMU {
             // Interrupt Flag Register
             0xFF0F            => self.irq_handler.if_reg,
             /// GPU registers
-            0xFF40 ... 0xFF4F => self.gpu.read_byte(address),
+            0xFF40 ..= 0xFF4F => self.gpu.read_byte(address),
             // GPU registers (CGB mode)
-            0xFF68 ... 0xFF6B => self.gpu.read_byte(address),
+            0xFF68 ..= 0xFF6B => self.gpu.read_byte(address),
             // Zero-page RAM
-            0xFF80 ... 0xFFFE => self.zram[a & 0x7F],
+            0xFF80 ..= 0xFFFE => self.zram[a & 0x7F],
             // Interrupt Enable Register
             0xFFFF            => self.irq_handler.ie_reg,
             _ => 0,
@@ -170,19 +170,19 @@ impl Memory for MMU {
         let a = address as usize;
         match a {
             // cartridge ROM
-            0x0000 ... 0x7FFF => self.mbc.rom_control(address, byte),
-            0x8000 ... 0x9FFF => self.gpu.write_byte(address, byte),
-            0xA000 ... 0xBFFF => self.mbc.ram_write(address, byte),
-            0xC000 ... 0xFDFF => self.wram[a & 0x1FFF] = byte,
-            0xFE00 ... 0xFE9F => self.gpu.write_byte(address, byte),
-            0xFEA0 ... 0xFEFF => {},
+            0x0000 ..= 0x7FFF => self.mbc.rom_control(address, byte),
+            0x8000 ..= 0x9FFF => self.gpu.write_byte(address, byte),
+            0xA000 ..= 0xBFFF => self.mbc.ram_write(address, byte),
+            0xC000 ..= 0xFDFF => self.wram[a & 0x1FFF] = byte,
+            0xFE00 ..= 0xFE9F => self.gpu.write_byte(address, byte),
+            0xFEA0 ..= 0xFEFF => {},
             0xFF00            => self.joypad.write_byte(address, byte),
             0xFF01            => self.serial.write_data(byte),
             0xFF02            => self.serial.write_control(byte),
             0xFF0F            => self.irq_handler.if_reg = byte,
-            0xFF40 ... 0xFF4F => self.gpu.write_byte(address, byte),
-            0xFF68 ... 0xFF6B => self.gpu.write_byte(address, byte),
-            0xFF80 ... 0xFFFE => self.zram[a & 0x7F] = byte,
+            0xFF40 ..= 0xFF4F => self.gpu.write_byte(address, byte),
+            0xFF68 ..= 0xFF6B => self.gpu.write_byte(address, byte),
+            0xFF80 ..= 0xFFFE => self.zram[a & 0x7F] = byte,
             0xFFFF            => self.irq_handler.ie_reg = byte,
             _ => (),
         }

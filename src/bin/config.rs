@@ -85,7 +85,7 @@ impl EmulatorAppConfig {
 
         let file_path = Path::new(filepath);
         let mut file_content = String::new();
-        try!(File::open(file_path)
+        r#try!(File::open(file_path)
                  .and_then(|mut f| f.read_to_string(&mut file_content))
                  .map_err(|_| format!("could not load the config file : {}", file_path.display())));
 
@@ -140,7 +140,7 @@ impl EmulatorAppConfig {
 
     /// Create the 'EmulatorApplication' with this configuration and the
     /// given backend to use.
-    pub fn create_with_backend<'a>(self, backend: Box<EmulatorBackend>) -> EmulatorApplication<'a> {
+    pub fn create_with_backend<'a>(self, backend: Box<dyn EmulatorBackend>) -> EmulatorApplication<'a> {
         EmulatorApplication::new(self, backend)
     }
 

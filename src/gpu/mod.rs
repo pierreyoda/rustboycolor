@@ -5,12 +5,12 @@ mod tile;
 
 use std::cmp;
 
-use cpu::CycleType;
-use memory::Memory;
-use irq::{Interrupt, IrqHandler};
+use crate::cpu::CycleType;
+use crate::memory::Memory;
+use crate::irq::{Interrupt, IrqHandler};
 
 use self::GpuMode::*;
-use self::palette::{PaletteClassic, PaletteGrayShade};
+use self::palette::{PaletteClassic};
 use self::registers::{LcdControl, LcdControllerStatus};
 use self::tile::Tile;
 
@@ -143,7 +143,7 @@ impl Gpu {
     ///
     /// Loops through OAM_Read, VRAM_Read and H_Blank modes to draw the 144 lines,
     /// then switches to V_Blank mode for 10 lines before starting over.
-    pub fn step(&mut self, ticks: CycleType, irq_handler: &mut IrqHandler) {
+    pub fn step(&mut self, ticks: CycleType, irq_handler: &mut dyn IrqHandler) {
         use self::LcdControllerStatus::*;
 
         if !LcdControl::LcdDisplayEnable.is_set(self.lcd_control) {
@@ -272,7 +272,7 @@ impl Gpu {
         self.tileset[tileset_index]
     }
 
-    fn render_line_sprites(&mut self, y: usize) {
+    fn render_line_sprites(&mut self, _y: usize) {
         if !LcdControl::ObjDisplayEnable.is_set(self.lcd_control) { return; }
         // TODO
     }
@@ -301,18 +301,18 @@ impl Memory for Gpu {
             }
         }
         match a {
-            0x8000...0x97FF => { // tileset
+            0x8000..=0x97FF => { // tileset
                 let addr = a - 0x8000;
                 let tile_index = addr / 16;
                 let data_index = addr % 16;
                 debug_assert!(tile_index < 384);
                 self.tileset[tile_index].raw_byte(data_index)
             },
-            0x9800...0x9BFF => { // tilemap 0
+            0x9800..=0x9BFF => { // tilemap 0
                 let addr = a - 0x9800;
                 self.tilemaps[0][addr]
             },
-            0x9C00...0x9FFF => { // tilemap 1
+            0x9C00..=0x9FFF => { // tilemap 1
                 let addr = a - 0x9C00;
                 self.tilemaps[1][addr]
             },
@@ -355,18 +355,18 @@ impl Memory for Gpu {
             }
         }
         match a {
-            0x8000...0x97FF => {
+            0x8000..=0x97FF => {
                 let addr = a - 0x8000;
                 let tile_index = addr / 16;
                 let data_index = addr % 16;
                 debug_assert!(tile_index < 384);
                 self.tileset[tile_index].update_raw_byte(data_index, byte)
             },
-            0x9800...0x9BFF => {
+            0x9800..=0x9BFF => {
                 let addr = a - 0x9800;
                 self.tilemaps[0][addr] = byte;
             },
-            0x9C00...0x9FFF => {
+            0x9C00..=0x9FFF => {
                 let addr = a - 0x9C00;
                 self.tilemaps[1][addr] = byte;
             },

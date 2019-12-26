@@ -20,7 +20,7 @@ pub struct MBC1 {
 }
 
 impl MBC1 {
-    pub fn new(data: Vec<u8>) -> ::ResultStr<MBC1> {
+    pub fn new(data: Vec<u8>) -> crate::ResultStr<MBC1> {
         if data.len() > 0x4000 * 0x7D {
             return Err("MBC1 does not support more than 2MB of ROM");
         }
@@ -71,17 +71,17 @@ impl MBC for MBC1 {
     fn rom_control(&mut self, address: u16, value: u8) {
         match address {
             // external RAM switch
-            0x0000...0x1FFF => {
+            0x0000..=0x1FFF => {
                 self.ram_enabled = value == 0x0A;
             }
             // ROM bank number : lower 5 bits
-            0x2000...0x3FFF => {
+            0x2000..=0x3FFF => {
                 self.rom_bank = (self.rom_bank & 0x60) + match (address as usize) & 0x1F {
                     0x0 => 0x1,
                     n => n,
                 };
             }
-            0x4000...0x5FFF => {
+            0x4000..=0x5FFF => {
                 let n = (address as usize) & 0x03;
                 if self.ram_mode {
                     // RAM bank number
@@ -92,7 +92,7 @@ impl MBC for MBC1 {
                 }
             }
             // ROM/RAM mode select
-            0x6000...0x7FFF => {
+            0x6000..=0x7FFF => {
                 self.ram_mode = value == 0x01;
             }
             _ => panic!(format!("MBC1 : cannot write to ROM at {:0>4X}", address)),

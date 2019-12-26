@@ -1,7 +1,7 @@
 #![allow(non_snake_case)]
 
 use super::test_cpu;
-use memory::Memory;
+use crate::memory::Memory;
 
 // LD_rr_xy : load register y in register x
 macro_rules! test_LD_rr_xy {

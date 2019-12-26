@@ -1,4 +1,4 @@
-pub type SerialCallback = Box<FnMut(u8)>;
+pub type SerialCallback = Box<dyn FnMut(u8)>;
 
 // TODO: serial INT
 pub struct Serial {

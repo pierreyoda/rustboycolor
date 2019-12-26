@@ -50,7 +50,7 @@ pub fn get_key_bindings<Key>(binding: &KeyboardBinding,
 {
     let mut hm = HashMap::new();
 
-    let keyboard_control_hm = try!(build_keyboard_control_hm(&binding));
+    let keyboard_control_hm = r#try!(build_keyboard_control_hm(&binding));
     for (symbol, control) in &keyboard_control_hm {
         let key = match symbol_backend_key_hm.get(symbol) {
             Some(ref k) => *(k.clone()),
@@ -93,7 +93,7 @@ fn build_keyboard_control_hm(binding: &KeyboardBinding) -> Result<HashMap<String
         FromConfigFile(ref config_file) => {
             let filepath = Path::new(&config_file[..]);
             let mut file_content = String::new();
-            try!(File::open(filepath)
+            r#try!(File::open(filepath)
                      .and_then(|mut f| f.read_to_string(&mut file_content))
                      .map_err(|_| {
                          format!("could not load the input config file : {}",

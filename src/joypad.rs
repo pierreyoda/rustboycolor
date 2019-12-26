@@ -1,5 +1,5 @@
-use irq::{Interrupt, IrqHandler};
-use memory::Memory;
+use crate::irq::{Interrupt, IrqHandler};
+use crate::memory::Memory;
 use self::JoypadKey::*;
 
 pub const JOYPAD_ADDRESS: u16 = 0xFF00;
@@ -73,7 +73,7 @@ impl Joypad {
         }
     }
 
-    pub fn key_down(&mut self, key: &JoypadKey, irq_handler: &mut IrqHandler) {
+    pub fn key_down(&mut self, key: &JoypadKey, irq_handler: &mut dyn IrqHandler) {
         match *key {
             Down   => self.rows[0] &= 0x07,
             Up     => self.rows[0] &= 0x0B,
@@ -129,8 +129,8 @@ mod test {
     use super::{Joypad, JoypadKey, JOYPAD_KEYS, JOYPAD_ADDRESS,
         JOYPAD_SELECT_DIRECTIONAL, JOYPAD_SELECT_BUTTON};
     use super::JoypadKey::*;
-    use memory::Memory;
-    use irq::EmptyIrqHandler;
+    use crate::memory::Memory;
+    use crate::irq::EmptyIrqHandler;
 
     #[test]
     fn test_keys_from_str() {

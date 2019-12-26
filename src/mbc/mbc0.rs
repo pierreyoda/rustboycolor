@@ -12,7 +12,7 @@ pub struct MBC0 {
 }
 
 impl MBC0 {
-    pub fn new(data: Vec<u8>) -> ::ResultStr<MBC0> {
+    pub fn new(data: Vec<u8>) -> crate::ResultStr<MBC0> {
         if data.len() > ROM_SIZE {
             Err("ROM too big without any MBC")
         } else {

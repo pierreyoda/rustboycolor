@@ -12,9 +12,9 @@ use self::sdl2::video::WindowContext;
 
 use rustboylib::gpu::{RGB, SCREEN_W, SCREEN_H};
 use super::{EmulatorBackend, BackendMessage};
-use config::EmulatorAppConfig;
-use input::get_key_bindings;
-use emulator::EmulationMessage;
+use crate::config::EmulatorAppConfig;
+use crate::input::get_key_bindings;
+use crate::emulator::EmulationMessage;
 
 /// The SDL 2 backend, using rust-sdl2.
 pub struct BackendSDL2;
@@ -46,8 +46,8 @@ impl EmulatorBackend for BackendSDL2 {
            config: EmulatorAppConfig,
            tx: Sender<BackendMessage>,
            rx: Receiver<EmulationMessage>) {
-        use emulator::EmulationMessage::*;
-        use backend::BackendMessage::*;
+        use crate::emulator::EmulationMessage::*;
+        use crate::backend::BackendMessage::*;
 
         info!("starting the main application thread.");
 
@@ -233,8 +233,8 @@ pub fn keycode_from_symbol_hm() -> HashMap<String, Keycode> {
 mod test {
     use super::sdl2::keyboard::Keycode;
     use rustboylib::joypad::JoypadKey;
-    use input::get_key_bindings;
-    use input::KeyboardBinding::FromConfigFile;
+    use crate::input::get_key_bindings;
+    use crate::input::KeyboardBinding::FromConfigFile;
 
     #[test]
     fn test_keyboard_hm_from_config() {
