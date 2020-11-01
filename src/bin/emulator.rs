@@ -66,9 +66,9 @@ impl<'a> EmulatorApplication<'a> {
             }) {
             Err(why) => {
                 error!("cannot spawn the VM thread: {}", why);
-                return false
-            },
-            _ => {},
+                return false;
+            }
+            _ => {}
         }
 
         // UI loop, in the emulator's thread (should be the main thread)

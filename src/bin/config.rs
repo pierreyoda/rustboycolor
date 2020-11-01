@@ -15,18 +15,20 @@ const DEFAULT_SCALE: u16 = 2;
 
 // Macros to avoid boilerplate functions code.
 macro_rules! config_set_param {
-    ($setter_name: ident, $param_name: ident, $param_type: ty) => (
+    ($setter_name: ident, $param_name: ident, $param_type: ty) => {
         #[allow(dead_code)]
-        pub fn $setter_name(mut self, $param_name: $param_type)
-            -> EmulatorAppConfig {
-            self.$param_name = $param_name; self
+        pub fn $setter_name(mut self, $param_name: $param_type) -> EmulatorAppConfig {
+            self.$param_name = $param_name;
+            self
         }
-    )
+    };
 }
 macro_rules! config_get_param {
-    ($getter_name: ident, $param_name: ident, $param_type: ty) => (
-        pub fn $getter_name(&self) -> $param_type { self.$param_name.clone() }
-    )
+    ($getter_name: ident, $param_name: ident, $param_type: ty) => {
+        pub fn $getter_name(&self) -> $param_type {
+            self.$param_name.clone()
+        }
+    };
 }
 
 /// Structure facilitating the configuration and creation of the emulation

@@ -1,14 +1,14 @@
-use std::collections::HashMap;
-use std::path::Path;
-use std::sync::mpsc::{Receiver, Sender};
-use std::time::{Duration, Instant};
-use sdl2;
 use self::sdl2::event::Event;
 use self::sdl2::keyboard::Keycode;
 use self::sdl2::pixels::{Color, PixelFormatEnum};
 use self::sdl2::rect::Rect;
 use self::sdl2::render::{Texture, TextureCreator, WindowCanvas};
 use self::sdl2::video::WindowContext;
+use sdl2;
+use std::collections::HashMap;
+use std::path::Path;
+use std::sync::mpsc::{Receiver, Sender};
+use std::time::{Duration, Instant};
 
 use super::{BackendMessage, EmulatorBackend};
 use crate::config::EmulatorAppConfig;

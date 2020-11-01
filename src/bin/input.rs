@@ -98,13 +98,13 @@ fn build_keyboard_control_hm(
             let filepath = Path::new(&config_file[..]);
             let mut file_content = String::new();
             File::open(filepath)
-            .and_then(|mut f| f.read_to_string(&mut file_content))
-            .map_err(|_| {
-                format!(
-                    "could not load the input config file : {}",
-                    filepath.display()
-                )
-            })?;
+                .and_then(|mut f| f.read_to_string(&mut file_content))
+                .map_err(|_| {
+                    format!(
+                        "could not load the input config file : {}",
+                        filepath.display()
+                    )
+                })?;
             keyboard_hm_from_config(&file_content[..], &format!("{}", filepath.display()))
         }
     }

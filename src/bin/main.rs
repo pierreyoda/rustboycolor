@@ -9,10 +9,7 @@ use std::path::Path;
 #[macro_use]
 extern crate log;
 
-
-
 use clap::{App, Arg, ArgMatches};
-
 
 use crate::backend::sdl2;
 use crate::input::KeyboardBinding;
