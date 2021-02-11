@@ -2,6 +2,8 @@
 
 Simple Game Boy (Color) emulator written in Rust.
 
+![Tetris (Main Menu)](./screenshots/tetris-main-menu.png)
+
 ## Dependencies
 
 - Rust : compiled against the latest [Rust _stable_ branch][rust-stable]. The latest nightly should work too.
