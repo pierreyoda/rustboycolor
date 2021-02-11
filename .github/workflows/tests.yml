@@ -1,0 +1,18 @@
+﻿name: Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v2
+      - name: Run docker-compose stack
+        run: docker-compose -f docker-compose.yml build
+      - name: Core tests
+        run: docker-compose run rustboycolor cargo test -- --nocapture
