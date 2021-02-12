@@ -1,4 +1,4 @@
-# rustboycolor [![Build Status](https://travis-ci.org/pierreyoda/rustboycolor.svg?branch=master)](https://travis-ci.org/pierreyoda/rustboycolor)
+# rustboycolor ![Tests CI status](https://github.com/pierreyoda/rustboycolor/workflows/Tests/badge.svg)
 
 Simple Game Boy (Color) emulator written in Rust.
 
