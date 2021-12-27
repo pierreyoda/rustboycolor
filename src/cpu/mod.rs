@@ -129,7 +129,7 @@ where
     /// spent.
     fn cpu_step(&mut self) -> CycleType {
         if self.halted {
-            // if any interrupt occured, resume execution
+            // if any interrupt occurred, resume execution
             if self.if_reg_before_halt != self.mem.interrupt_flag() {
                 self.halted = false;
             }
@@ -279,7 +279,7 @@ where
         self.regs.a = r as u8;
     }
 
-    /// Substract 'b' (and C if sub_c is true) from register A.
+    /// Subtract 'b' (and C if sub_c is true) from register A.
     fn alu_sub(&mut self, b: u8, sub_c: bool) {
         let a = self.regs.a;
         let c = if sub_c && self.regs.flag(C_FLAG) {

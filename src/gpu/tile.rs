@@ -8,7 +8,7 @@ pub struct Tile {
     /// For each line, the first byte defines the bit 0 of the color numbers
     /// and the second byte defines the bit 1. In both cases, bit 7 is the
     /// leftmost pixel and bit 0 the rightmost.
-    /// Each pixel thus has a color number from 0 to 3 wich is translated into
+    /// Each pixel thus has a color number from 0 to 3 which is translated into
     /// colors or shades of gray according to the current palettes.
     raw_data: [u8; 16],
     /// Cached internal state better suited for rendering.
@@ -19,7 +19,7 @@ pub struct Tile {
 impl Tile {
     pub fn new(raw_data: [u8; 16]) -> Tile {
         let mut new_tile = Tile {
-            raw_data: raw_data,
+            raw_data,
             data: [[0x00; 8]; 8],
         };
         new_tile.cache();

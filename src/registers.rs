@@ -3,7 +3,7 @@ use std::fmt;
 /// Zero flag : set if the last operation evaluates to zero, otherwise
 /// is cleared.
 pub const Z_FLAG: u8 = 0b_1000_0000;
-/// Substraction flag : set if the last operation was a substraction, otherwise
+/// Subtraction flag : set if the last operation was a subtraction, otherwise
 /// is cleared.
 pub const N_FLAG: u8 = 0b_0100_0000;
 /// Half-carry flag : set if the last operation had an overflow from the 3rd

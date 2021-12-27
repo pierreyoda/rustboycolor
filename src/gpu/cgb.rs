@@ -5,7 +5,7 @@ pub mod regs {
     pub const VRAM_BANK: usize = 0xFF4F;
     /// Register defining the index of the palette to read/write from 'BGP_DATA'.
     pub const BGP_INDEX: usize = 0xFF68;
-    /// Adress from where the background palette of index defined at 'BGP_INDEX'
+    /// Address from where the background palette of index defined at 'BGP_INDEX'
     /// can be read/modified.
     pub const BGP_DATA: usize = 0xFF69;
     pub const OBP_INDEX: usize = 0xFF6A;
@@ -160,7 +160,7 @@ mod test {
     fn test_palette_index_register_decoding() {
         let index = PaletteIndexRegister::new(0xAD);
         assert_eq!(index.raw_value(), 0xAD);
-        assert_eq!(index.high_byte(), true);
+        assert!(index.high_byte());
         assert_eq!(index.color_index(), 2);
         assert_eq!(index.index(), 5);
     }

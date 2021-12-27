@@ -776,7 +776,7 @@ where
     // to the correction factor.
     // Then if the most significant nibble also happens to be greater than 9 or
     // if the C flag is set, then 0x60 is added to the correction factor.
-    // Finally the correction factor is added to A if N is not set, or substracted
+    // Finally the correction factor is added to A if N is not set, or subtracted
     // from A otherwise.
     // main reference : http://www.worldofspectrum.org/faq/reference/z80reference.htm#DAA
     pub fn DAA(&mut self) -> CycleType {
