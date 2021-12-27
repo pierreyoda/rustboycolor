@@ -12,6 +12,7 @@ pub const OBP_1: usize = 0xFF49; // ignored in CGB mode
 pub const WY: usize = 0xFF4A;
 pub const WX: usize = 0xFF4B;
 
+#[derive(Clone)]
 pub enum LcdControl {
     BgDisplayEnable = 0,
     ObjDisplayEnable = 1,
@@ -23,12 +24,13 @@ pub enum LcdControl {
     LcdDisplayEnable = 7,
 }
 impl LcdControl {
-    pub fn is_set(self, register: u8) -> bool {
-        let v = self as usize;
+    pub fn is_set(&self, register: u8) -> bool {
+        let v = self.clone() as usize;
         ((register >> v) & 0x01) == 0x01
     }
 }
 
+#[derive(Clone)]
 pub enum LcdControllerStatus {
     HBlankInterrupt = 3,
     VBlankInterrupt = 4,
@@ -36,8 +38,8 @@ pub enum LcdControllerStatus {
     LyCoincidenceInterrupt = 6,
 }
 impl LcdControllerStatus {
-    pub fn is_set(self, register: u8) -> bool {
-        let v = self as usize;
+    pub fn is_set(&self, register: u8) -> bool {
+        let v = self.clone() as usize;
         ((register >> v) & 0x01) == 0x01
     }
 
@@ -59,22 +61,22 @@ mod test {
 
     #[test]
     fn test_lcd_control_is_set() {
-        assert_eq!(BgDisplayEnable.is_set(1 << 0), true);
-        assert_eq!(ObjDisplayEnable.is_set(1 << 1), true);
-        assert_eq!(ObjSize.is_set(1 << 2), true);
-        assert_eq!(BgTileMapDisplaySelect.is_set(1 << 3), true);
-        assert_eq!(BgWindowTileDataSelect.is_set(1 << 4), true);
-        assert_eq!(WindowDisplayEnable.is_set(1 << 5), true);
-        assert_eq!(WindowTileMapDisplaySelect.is_set(1 << 6), true);
-        assert_eq!(LcdDisplayEnable.is_set(1 << 7), true);
+        assert!(BgDisplayEnable.is_set(1 << 0));
+        assert!(ObjDisplayEnable.is_set(1 << 1));
+        assert!(ObjSize.is_set(1 << 2));
+        assert!(BgTileMapDisplaySelect.is_set(1 << 3));
+        assert!(BgWindowTileDataSelect.is_set(1 << 4));
+        assert!(WindowDisplayEnable.is_set(1 << 5));
+        assert!(WindowTileMapDisplaySelect.is_set(1 << 6));
+        assert!(LcdDisplayEnable.is_set(1 << 7));
     }
 
     #[test]
     fn test_lcdc_status_is_set() {
-        assert_eq!(HBlankInterrupt.is_set(1 << 3), true);
-        assert_eq!(VBlankInterrupt.is_set(1 << 4), true);
-        assert_eq!(OamInterrupt.is_set(1 << 5), true);
-        assert_eq!(LyCoincidenceInterrupt.is_set(1 << 6), true);
+        assert!(HBlankInterrupt.is_set(1 << 3));
+        assert!(VBlankInterrupt.is_set(1 << 4));
+        assert!(OamInterrupt.is_set(1 << 5));
+        assert!(LyCoincidenceInterrupt.is_set(1 << 6));
     }
 
     #[test]

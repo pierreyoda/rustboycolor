@@ -26,8 +26,8 @@ impl PaletteGrayShade {
     }
 
     /// Get the RGB color corresponding to the palette value.
-    pub fn to_rgb(&self) -> RGB {
-        PALETTE_CLASSIC_RGB[self.clone() as usize]
+    pub fn as_rgb(&self) -> RGB {
+        PALETTE_CLASSIC_RGB[*self as usize]
     }
 }
 
@@ -168,10 +168,10 @@ impl PaletteColor {
     }
 
     pub fn data(&self) -> &[PaletteColorValue; 4] {
-        return &self.data;
+        &self.data
     }
     pub fn data_mut(&mut self) -> &mut [PaletteColorValue; 4] {
-        return &mut self.data;
+        &mut self.data
     }
 }
 
@@ -190,10 +190,10 @@ mod test {
 
     #[test]
     fn test_palette_gray_shade_to_rgb() {
-        assert_eq!(White.to_rgb(), PALETTE_CLASSIC_RGB[0]);
-        assert_eq!(LightGray.to_rgb(), PALETTE_CLASSIC_RGB[1]);
-        assert_eq!(DarkGray.to_rgb(), PALETTE_CLASSIC_RGB[2]);
-        assert_eq!(Dark.to_rgb(), PALETTE_CLASSIC_RGB[3]);
+        assert_eq!(White.as_rgb(), PALETTE_CLASSIC_RGB[0]);
+        assert_eq!(LightGray.as_rgb(), PALETTE_CLASSIC_RGB[1]);
+        assert_eq!(DarkGray.as_rgb(), PALETTE_CLASSIC_RGB[2]);
+        assert_eq!(Dark.as_rgb(), PALETTE_CLASSIC_RGB[3]);
     }
 
     #[test]

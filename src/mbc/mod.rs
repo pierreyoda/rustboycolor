@@ -40,7 +40,7 @@ impl CartridgeHeader {
     }
 
     /// Return the RAM size in the given ROM file.
-    pub fn ram_size(rom: &Vec<u8>) -> usize {
+    pub fn ram_size(rom: &[u8]) -> usize {
         match rom[CartridgeHeader::address(RAM_Size).unwrap()] {
             // 2 KB
             0x01 => 0x0800,

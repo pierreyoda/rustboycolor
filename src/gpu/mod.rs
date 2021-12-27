@@ -243,7 +243,7 @@ impl Gpu {
                 );
                 let (x_offset, y_offset) = (background_x % 8, background_y % 8);
                 let color_index = tile.data()[y_offset][x_offset] as usize;
-                self.frame_buffer[y * SCREEN_W + x] = palette_data[color_index].to_rgb();
+                self.frame_buffer[y * SCREEN_W + x] = palette_data[color_index].as_rgb();
             }
         }
         // window line
@@ -260,7 +260,7 @@ impl Gpu {
                 );
                 let (x_offset, y_offset) = (window_x % 8, window_y % 8);
                 let color_index = tile.data()[y_offset][x_offset] as usize;
-                self.frame_buffer[y * SCREEN_W + x] = palette_data[color_index].to_rgb();
+                self.frame_buffer[y * SCREEN_W + x] = palette_data[color_index].as_rgb();
             }
         }
     }

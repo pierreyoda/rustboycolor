@@ -34,9 +34,9 @@ pub struct Registers {
     pub sp: u16,
 }
 
-impl Registers {
+impl Default for Registers {
     /// Create and return a new, initialized Registers instance.
-    pub fn new() -> Registers {
+    fn default() -> Self {
         Registers {
             a: 0x0,
             f: 0b_0000_0000,
@@ -50,7 +50,9 @@ impl Registers {
             sp: 0,
         }
     }
+}
 
+impl Registers {
     pub fn af(&self) -> u16 {
         ((self.a as u16) << 8) | (self.f as u16)
     }

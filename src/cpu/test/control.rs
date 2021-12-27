@@ -194,7 +194,7 @@ fn test_RETI() {
     assert_eq!(machine.clock_cycles(), 16);
     assert_eq!(machine.cpu.regs.sp, 0xFFFE);
     assert_eq!(machine.cpu.regs.pc, 0xA3EC);
-    assert_eq!(machine.cpu.ime, true);
+    assert!(machine.cpu.ime);
 }
 
 // RET_cond : return to calling routine if a condition is met

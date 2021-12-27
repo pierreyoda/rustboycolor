@@ -33,7 +33,7 @@ macro_rules! test_blargg_cpu_instrs {
                 cpu.step();
             }
             println!("blargg cpu test '{}' serial output:\n{}", $filename, serial_output.borrow());
-            assert!(serial_output.borrow().contains("Passed"), format!("'{}' does not pass", $filename));
+            assert!(serial_output.borrow().contains("Passed"), "'{}' does not pass", $filename);
         }
     )*
     }

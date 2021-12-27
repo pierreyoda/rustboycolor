@@ -80,7 +80,7 @@ impl MMU {
             in_bios: !skip_bios,
             bios: &GB_BIOS,
             gpu: Gpu::new(cgb_mode),
-            mbc: mbc,
+            mbc,
             joypad: Joypad::new(),
             serial: Serial::new(serial_callback),
             irq_handler: MachineIrqHandler::new(),

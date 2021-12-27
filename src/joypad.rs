@@ -3,8 +3,7 @@ use crate::irq::{Interrupt, IrqHandler};
 use crate::memory::Memory;
 
 pub const JOYPAD_ADDRESS: u16 = 0xFF00;
-pub const JOYPAD_KEYS: [&'static str; 8] =
-    ["Up", "Down", "Left", "Right", "Select", "Start", "A", "B"];
+pub const JOYPAD_KEYS: [&str; 8] = ["Up", "Down", "Left", "Right", "Select", "Start", "A", "B"];
 pub const JOYPAD_SELECT_DIRECTIONAL: u8 = 1 << 4;
 pub const JOYPAD_SELECT_BUTTON: u8 = 1 << 5;
 
@@ -22,7 +21,7 @@ pub enum JoypadKey {
 
 impl JoypadKey {
     /// Build and return a JoypadKey corresponding to the given symbol, if possible.
-    pub fn from_str(symbol: &str) -> Option<JoypadKey> {
+    pub fn from_string_slice(symbol: &str) -> Option<JoypadKey> {
         match symbol {
             "Up" => Some(JoypadKey::Up),
             "Down" => Some(JoypadKey::Down),
@@ -135,14 +134,14 @@ mod test {
 
     #[test]
     fn test_keys_from_str() {
-        assert_eq!(JoypadKey::from_str("Up"), Some(Up));
-        assert_eq!(JoypadKey::from_str("Down"), Some(Down));
-        assert_eq!(JoypadKey::from_str("Left"), Some(Left));
-        assert_eq!(JoypadKey::from_str("Right"), Some(Right));
-        assert_eq!(JoypadKey::from_str("Select"), Some(Select));
-        assert_eq!(JoypadKey::from_str("Start"), Some(Start));
-        assert_eq!(JoypadKey::from_str("A"), Some(A));
-        assert_eq!(JoypadKey::from_str("B"), Some(B));
+        assert_eq!(JoypadKey::from_string_slice("Up"), Some(Up));
+        assert_eq!(JoypadKey::from_string_slice("Down"), Some(Down));
+        assert_eq!(JoypadKey::from_string_slice("Left"), Some(Left));
+        assert_eq!(JoypadKey::from_string_slice("Right"), Some(Right));
+        assert_eq!(JoypadKey::from_string_slice("Select"), Some(Select));
+        assert_eq!(JoypadKey::from_string_slice("Start"), Some(Start));
+        assert_eq!(JoypadKey::from_string_slice("A"), Some(A));
+        assert_eq!(JoypadKey::from_string_slice("B"), Some(B));
     }
 
     #[test]
@@ -152,7 +151,10 @@ mod test {
         assert_eq!(joypad.read_byte(JOYPAD_ADDRESS), 0x00);
 
         for key_str in JOYPAD_KEYS.iter() {
-            joypad.key_down(&JoypadKey::from_str(key_str).unwrap(), &mut irq_handler);
+            joypad.key_down(
+                &JoypadKey::from_string_slice(key_str).unwrap(),
+                &mut irq_handler,
+            );
         }
         joypad.write_byte(JOYPAD_ADDRESS, JOYPAD_SELECT_DIRECTIONAL);
         assert_eq!(joypad.read_byte(JOYPAD_ADDRESS), 0x00);
@@ -160,7 +162,7 @@ mod test {
         assert_eq!(joypad.read_byte(JOYPAD_ADDRESS), 0x00);
 
         for key_str in JOYPAD_KEYS.iter() {
-            joypad.key_up(&JoypadKey::from_str(key_str).unwrap());
+            joypad.key_up(&JoypadKey::from_string_slice(key_str).unwrap());
         }
         assert_eq!(joypad.read_byte(JOYPAD_ADDRESS), 0x0F);
         joypad.write_byte(JOYPAD_ADDRESS, JOYPAD_SELECT_DIRECTIONAL);

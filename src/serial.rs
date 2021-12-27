@@ -12,7 +12,7 @@ impl Serial {
         Serial {
             data: 0x00,
             control: 0x00,
-            callback: callback.unwrap_or(Box::new(|_: u8| {})),
+            callback: callback.unwrap_or_else(|| Box::new(|_: u8| {})),
         }
     }
 

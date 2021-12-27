@@ -21,7 +21,7 @@ impl TestMachine {
         TestMachine { cpu: Cpu::new(m) }
     }
 
-    pub fn init_cpu<F: Fn(&mut Cpu<TestMemory>) -> ()>(mut self, function: F) -> Self {
+    pub fn init_cpu<F: Fn(&mut Cpu<TestMemory>)>(mut self, function: F) -> Self {
         function(&mut self.cpu);
         self
     }
@@ -31,7 +31,7 @@ impl TestMachine {
     }
 }
 
-pub fn test_cpu<F: Fn(&mut Cpu<TestMemory>) -> ()>(instructions: &[u8], init: F) -> TestMachine {
+pub fn test_cpu<F: Fn(&mut Cpu<TestMemory>)>(instructions: &[u8], init: F) -> TestMachine {
     let mut instrs = instructions.to_vec();
     instrs.push(OPCODE_END);
     let mut machine = TestMachine::with_instructions(&instrs).init_cpu(init);
@@ -44,7 +44,7 @@ pub fn test_cpu<F: Fn(&mut Cpu<TestMemory>) -> ()>(instructions: &[u8], init: F)
         count += 1;
     }
     if count == OPCODES_LIMIT {
-        assert!(false, "test_cpu: opcodes limit reached");
+        panic!("test_cpu: opcodes limit reached");
     }
 
     machine
@@ -64,7 +64,7 @@ impl TestMemory {
 
 impl Memory for TestMemory {
     fn read_byte(&mut self, address: u16) -> u8 {
-        return self.memory[address as usize];
+        self.memory[address as usize]
     }
     fn write_byte(&mut self, address: u16, byte: u8) {
         self.memory[address as usize] = byte;

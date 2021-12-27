@@ -94,7 +94,7 @@ impl MBC for MBC1 {
             0x6000..=0x7FFF => {
                 self.ram_mode = value == 0x01;
             }
-            _ => panic!(format!("MBC1 : cannot write to ROM at {:0>4X}", address)),
+            _ => panic!("MBC1 : cannot write to ROM at {:0>4X}", address),
         }
     }
 

@@ -57,7 +57,7 @@ where
         Cpu {
             cycles: 0,
             halted: false,
-            regs: Registers::new(),
+            regs: Registers::default(),
             mem,
             ime: true,
             if_reg_before_halt: 0x00,

@@ -16,9 +16,7 @@ impl MBC0 {
             Err("ROM too big without any MBC")
         } else {
             let mut rom = [0x00; ROM_SIZE];
-            for i in 0..data.len() {
-                rom[i] = data[i];
-            }
+            rom[..data.len()].clone_from_slice(&data[..]);
 
             let ram = match CartridgeHeader::ram_size(&data) {
                 0 => None,

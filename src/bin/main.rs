@@ -48,7 +48,7 @@ fn app_options_from_matches(matches: &ArgMatches<'_>) -> config::EmulatorAppConf
 fn main() {
     // Logger initialization
     if let Err(error) = logger::init_console_logger() {
-        panic!(format!("Logging setup error : {}", error));
+        panic!("Logging setup error : {}", error);
     }
 
     // Program options

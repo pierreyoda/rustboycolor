@@ -175,7 +175,10 @@ fn keyboard_hm_from_config(
             }
         };
         if hm
-            .insert(key_symbol.into(), JoypadKey::from_str(key).unwrap())
+            .insert(
+                key_symbol.into(),
+                JoypadKey::from_string_slice(key).unwrap(),
+            )
             .is_some()
         {
             warn!(
