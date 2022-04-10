@@ -1,9 +1,9 @@
-use std::collections::HashMap;
 use std::fmt;
 use std::fs::File;
 use std::hash::Hash;
 use std::io::Read;
 use std::path::Path;
+use std::{collections::HashMap, path::PathBuf};
 
 use toml;
 
@@ -19,7 +19,7 @@ pub enum KeyboardBinding {
     AZERTY,
     /// The keyboard binding is to be loaded from the given configuration file.
     /// If this fails, revert to the default binding ('QWERTY').
-    FromConfigFile(String),
+    FromConfigFile(PathBuf),
 }
 
 impl fmt::Debug for KeyboardBinding {
@@ -27,7 +27,7 @@ impl fmt::Debug for KeyboardBinding {
         match *self {
             QWERTY => write!(f, "QWERTY"),
             AZERTY => write!(f, "AZERTY"),
-            FromConfigFile(ref file) => write!(f, "in configuration file \"{}\"", file),
+            FromConfigFile(ref file) => write!(f, "in configuration file \"{}\"", file.display()),
         }
     }
 }
@@ -95,7 +95,7 @@ fn build_keyboard_control_hm(
             Ok(hm)
         }
         FromConfigFile(ref config_file) => {
-            let filepath = Path::new(&config_file[..]);
+            let filepath = Path::new(config_file);
             let mut file_content = String::new();
             File::open(filepath)
                 .and_then(|mut f| f.read_to_string(&mut file_content))

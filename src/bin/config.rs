@@ -1,7 +1,7 @@
-use std::cmp;
 use std::fs::File;
 use std::io::Read;
 use std::path::Path;
+use std::{cmp, path::PathBuf};
 
 use toml;
 
@@ -82,7 +82,7 @@ impl EmulatorAppConfig {
 
     /// Create and return a new 'EmulatorAppConfig' with the default values set,
     /// and with all valid properties from the given configuration file set.
-    pub fn from_file(filepath: &str) -> Result<EmulatorAppConfig, String> {
+    pub fn from_file(filepath: &PathBuf) -> Result<EmulatorAppConfig, String> {
         let mut config = EmulatorAppConfig::new();
 
         let file_path = Path::new(filepath);
