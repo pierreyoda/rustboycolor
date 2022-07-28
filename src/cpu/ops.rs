@@ -1,8 +1,8 @@
+use super::registers::{C_FLAG, H_FLAG, N_FLAG, Z_FLAG};
 use super::{Cpu, CycleType};
 use crate::irq::INTERRUPT_FLAG_ADDRESS;
 use crate::memory::Memory;
 use crate::mmu::MemoryManagementUnit;
-use crate::registers::{C_FLAG, H_FLAG, N_FLAG, Z_FLAG};
 
 // --- Implementation macros ---
 // avoid boilerplate some instructions functions

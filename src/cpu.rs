@@ -2,6 +2,7 @@ mod cb_ops;
 /// Module emulating the behavior of the Sharp LR35902 processor powering the
 /// Game Boy (Color).
 mod ops;
+mod registers;
 #[cfg(test)]
 mod test;
 
@@ -13,7 +14,7 @@ use std::io::Write;
 use crate::irq::Interrupt;
 use crate::memory::Memory;
 use crate::mmu::MemoryManagementUnit;
-use crate::registers::{Registers, C_FLAG, H_FLAG, N_FLAG, Z_FLAG};
+use registers::{Registers, C_FLAG, H_FLAG, N_FLAG, Z_FLAG};
 
 /// The CPU clock speed for the Game Boy (Classic), in Hz.
 pub const CPU_CLOCK_SPEED: u32 = 4_194_304;

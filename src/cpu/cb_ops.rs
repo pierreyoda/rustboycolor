@@ -1,7 +1,7 @@
+use super::registers::{C_FLAG, H_FLAG, N_FLAG, Z_FLAG};
 use super::{Cpu, CycleType};
 use crate::memory::Memory;
 use crate::mmu::MemoryManagementUnit;
-use crate::registers::{C_FLAG, H_FLAG, N_FLAG, Z_FLAG};
 
 //
 // --- Helper and implementation macros ---

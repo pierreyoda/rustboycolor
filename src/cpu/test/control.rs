@@ -1,8 +1,8 @@
 #![allow(non_snake_case)]
 
 use super::{test_cpu, OPCODE_END};
+use crate::cpu::registers::{C_FLAG, Z_FLAG};
 use crate::memory::Memory;
-use crate::registers::{C_FLAG, Z_FLAG};
 
 // JP_nn : absolute jump to 16-bit address
 #[test]

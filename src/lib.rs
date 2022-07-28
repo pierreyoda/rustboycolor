@@ -9,7 +9,6 @@ pub mod joypad;
 pub mod mbc;
 pub mod memory;
 pub mod mmu;
-pub mod registers;
 pub mod serial;
 
 /// A Result with a string literal as an error type.
