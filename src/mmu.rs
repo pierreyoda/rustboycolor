@@ -81,7 +81,7 @@ impl MMU {
             bios: &GB_BIOS,
             gpu: Gpu::new(cgb_mode),
             mbc,
-            joypad: Joypad::new(),
+            joypad: Joypad::default(),
             serial: Serial::new(serial_callback),
             irq_handler: MachineIrqHandler::new(),
             wram: [0x0; WRAM_SIZE],
@@ -134,19 +134,19 @@ impl Memory for MMU {
         let a = address as usize;
         match a {
             // BIOS mode
-            _ if self.in_bios => {
-                if address < 0x100 {
-                    self.bios[a]
-                } else if address == 0x100 {
+            _ if self.in_bios => match address {
+                v if v < 0x100 => self.bios[a],
+                0x100 => {
                     self.in_bios = false;
                     info!("MMU : leaving the BIOS");
                     self.read_byte(address)
-                } else {
+                }
+                _ => {
                     error!("MMU : BIOS overflow, leaving the BIOS");
                     self.in_bios = false;
                     self.read_byte(address)
                 }
-            }
+            },
             // cartridge ROM
             0x0000..=0x7FFF => self.mbc.rom_read(address),
             // GPU : background and sprite data

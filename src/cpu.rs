@@ -159,7 +159,7 @@ where
         let step_cycles = self.dispatch_array[self.opcode as usize](self);
         #[cfg(feature = "tracing")]
         {
-            write!(&mut self.trace_file, " CY={}\n", step_cycles);
+            writeln!(&mut self.trace_file, " CY={}", step_cycles);
         }
         self.cycles += step_cycles;
         step_cycles
@@ -177,7 +177,7 @@ where
         }
         #[cfg(feature = "tracing")]
         {
-            write!(&mut self.trace_file, "INT {:0>2X}\n", interrupts);
+            writeln!(&mut self.trace_file, "INT {:0>2X}", interrupts);
         }
 
         // check the interrupts by order of priority

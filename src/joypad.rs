@@ -63,14 +63,16 @@ pub struct Joypad {
     selection: usize,
 }
 
-impl Joypad {
-    pub fn new() -> Joypad {
-        Joypad {
+impl Default for Joypad {
+    fn default() -> Self {
+        Self {
             rows: [0x0F, 0x0F],
             selection: 0,
         }
     }
+}
 
+impl Joypad {
     pub fn key_down(&mut self, key: &JoypadKey, irq_handler: &mut dyn IrqHandler) {
         match *key {
             Down => self.rows[0] &= 0x07,
