@@ -54,7 +54,6 @@ impl JoypadKey {
 /// TODO:
 /// On a real device, the down and left directions cannot be simultaneously
 /// pressed with respectively the up and right directions.
-///
 pub struct Joypad {
     /// The 2x4 matrix holding the key states (0 = pressed).
     /// row 1 : direction / row 2 : buttons
@@ -149,7 +148,7 @@ mod test {
     #[test]
     fn test_keys_down_and_up() {
         let mut irq_handler = EmptyIrqHandler;
-        let mut joypad = Joypad::new();
+        let mut joypad = Joypad::default();
         assert_eq!(joypad.read_byte(JOYPAD_ADDRESS), 0x00);
 
         for key_str in JOYPAD_KEYS.iter() {
@@ -174,7 +173,7 @@ mod test {
     #[test]
     fn test_key_sequence() {
         let mut irq_handler = EmptyIrqHandler;
-        let mut joypad = Joypad::new();
+        let mut joypad = Joypad::default();
         // up+right+A
         joypad.key_down(&Up, &mut irq_handler);
         joypad.key_down(&Right, &mut irq_handler);

@@ -8,7 +8,7 @@ use rustboylib::joypad::JoypadKey;
 
 /// Message emitted by the backend UI loop to the emulation core.
 pub enum BackendMessage {
-    /// Set the emulation state (running for true, paused for false).
+    /// Set the emulation state (running if true, paused if false).
     UpdateRunStatus(bool),
     /// Notify that a key was pressed.
     KeyDown(JoypadKey),

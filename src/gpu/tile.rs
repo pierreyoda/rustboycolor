@@ -5,13 +5,16 @@ pub struct Tile {
     /// byte 0-1 = first line (upper 8 pixels)
     /// byte 2-3 = second lines
     /// etc.
+    ///
     /// For each line, the first byte defines the bit 0 of the color numbers
     /// and the second byte defines the bit 1. In both cases, bit 7 is the
     /// leftmost pixel and bit 0 the rightmost.
+    ///
     /// Each pixel thus has a color number from 0 to 3 which is translated into
     /// colors or shades of gray according to the current palettes.
     raw_data: [u8; 16],
-    /// Cached internal state better suited for rendering.
+    /// Cached internal state, better suited for rendering.
+    ///
     /// First index is Y coordinate, second index is X coordinate.
     data: [[u8; 8]; 8],
 }

@@ -27,7 +27,9 @@ impl fmt::Debug for KeyboardBinding {
         match *self {
             QWERTY => write!(f, "QWERTY"),
             AZERTY => write!(f, "AZERTY"),
-            FromConfigFile(ref file) => write!(f, "in configuration file \"{}\"", file.display()),
+            FromConfigFile(ref filename) => {
+                write!(f, "in configuration file \"{}\"", filename.display())
+            }
         }
     }
 }

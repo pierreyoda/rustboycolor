@@ -19,6 +19,7 @@ pub trait MemoryManagementUnit {
 
 /// The Game Boy (Color)'s Memory Management Unit, interfacing between
 /// its CPU and the different memory components (RAM, ROM banks...).
+///
 /// Responsible for switching between the different ROM and RAM banks.
 ///
 /// For now the MMU struct actually owns the different components, effectively

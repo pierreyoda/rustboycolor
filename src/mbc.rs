@@ -1,12 +1,14 @@
+//! The MBC module implements the different Memory Bank Controllers and the
+//! interface for the MMU to use.
+//!
+//! MBCs allow the game cartridge to have access to more address space by
+//! explicit bank switching.
+//!
+//! Main reference for the implementation :
+//! http://bgb.bircd.org/pandocs.htm (Pan Docs)
+
 use std::fs::File;
 use std::io::Read;
-/// The MBC module implements the different Memory Bank Controllers and the
-/// interface for the MMU to use.
-/// MBCs allow the game cartridge to have access to more address space by
-/// explicit bank switching.
-///
-/// Main reference for the implementation :
-/// http://bgb.bircd.org/pandocs.htm (Pan Docs)
 use std::path::Path;
 
 mod mbc0;
@@ -58,7 +60,7 @@ use self::CartridgeHeader::*;
 pub trait MBC {
     fn rom_read(&self, address: u16) -> u8;
     fn ram_read(&self, address: u16) -> u8;
-    /// For some MBCs, trying to write at specific ROM addresses allow to
+    /// For some MBCs, trying to write at specific ROM addresses allows to
     /// write to the Control Registers.
     fn rom_control(&mut self, address: u16, value: u8);
     fn ram_write(&mut self, address: u16, value: u8);
@@ -69,6 +71,7 @@ pub trait MBC {
 /// TODO: read cartridge information
 /// TODO: cartridge header checksum validation
 /// TODO: state saving with battery-backed RAM
+/// TODO: take an u8 array instead to move file loading into the actual application
 pub fn load_cartridge(filepath: &Path) -> crate::ResultStr<Box<dyn MBC + Send>> {
     let mut data = Vec::<u8>::new();
     File::open(filepath)

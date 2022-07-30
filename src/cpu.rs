@@ -201,14 +201,14 @@ where
     }
 
     /// Called when an unknown opcode is encountered.
-    /// TODO improved behavior
+    /// TODO: improved behavior
     pub fn opcode_unknown(&mut self) -> CycleType {
         warn!("CPU : unknown opcode 0x{:0>2X} ; halting", self.opcode);
         self.halted = true;
         0
     }
     /// Called when an unknown CB-prefixed opcode is encountered.
-    /// TODO improved behavior
+    /// TODO: improved behavior
     pub fn cb_opcode_unknown(&mut self) -> CycleType {
         warn!("CPU : unknown opcode 0xCB{:0>2X} ; halting", self.opcode);
         self.halted = true;
@@ -216,6 +216,7 @@ where
     }
 
     /// Push a 16-bit value to the stack.
+    ///
     /// NB : on this Z80-derived CPU, the stack grows from top down
     fn stack_push(&mut self, value: u16) {
         self.regs.sp = self.regs.sp.wrapping_sub(2);

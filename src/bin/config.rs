@@ -38,10 +38,12 @@ pub struct EmulatorAppConfig {
     /// The title of the emulator window.
     window_title: &'static str,
     /// The desired width for the emulator display window.
+    ///
     /// This is just a hint, the application may resize to reach a proper
     /// aspect ratio if the option 'window_force_aspect' is set to true.
     window_width: u16,
     /// The desired height for the emulator display window.
+    ///
     /// This is just a hint, the application may resize to reach a proper
     /// aspect ratio if the option 'window_force_aspect' is set to true.
     window_height: u16,

@@ -75,13 +75,16 @@ pub struct Gpu {
     /// LCDC Status Register
     lcdc_status: u8,
     /// The index of the current scanline.
+    ///
     /// Can take any value between 0 and 153, with values between 144 and 153
     /// indicating a V-Blank period.
+    ///
     /// Writing to the LY register resets it to 0.
     ly: usize,
     /// LY comparison value.
+    ///
     /// When both are equal, the coincident bit in the STAT register is set
-    /// and (if enabled in the STAT register) a LCD STAT interrupt is requested.
+    /// and (if enabled in the STAT register) an LCD STAT interrupt is requested.
     lyc: usize,
     /// Horizontal position of the top-left corner of the on-screen background.
     scroll_x: u8,
@@ -95,10 +98,12 @@ pub struct Gpu {
     frame_buffer: ScreenData,
     /// The background palette, assigning gray shades to the color numbers
     /// of the background and window tiles.
+    ///
     /// Not used in CGB mode (yet 'Option' is not used for convenience).
     bg_palette: PaletteClassic,
     /// The two object palettes (Classic mode only), assigning gray shades to
     /// the color numbers of the sprites. Color 0 is not used (transparent).
+    ///
     /// Not used in CGB mode.
     ob_palettes: [PaletteClassic; 2],
     /// The tileset in VRAM.
@@ -285,7 +290,7 @@ impl Gpu {
         if !LcdControl::ObjDisplayEnable.is_set(self.lcd_control) {
             return;
         }
-        // TODO
+        // TODO:
     }
 
     pub fn screen_data(&self) -> Vec<RGB> {

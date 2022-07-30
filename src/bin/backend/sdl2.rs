@@ -53,6 +53,7 @@ impl BackendSDL2 {
 }
 
 impl EmulatorBackend for BackendSDL2 {
+    // TODO: avoid unwraps
     fn run(
         &mut self,
         config: EmulatorAppConfig,
@@ -245,7 +246,7 @@ pub fn keycode_from_symbol_hm() -> HashMap<String, Keycode> {
     hm.insert("NumpadDivide".into(), Keycode::KpDivide);
     // reference : https://wiki.libsdl.org/SDL_Keycode
     // and : "keycode.rs" from https://github.com/AngryLawyer/rust-sdl2/
-    let mut sdl2_key_names = Vec::<String>::new();
+    let mut sdl2_key_names = vec![];
     for c in b'A'..b'Z' + 1 {
         sdl2_key_names.push((c as char).to_string());
     }

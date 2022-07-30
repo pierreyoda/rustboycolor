@@ -19,6 +19,7 @@ pub enum EmulationMessage {
 }
 
 /// The backend-agnostic RustBoyColor emulator application.
+///
 /// Communication between the virtual machine's emulation loop and the
 /// backend's UI loop is done with 2 channels using respectively
 /// 'Chip8VMCommand' and 'Chip8UICommand'.
@@ -69,7 +70,7 @@ impl<'a> EmulatorApplication<'a> {
                 return false;
             }
             _ => {}
-        }
+        };
 
         // UI loop, in the emulator's thread (should be the main thread)
         self.backend.run(self.config.clone(), tx_ui, rx_ui);
