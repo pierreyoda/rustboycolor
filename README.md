@@ -15,6 +15,7 @@ Simple Game Boy (Color) emulator written in Rust.
 
 ## Main References
 
-- Pandoc: <http://bgb.bircd.org/pandocs.html>
+- Pandoc: <https://gbdev.io/pandocs/>
 - Complete [Opcode tables](http://www.pastraiser.com/cpu/gameboy/gameboy_opcodes.html)
 - More technical information: <http://fms.komkon.org/GameBoy/Tech/>
+- Test ROMs: <https://github.com/c-sp/gameboy-test-roms>
