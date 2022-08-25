@@ -8,7 +8,7 @@ pub trait IrqHandler {
     fn request_interrupt(&mut self, interrupt: Interrupt);
 }
 
-/// Mock 'IrqHandler'.
+/// Mock `IrqHandler`.
 pub struct EmptyIrqHandler;
 
 impl IrqHandler for EmptyIrqHandler {
@@ -39,7 +39,7 @@ impl Interrupt {
         }
     }
 
-    /// Get the address the CPU will jump to to handle the interrupt.
+    /// Get the address the CPU will jump to handle the interrupt.
     pub fn address(&self) -> u16 {
         match *self {
             Interrupt::V_Blank => 0x40,

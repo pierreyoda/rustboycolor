@@ -7,6 +7,10 @@ use crate::mbc::MBC;
 use crate::memory::Memory;
 use crate::serial::{Serial, SerialCallback};
 
+use self::timers::Timers;
+
+mod timers;
+
 const WRAM_SIZE: usize = 0x2000;
 const ZRAM_SIZE: usize = 0x0080;
 
@@ -30,6 +34,8 @@ pub struct MMU {
     in_bios: bool,
     /// The BIOS file to execute when starting the emulation.
     bios: &'static [u8],
+    /// Timers.
+    timers: Timers,
     /// GPU.
     gpu: Gpu,
     /// The MBC interfacing with the cartridge ROM and (optionally) RAM banks.
@@ -80,6 +86,7 @@ impl MMU {
         MMU {
             in_bios: !skip_bios,
             bios: &GB_BIOS,
+            timers: Timers::default(),
             gpu: Gpu::new(cgb_mode),
             mbc,
             joypad: Joypad::default(),
@@ -112,6 +119,7 @@ impl MMU {
 
 impl MemoryManagementUnit for MMU {
     fn step(&mut self, ticks: CycleType) -> CycleType {
+        self.timers.cycle(ticks, &mut self.irq_handler);
         let gpu_ticks = ticks; // TODO: DMA
         self.gpu.step(gpu_ticks, &mut self.irq_handler);
         gpu_ticks
@@ -162,6 +170,8 @@ impl Memory for MMU {
             0xFEA0..=0xFEFF => 0x00,
             // joypad
             0xFF00 => self.joypad.read_byte(address),
+            // timers
+            0xFF04..=0xFF07 => self.timers.read_byte(address),
             // SB - Serial Transfer Data
             0xFF01 => self.serial.read_data(),
             // SC - Serial Transfer Control
@@ -193,6 +203,7 @@ impl Memory for MMU {
             0xFF00 => self.joypad.write_byte(address, byte),
             0xFF01 => self.serial.write_data(byte),
             0xFF02 => self.serial.write_control(byte),
+            0xFF04..=0xFF07 => self.timers.write_byte(address, byte),
             0xFF0F => self.irq_handler.if_reg = byte,
             0xFF40..=0xFF4F => self.gpu.write_byte(address, byte),
             0xFF68..=0xFF6B => self.gpu.write_byte(address, byte),
