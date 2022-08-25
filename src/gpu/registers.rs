@@ -23,6 +23,7 @@ pub enum LcdControl {
     WindowTileMapDisplaySelect = 6,
     LcdDisplayEnable = 7,
 }
+
 impl LcdControl {
     pub fn is_set(&self, register: u8) -> bool {
         let v = self.clone() as usize;
@@ -37,6 +38,7 @@ pub enum LcdControllerStatus {
     OamInterrupt = 5,
     LyCoincidenceInterrupt = 6,
 }
+
 impl LcdControllerStatus {
     pub fn is_set(&self, register: u8) -> bool {
         let v = self.clone() as usize;

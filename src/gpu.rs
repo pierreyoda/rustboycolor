@@ -281,8 +281,17 @@ impl Gpu {
         let tileset_index = if LcdControl::BgWindowTileDataSelect.is_set(self.lcd_control) {
             tile_index as usize
         } else {
-            256 + (tile_index as i8 as i16) as usize
+            256 + (tile_index as usize)
         };
+        debug_assert!(
+            tileset_index < self.tileset.len(),
+            "Gpu.get_tile(x={}, y={}, tilemap_2={}): tileset_index overflow (value={}, max={})",
+            x,
+            y,
+            tilemap_2,
+            tileset_index,
+            self.tileset.len()
+        );
         self.tileset[tileset_index]
     }
 
