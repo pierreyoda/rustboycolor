@@ -75,8 +75,6 @@ where
     }
 
     pub fn STOP(&mut self) -> CycleType {
-        // CGB speed switch instruction : TODO
-        warn!("CPU 'STOP' : unimplemented");
         1
     }
 
