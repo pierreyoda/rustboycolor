@@ -1,3 +1,4 @@
+use crate::apu::{Apu, ApuChannel};
 use crate::bios::GB_BIOS;
 use crate::cpu::CycleType;
 use crate::gpu::{Gpu, RGB};
@@ -38,6 +39,8 @@ pub struct MMU {
     timers: Timers,
     /// GPU.
     gpu: Gpu,
+    /// APU.
+    apu: Apu,
     /// The MBC interfacing with the cartridge ROM and (optionally) RAM banks.
     mbc: Box<dyn MBC + 'static>,
     /// The joypad controller.
@@ -88,6 +91,8 @@ impl MMU {
             bios: &GB_BIOS,
             timers: Timers::default(),
             gpu: Gpu::new(cgb_mode),
+            // TODO: determine default channel?
+            apu: Apu::new(ApuChannel::SweepAndEnvelope),
             mbc,
             joypad: Joypad::default(),
             serial: Serial::new(serial_callback),
@@ -170,12 +175,17 @@ impl Memory for MMU {
             0xFEA0..=0xFEFF => 0x00,
             // joypad
             0xFF00 => self.joypad.read_byte(address),
-            // timers
-            0xFF04..=0xFF07 => self.timers.read_byte(address),
             // SB - Serial Transfer Data
             0xFF01 => self.serial.read_data(),
             // SC - Serial Transfer Control
             0xFF02 => self.serial.read_control(),
+            // timers
+            0xFF04..=0xFF07 => self.timers.read_byte(address),
+            // APU
+            0xFF10..=0xFF14 => self.apu.read_byte(address),
+            0xFF16..=0xFF26 => self.apu.read_byte(address),
+            0xFF1A..=0xFF1E => self.apu.read_byte(address),
+            0xFF30..=0xFF3F => self.apu.read_byte(address),
             // Interrupt Flag Register
             0xFF0F => self.irq_handler.if_reg,
             // GPU registers
@@ -204,6 +214,10 @@ impl Memory for MMU {
             0xFF01 => self.serial.write_data(byte),
             0xFF02 => self.serial.write_control(byte),
             0xFF04..=0xFF07 => self.timers.write_byte(address, byte),
+            0xFF10..=0xFF14 => self.apu.write_byte(address, byte),
+            0xFF16..=0xFF26 => self.apu.write_byte(address, byte),
+            0xFF1A..=0xFF1E => self.apu.write_byte(address, byte),
+            0xFF30..=0xFF3F => self.apu.write_byte(address, byte),
             0xFF0F => self.irq_handler.if_reg = byte,
             0xFF40..=0xFF4F => self.gpu.write_byte(address, byte),
             0xFF68..=0xFF6B => self.gpu.write_byte(address, byte),

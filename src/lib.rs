@@ -1,6 +1,7 @@
 #[macro_use]
 extern crate log;
 
+pub mod apu;
 mod bios;
 pub mod cpu;
 pub mod gpu;
