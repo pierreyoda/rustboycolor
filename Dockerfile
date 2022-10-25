@@ -1,4 +1,4 @@
-FROM rust:1.63-slim
+FROM rust:1.64-slim
 
 RUN apt-get -q update && apt-get -q install -y \
     libsdl2-dev \
