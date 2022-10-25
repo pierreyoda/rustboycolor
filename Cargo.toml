@@ -23,8 +23,8 @@ log = "0.4.17"
 toml = "0.5.9"
 
 [dependencies.clap]
-version = "3.2.22"
-features = ["derive"]
+version = "4.0.18"
+features = ["derive", "wrap_help"]
 
 [dependencies.sdl2]
 version = "0.35.2"

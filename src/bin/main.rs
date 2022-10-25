@@ -9,12 +9,12 @@ use std::path::{Path, PathBuf};
 #[macro_use]
 extern crate log;
 
-use clap::{ArgEnum, Parser};
+use clap::{ValueEnum, Parser, Arg};
 
 use crate::backend::sdl2;
 use crate::input::KeyboardBinding;
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, ArgEnum)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
 enum KeyboardMode {
     Azerty,
     Qwerty,
@@ -23,13 +23,12 @@ enum KeyboardMode {
 #[derive(Debug, Parser)]
 #[clap(author, version = "alpha", about = "Game Boy (Color) emulator", long_about = None)]
 struct Args {
-    #[clap(parse(from_os_str), help = "The ROM file to play.")]
+    #[clap(help = "The ROM file to play.")]
     rom_file: PathBuf,
 
     #[clap(
         short,
         long,
-        parse(from_os_str),
         value_name = "CONFIG_FILE",
         help = "Sets the configuration file to use. './config.toml' by default."
     )]
@@ -38,7 +37,7 @@ struct Args {
     #[clap(
         short,
         long,
-        arg_enum,
+        value_enum,
         value_name = "keyboard",
         help = "Sets the keyboard configuration to use. QWERTY by default. A custom binding can be defined in the configuration file."
     )]
