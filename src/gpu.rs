@@ -116,7 +116,7 @@ pub struct Gpu {
 }
 
 impl Gpu {
-    /// Create and return a new 'Gpu' instance.
+    /// Create and return a new `Gpu` instance.
     pub fn new(cgb_mode: bool) -> Gpu {
         Gpu {
             cgb_mode,
