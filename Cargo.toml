@@ -20,7 +20,7 @@ tracing = []
 
 [dependencies]
 log = "0.4.17"
-toml = "0.5.9"
+toml = "0.7.1"
 
 [dependencies.clap]
 version = "4.0.18"
