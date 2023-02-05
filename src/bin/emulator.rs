@@ -114,6 +114,10 @@ fn emulation_loop(
             _ => {}
         }
 
+        if !running {
+            continue;
+        }
+
         while ticks < frame_ticks {
             ticks += cpu.step();
         }
