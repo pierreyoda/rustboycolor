@@ -9,7 +9,7 @@ use std::path::{Path, PathBuf};
 #[macro_use]
 extern crate log;
 
-use clap::{ValueEnum, Parser, Arg};
+use clap::{Arg, Parser, ValueEnum};
 
 use crate::backend::sdl2;
 use crate::input::KeyboardBinding;

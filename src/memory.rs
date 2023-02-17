@@ -1,5 +1,5 @@
-/// This trait must be implemented by any memory device, virtual (CPU testing harness) or "real",
-/// allowing an interface independent of the nature of such a device.
+/// This trait must be implemented by any memory device, either virtual (CPU testing harness) or "real",
+/// allowing an interface independent of the nature of the device.
 pub trait Memory {
     fn read_byte(&mut self, address: u16) -> u8;
     fn read_word(&mut self, address: u16) -> u16 {
