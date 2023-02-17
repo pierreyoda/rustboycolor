@@ -20,10 +20,10 @@ tracing = []
 
 [dependencies]
 log = "0.4.17"
-toml = "0.7.1"
+toml = "0.7.2"
 
 [dependencies.clap]
-version = "4.0.18"
+version = "4.1.6"
 features = ["derive", "wrap_help"]
 
 [dependencies.sdl2]
