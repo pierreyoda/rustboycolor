@@ -19,11 +19,11 @@ default = []
 tracing = []
 
 [dependencies]
-log = "0.4.17"
-toml = "0.7.2"
+log = "0.4.20"
+toml = "0.8.6"
 
 [dependencies.clap]
-version = "4.1.6"
+version = "4.4.7"
 features = ["derive", "wrap_help"]
 
 [dependencies.sdl2]

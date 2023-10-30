@@ -223,13 +223,22 @@ mod test {
         let r = super::keyboard_hm_from_config(config, "*test*".into());
         assert!(r.is_ok());
         let keys_hm = r.unwrap();
-        assert_eq!(*keys_hm.get("Up".into()).unwrap(), JoypadKey::Up);
-        assert_eq!(*keys_hm.get("Down".into()).unwrap(), JoypadKey::Down);
-        assert_eq!(*keys_hm.get("Left".into()).unwrap(), JoypadKey::Left);
-        assert_eq!(*keys_hm.get("Right".into()).unwrap(), JoypadKey::Right);
-        assert_eq!(*keys_hm.get("Numpad1".into()).unwrap(), JoypadKey::Select);
-        assert_eq!(*keys_hm.get("Numpad3".into()).unwrap(), JoypadKey::Start);
-        assert_eq!(*keys_hm.get("E".into()).unwrap(), JoypadKey::A);
-        assert_eq!(*keys_hm.get("T".into()).unwrap(), JoypadKey::B);
+        assert_eq!(keys_hm.get(&"Up".to_string()).unwrap(), &JoypadKey::Up);
+        assert_eq!(keys_hm.get(&"Down".to_string()).unwrap(), &JoypadKey::Down);
+        assert_eq!(keys_hm.get(&"Left".to_string()).unwrap(), &JoypadKey::Left);
+        assert_eq!(
+            keys_hm.get(&"Right".to_string()).unwrap(),
+            &JoypadKey::Right
+        );
+        assert_eq!(
+            keys_hm.get(&"Numpad1".to_string()).unwrap(),
+            &JoypadKey::Select
+        );
+        assert_eq!(
+            keys_hm.get(&"Numpad3".to_string()).unwrap(),
+            &JoypadKey::Start
+        );
+        assert_eq!(keys_hm.get(&"E".to_string()).unwrap(), &JoypadKey::A);
+        assert_eq!(keys_hm.get(&"T".to_string()).unwrap(), &JoypadKey::B);
     }
 }
