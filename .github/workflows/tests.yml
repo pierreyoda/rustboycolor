@@ -12,7 +12,14 @@ jobs:
     steps:
       - name: Check out code
         uses: actions/checkout@v3
-      - name: Run docker-compose stack
-        run: docker-compose -f docker-compose.yml build
-      - name: Core tests
-        run: docker-compose run rustboycolor cargo test -- --nocapture
+      - name: Setup latest stable Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+      - name: Setup libsdl2
+        run: sudo apt-get -q update && sudo apt-get -q install -y \
+          libsdl2-dev \
+          libsdl2-ttf-dev
+      - name: Tests
+        run: cargo test -- --nocapture
