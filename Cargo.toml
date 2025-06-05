@@ -18,6 +18,7 @@ default = []
 tracing = []
 
 [dependencies]
+# TODO: add anyhow for proper error handling refactoring
 log = "0.4.27"
 toml = "0.8.23"
 

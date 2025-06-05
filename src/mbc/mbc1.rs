@@ -2,8 +2,12 @@
 /// supports 0, 2, 8 or 32 KB of RAM (eventually battery-buffered).
 use std::iter;
 
+use crate::ResultStr;
+
 use super::CartridgeHeader::*;
 use super::{CartridgeHeader, MBC};
+
+pub const ROM_SIZE: usize = 0x10000; // TODO: check size
 
 pub struct MBC1 {
     rom: Vec<u8>,
@@ -19,30 +23,32 @@ pub struct MBC1 {
 }
 
 impl MBC1 {
-    pub fn new(data: Vec<u8>) -> crate::ResultStr<MBC1> {
-        if data.len() > 0x4000 * 0x7D {
-            return Err("MBC1 does not support more than 2MB of ROM");
+    pub fn from_data(data: Vec<u8>) -> ResultStr<MBC1> {
+        if data.len() > ROM_SIZE {
+            return Err("ROM size too big for MBC0");
         }
 
-        let ram_size: usize = match data[CartridgeHeader::address(MBC_Type).unwrap()] {
-            // RAM
-            0x02 => CartridgeHeader::ram_size(&data),
-            // RAM+BATTERY
-            0x03 => {
-                // TODO: state loading
-                CartridgeHeader::ram_size(&data)
-            }
-            _ => 0,
-        };
+        // let ram_size = match data[CartridgeHeader::address(MBC_Type).expect("")] {
+        //     // RAM
+        //     0x02 => CartridgeHeader::ram_size(&data),
+        //     // RAM+BATTERY
+        //     0x03 => {
+        //         // TODO: state loading
+        //         CartridgeHeader::ram_size(&data)
+        //     }
+        //     _ => 0,
+        // };
 
-        Ok(MBC1 {
-            rom: data,
-            ram: iter::repeat(0x00).take(ram_size).collect(),
-            rom_bank: 0x01,
-            ram_bank: 0x00,
-            ram_enabled: false,
-            ram_mode: false,
-        })
+        // Ok(MBC1 {
+        //     rom: data,
+        //     ram: iter::repeat(0x00).take(ram_size).collect(),
+        //     rom_bank: 0x01,
+        //     ram_bank: 0x00,
+        //     ram_enabled: false,
+        //     ram_mode: false,
+        // })
+
+        todo!();
     }
 }
 
@@ -106,3 +112,5 @@ impl MBC for MBC1 {
         self.ram[ram_bank * 0x2000 + ((address as usize) & 0x1FFF)] = value;
     }
 }
+
+// TODO: add unit tests
