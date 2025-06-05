@@ -1,9 +1,11 @@
-/// Can address up to 125 ROM banks of 16KB each (i.e. 2MB of ROM at most) and
-/// supports 0, 2, 8 or 32 KB of RAM (eventually battery-buffered).
-use std::iter;
+///! Can address up to 125 ROM banks of 16KB each (i.e. 2MB of ROM at most) and
+///! supports 0, 2, 8 or 32 KB of RAM (eventually battery-buffered).
 
-use super::CartridgeHeader::*;
+use crate::ResultStr;
+
 use super::{CartridgeHeader, MBC};
+
+pub const ROM_SIZE: usize = 0x10000; // TODO: check size
 
 pub struct MBC1 {
     rom: Vec<u8>,
@@ -11,7 +13,6 @@ pub struct MBC1 {
     /// The current ROM bank to use when reading in the 0x4000...0x7FFF range.
     /// Possible values are in 0x00...0x7F with the exception of 0x20, 0x40 and
     /// 0x60 which explains the limit of 125 banks (including ROM bank 0x00).
-    /// In RAM
     rom_bank: usize,
     ram_bank: usize,
     ram_enabled: bool,
@@ -19,12 +20,12 @@ pub struct MBC1 {
 }
 
 impl MBC1 {
-    pub fn new(data: Vec<u8>) -> crate::ResultStr<MBC1> {
-        if data.len() > 0x4000 * 0x7D {
-            return Err("MBC1 does not support more than 2MB of ROM");
+    pub fn from_data(data: Vec<u8>) -> ResultStr<MBC1> {
+        if data.len() > ROM_SIZE {
+            return Err("ROM size too big for MBC0");
         }
 
-        let ram_size: usize = match data[CartridgeHeader::address(MBC_Type).unwrap()] {
+        let ram_size = match data[CartridgeHeader::MPC_TYPE.address().expect("CartridgeHeader::MBC_TYPE address exists") as usize] {
             // RAM
             0x02 => CartridgeHeader::ram_size(&data),
             // RAM+BATTERY
@@ -37,7 +38,7 @@ impl MBC1 {
 
         Ok(MBC1 {
             rom: data,
-            ram: iter::repeat_n(0x00, ram_size).collect(),
+            ram: vec![0x00; ram_size],
             rom_bank: 0x01,
             ram_bank: 0x00,
             ram_enabled: false,
