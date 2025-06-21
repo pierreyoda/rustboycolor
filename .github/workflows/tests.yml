@@ -18,7 +18,7 @@ jobs:
           toolchain: stable
           override: true
       - name: Setup libsdl2
-        run: sudo apt-get -q update && sudo apt-get -q install -y \
+        run: sudo apt-get -q update && sudo apt-get upgrade && sudo apt-get -q install -y \
           libsdl2-dev \
           libsdl2-ttf-dev
       - name: Tests
