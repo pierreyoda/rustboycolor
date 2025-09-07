@@ -57,7 +57,7 @@ where
     let keyboard_control_hm = build_keyboard_control_hm(&binding)?;
     for (symbol, control) in &keyboard_control_hm {
         let key = match symbol_backend_key_hm.get(symbol) {
-            Some(ref k) => *(k.clone()),
+            Some(k) => *k,
             None => return Err(format!("backend does not support key \"{}\"", symbol)),
         };
         hm.insert(key, *control);
@@ -117,8 +117,8 @@ fn keyboard_hm_from_config(
     config_file: &str,
 ) -> Result<HashMap<String, JoypadKey>, String> {
     let mut hm = HashMap::new();
-    let table_value = match config_str.parse::<toml::Value>() {
-        Ok(value) => value,
+    let table = match config_str.parse::<toml::Table>() {
+        Ok(table) => table,
         Err(err) => {
             return Err(format!(
                 "parsing error in input config file \"{}\" : {}",
@@ -126,7 +126,6 @@ fn keyboard_hm_from_config(
             ))
         }
     };
-    let table = table_value.as_table().unwrap();
     let input = match table.get("input") {
         Some(value) => value.as_table().expect("no input section specified"),
         None => {
@@ -185,7 +184,7 @@ fn keyboard_hm_from_config(
         {
             warn!(
                 "input config file \"{}\" binds key \"{}\" more than once, earlier \
-                 occurences will be erased",
+                 occurrences will be erased",
                 config_file, key_symbol
             );
             // N.B. : the order of priority is the one defined in JOYPAD_KEYS

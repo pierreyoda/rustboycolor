@@ -93,8 +93,8 @@ impl EmulatorAppConfig {
             .and_then(|mut f| f.read_to_string(&mut file_content))
             .map_err(|_| format!("could not load the config file : {}", file_path.display()))?;
 
-        let table_value = match file_content.parse::<toml::Value>() {
-            Ok(value) => value,
+        let table = match file_content.parse::<toml::Table>() {
+            Ok(table) => table,
             Err(err) => {
                 return Err(format!(
                     "parsing error in config file \"{}\" : {}",
@@ -103,7 +103,6 @@ impl EmulatorAppConfig {
                 ))
             }
         };
-        let table = table_value.as_table().unwrap();
 
         info!(
             "reading configuration from file \"{}\"...",
