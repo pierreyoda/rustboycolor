@@ -23,19 +23,19 @@ pub enum EmulationMessage {
 /// Communication between the virtual machine's emulation loop and the
 /// backend's UI loop is done with 2 channels using respectively
 /// 'Chip8VMCommand' and 'Chip8UICommand'.
-pub struct EmulatorApplication<'a> {
+pub struct EmulatorApplication {
     /// The application configuration.
     config: EmulatorAppConfig,
     /// Pointer to the heap-allocated backend responsible for running the
     /// actual UI loop in the main thread.
-    backend: Box<dyn EmulatorBackend + 'a>,
+    backend: Box<dyn EmulatorBackend>,
 }
 
-impl<'a> EmulatorApplication<'a> {
+impl EmulatorApplication {
     pub fn new(
         config: EmulatorAppConfig,
         backend: Box<dyn EmulatorBackend>,
-    ) -> EmulatorApplication<'a> {
+    ) -> EmulatorApplication {
         EmulatorApplication { config, backend }
     }
 
