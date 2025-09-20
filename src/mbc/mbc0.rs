@@ -22,7 +22,7 @@ impl MBC0 {
                 0 => None,
                 ERAM_SIZE => Some([0x00; ERAM_SIZE]),
                 n => {
-                    error!("MBC0 : invalid external RAM size of {} bytes", n);
+                    error!("MBC0 : invalid external RAM size of {n} bytes");
                     return Err("MBC0 supports either 0 KB or 8 KB of external RAM");
                 }
             };

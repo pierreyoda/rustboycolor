@@ -10,7 +10,7 @@ use crate::irq::{Interrupt, IrqHandler};
 use crate::memory::Memory;
 
 use self::palette::PaletteClassic;
-use self::registers::{LcdControl, LcdControllerStatus};
+use self::registers::{LcdControl, LcdControllerInterruptStatus};
 use self::tile::Tile;
 use self::GpuMode::*;
 
@@ -149,7 +149,7 @@ impl Gpu {
     /// Loops through OAM_Read, VRAM_Read and H_Blank modes to draw the 144 lines,
     /// then switches to V_Blank mode for 10 lines before starting over.
     pub fn step(&mut self, ticks: CycleType, irq_handler: &mut dyn IrqHandler) {
-        use self::LcdControllerStatus::*;
+        use self::LcdControllerInterruptStatus::*;
 
         if !LcdControl::LcdDisplayEnable.is_set(self.lcd_control) {
             return;
@@ -169,7 +169,7 @@ impl Gpu {
                 // end of scanline
                 self.render_scanline();
                 self.switch_mode(H_Blank);
-                if HBlankInterrupt.is_set(self.lcdc_status) {
+                if HBlank.is_set(self.lcdc_status) {
                     irq_handler.request_interrupt(Interrupt::LCD_Stat);
                 }
             }
@@ -182,13 +182,13 @@ impl Gpu {
                     self.switch_mode(V_Blank);
                     self.dirty = true;
                     irq_handler.request_interrupt(Interrupt::V_Blank);
-                    if VBlankInterrupt.is_set(self.lcdc_status) {
+                    if VBlank.is_set(self.lcdc_status) {
                         irq_handler.request_interrupt(Interrupt::LCD_Stat);
                     }
                 } else {
                     // move to next line
                     self.switch_mode(OAM_Read);
-                    if OamInterrupt.is_set(self.lcdc_status) {
+                    if Oam.is_set(self.lcdc_status) {
                         irq_handler.request_interrupt(Interrupt::LCD_Stat);
                     }
                 }
@@ -201,7 +201,7 @@ impl Gpu {
                     // last V_BLANK
                     self.ly = 0;
                     self.switch_mode(OAM_Read);
-                    if OamInterrupt.is_set(self.lcdc_status) {
+                    if Oam.is_set(self.lcdc_status) {
                         irq_handler.request_interrupt(Interrupt::LCD_Stat);
                     }
                 }
@@ -211,18 +211,21 @@ impl Gpu {
 
         // LYC/LY comparison
         if self.lyc == self.ly {
-            self.lcdc_status = LcdControllerStatus::with_coincidence_flag(self.lcdc_status, true);
-            if LyCoincidenceInterrupt.is_set(self.lcdc_status) {
+            self.lcdc_status =
+                LcdControllerInterruptStatus::with_coincidence_flag(self.lcdc_status, true);
+            if LyCoincidence.is_set(self.lcdc_status) {
                 irq_handler.request_interrupt(Interrupt::LCD_Stat);
             }
         } else {
-            self.lcdc_status = LcdControllerStatus::with_coincidence_flag(self.lcdc_status, false);
+            self.lcdc_status =
+                LcdControllerInterruptStatus::with_coincidence_flag(self.lcdc_status, false);
         }
     }
 
     /// Switch the current GPU mode.
     fn switch_mode(&mut self, new_mode: GpuMode) {
-        self.lcdc_status = LcdControllerStatus::with_mode(self.lcdc_status, new_mode.clone());
+        self.lcdc_status =
+            LcdControllerInterruptStatus::with_mode(self.lcdc_status, new_mode.clone());
         self.mode = new_mode;
     }
 

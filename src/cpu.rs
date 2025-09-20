@@ -290,7 +290,7 @@ where
             0
         };
         let r = a.wrapping_sub(b).wrapping_sub(c);
-        self.regs.set_flag(Z_FLAG, r & 0xFF == 0x0);
+        self.regs.set_flag(Z_FLAG, r == 0x00);
         self.regs.set_flag(N_FLAG, true);
         self.regs.set_flag(H_FLAG, (a & 0x0F) < (b & 0x0F) + c);
         self.regs

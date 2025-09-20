@@ -37,7 +37,7 @@ impl MBC1 {
 
         Ok(MBC1 {
             rom: data,
-            ram: iter::repeat(0x00).take(ram_size).collect(),
+            ram: iter::repeat_n(0x00, ram_size).collect(),
             rom_bank: 0x01,
             ram_bank: 0x00,
             ram_enabled: false,
@@ -94,7 +94,7 @@ impl MBC for MBC1 {
             0x6000..=0x7FFF => {
                 self.ram_mode = value == 0x01;
             }
-            _ => panic!("MBC1 : cannot write to ROM at {:0>4X}", address),
+            _ => panic!("MBC1 : cannot write to ROM at {address:0>4X}"),
         }
     }
 

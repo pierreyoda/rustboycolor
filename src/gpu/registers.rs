@@ -32,14 +32,14 @@ impl LcdControl {
 }
 
 #[derive(Clone)]
-pub enum LcdControllerStatus {
-    HBlankInterrupt = 3,
-    VBlankInterrupt = 4,
-    OamInterrupt = 5,
-    LyCoincidenceInterrupt = 6,
+pub enum LcdControllerInterruptStatus {
+    HBlank = 3,
+    VBlank = 4,
+    Oam = 5,
+    LyCoincidence = 6,
 }
 
-impl LcdControllerStatus {
+impl LcdControllerInterruptStatus {
     pub fn is_set(&self, register: u8) -> bool {
         let v = self.clone() as usize;
         ((register >> v) & 0x01) == 0x01
@@ -58,8 +58,8 @@ impl LcdControllerStatus {
 #[cfg(test)]
 mod test {
     use super::LcdControl::*;
-    use super::LcdControllerStatus;
-    use super::LcdControllerStatus::*;
+    use super::LcdControllerInterruptStatus;
+    use super::LcdControllerInterruptStatus::*;
 
     #[test]
     fn test_lcd_control_is_set() {
@@ -75,10 +75,10 @@ mod test {
 
     #[test]
     fn test_lcdc_status_is_set() {
-        assert!(HBlankInterrupt.is_set(1 << 3));
-        assert!(VBlankInterrupt.is_set(1 << 4));
-        assert!(OamInterrupt.is_set(1 << 5));
-        assert!(LyCoincidenceInterrupt.is_set(1 << 6));
+        assert!(HBlank.is_set(1 << 3));
+        assert!(VBlank.is_set(1 << 4));
+        assert!(Oam.is_set(1 << 5));
+        assert!(LyCoincidence.is_set(1 << 6));
     }
 
     #[test]
@@ -86,19 +86,19 @@ mod test {
         use crate::gpu::GpuMode::*;
         let lcdc_status = 0b_0110_1011;
         assert_eq!(
-            LcdControllerStatus::with_mode(lcdc_status, H_Blank),
+            LcdControllerInterruptStatus::with_mode(lcdc_status, H_Blank),
             0b_0110_1000
         );
         assert_eq!(
-            LcdControllerStatus::with_mode(lcdc_status, V_Blank),
+            LcdControllerInterruptStatus::with_mode(lcdc_status, V_Blank),
             0b_0110_1001
         );
         assert_eq!(
-            LcdControllerStatus::with_mode(lcdc_status, OAM_Read),
+            LcdControllerInterruptStatus::with_mode(lcdc_status, OAM_Read),
             0b_0110_1010
         );
         assert_eq!(
-            LcdControllerStatus::with_mode(lcdc_status, VRAM_Read),
+            LcdControllerInterruptStatus::with_mode(lcdc_status, VRAM_Read),
             0b_0110_1011
         );
     }
@@ -106,11 +106,11 @@ mod test {
     #[test]
     fn test_lcdc_status_with_coincidence_flag() {
         assert_eq!(
-            LcdControllerStatus::with_coincidence_flag(0b_1011_0011, true),
+            LcdControllerInterruptStatus::with_coincidence_flag(0b_1011_0011, true),
             0b_1011_0111
         );
         assert_eq!(
-            LcdControllerStatus::with_coincidence_flag(0b_1011_0111, false),
+            LcdControllerInterruptStatus::with_coincidence_flag(0b_1011_0111, false),
             0b_1011_0011
         );
     }
