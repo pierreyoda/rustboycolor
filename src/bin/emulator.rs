@@ -1,10 +1,10 @@
 use std::path::Path;
-use std::sync::mpsc::{channel, Receiver, Sender};
+use std::sync::mpsc::{Receiver, Sender, channel};
 use std::thread;
 
 use crate::backend::{BackendMessage, EmulatorBackend};
 use crate::config::EmulatorAppConfig;
-use rustboylib::cpu::{CycleType, CPU_CLOCK_SPEED};
+use rustboylib::cpu::{CPU_CLOCK_SPEED, CycleType};
 use rustboylib::gpu::RGB;
 use rustboylib::{cpu, mbc, mmu};
 

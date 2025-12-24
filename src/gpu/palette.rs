@@ -178,7 +178,7 @@ impl PaletteColor {
 #[cfg(test)]
 mod test {
     use super::PaletteGrayShade::*;
-    use super::{PaletteClassic, PaletteColorValue, PALETTE_CLASSIC_RGB};
+    use super::{PALETTE_CLASSIC_RGB, PaletteClassic, PaletteColorValue};
 
     #[test]
     fn test_palette_gray_shade_values() {

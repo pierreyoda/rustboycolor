@@ -8,7 +8,7 @@ use std::{collections::HashMap, path::PathBuf};
 use toml;
 
 use self::KeyboardBinding::*;
-use rustboylib::joypad::{JoypadKey, JOYPAD_KEYS};
+use rustboylib::joypad::{JOYPAD_KEYS, JoypadKey};
 
 /// Enumerates the supported keyboard bindings for the virtual joypad.
 #[derive(Clone, PartialEq)]
@@ -123,7 +123,7 @@ fn keyboard_hm_from_config(
             return Err(format!(
                 "parsing error in input config file \"{}\" : {}",
                 config_file, err
-            ))
+            ));
         }
     };
     let input = match table.get("input") {
@@ -164,7 +164,7 @@ fn keyboard_hm_from_config(
                         "key \"{}\" does not have a String value in input \
                          config",
                         key
-                    ))
+                    ));
                 }
             },
             None => {

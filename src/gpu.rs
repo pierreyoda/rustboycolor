@@ -9,10 +9,10 @@ use crate::cpu::CycleType;
 use crate::irq::{Interrupt, IrqHandler};
 use crate::memory::Memory;
 
+use self::GpuMode::*;
 use self::palette::PaletteClassic;
 use self::registers::{LcdControl, LcdControllerInterruptStatus};
 use self::tile::Tile;
-use self::GpuMode::*;
 
 /// The width of the Game Boy's screen, in pixels.
 pub const SCREEN_W: usize = 160;

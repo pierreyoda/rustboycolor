@@ -100,7 +100,7 @@ impl EmulatorAppConfig {
                     "parsing error in config file \"{}\" : {}",
                     file_path.display(),
                     err
-                ))
+                ));
             }
         };
 
@@ -178,7 +178,7 @@ fn lookup_bool_value(key: &'static str, table: &toml::value::Table) -> Result<bo
                     "config::lookup_bool_value : key '{}' does not correspond to \
                      a boolean",
                     key
-                ))
+                ));
             }
         }
     } else {
@@ -198,7 +198,7 @@ fn lookup_int_value(key: &'static str, table: &toml::value::Table) -> Result<i64
                     "config::lookup_int_value : key '{}' does not correspond to \
                      an integer",
                     key
-                ))
+                ));
             }
         }
     } else {

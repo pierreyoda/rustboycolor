@@ -14,7 +14,7 @@ use std::io::Write;
 use crate::irq::Interrupt;
 use crate::memory::Memory;
 use crate::mmu::MemoryManagementUnit;
-use registers::{Registers, C_FLAG, H_FLAG, N_FLAG, Z_FLAG};
+use registers::{C_FLAG, H_FLAG, N_FLAG, Registers, Z_FLAG};
 
 /// The CPU clock speed for the Game Boy (Classic), in Hz.
 pub const CPU_CLOCK_SPEED: u32 = 4_194_304;

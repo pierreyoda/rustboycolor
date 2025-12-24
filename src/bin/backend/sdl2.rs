@@ -267,8 +267,8 @@ pub fn keycode_from_symbol_hm() -> HashMap<String, Keycode> {
 #[cfg(test)]
 mod test {
     use super::sdl2::keyboard::Keycode;
-    use crate::input::get_key_bindings;
     use crate::input::KeyboardBinding::FromConfigFile;
+    use crate::input::get_key_bindings;
     use rustboylib::joypad::JoypadKey;
 
     #[test]

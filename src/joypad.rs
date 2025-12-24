@@ -127,8 +127,8 @@ impl Memory for Joypad {
 mod test {
     use super::JoypadKey::*;
     use super::{
-        Joypad, JoypadKey, JOYPAD_ADDRESS, JOYPAD_KEYS, JOYPAD_SELECT_BUTTON,
-        JOYPAD_SELECT_DIRECTIONAL,
+        JOYPAD_ADDRESS, JOYPAD_KEYS, JOYPAD_SELECT_BUTTON, JOYPAD_SELECT_DIRECTIONAL, Joypad,
+        JoypadKey,
     };
     use crate::irq::EmptyIrqHandler;
     use crate::memory::Memory;

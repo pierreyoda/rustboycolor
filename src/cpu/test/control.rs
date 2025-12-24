@@ -1,6 +1,6 @@
 #![allow(non_snake_case)]
 
-use super::{test_cpu, OPCODE_END};
+use super::{OPCODE_END, test_cpu};
 use crate::cpu::registers::{C_FLAG, Z_FLAG};
 use crate::memory::Memory;
 
