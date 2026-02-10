@@ -21,11 +21,11 @@ tracing = []
 log = "0.4.29"
 
 [dependencies.clap]
-version = "4.5.53"
+version = "4.5.57"
 features = ["derive", "wrap_help"]
 
 [dependencies.toml]
-version = "0.9.9"
+version = "0.9.11"
 default-features = false
 features = ["std", "serde", "parse"]
 
