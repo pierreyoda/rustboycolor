@@ -11,13 +11,15 @@ use std::fs::File;
 use std::io::Read;
 use std::path::Path;
 
+use super::ResultStr;
+
 mod mbc0;
 mod mbc1;
 
 /// Allows to access information stored in the cartridge header.
 #[allow(non_camel_case_types)]
 pub enum CartridgeHeader {
-    MBC_Type,
+    MPC_TYPE,
     ROM_Size,
     RAM_Size,
     /// Destination code : 0x00 for Japan market, 0x01 otherwise.
@@ -28,35 +30,39 @@ pub enum CartridgeHeader {
 }
 
 impl CartridgeHeader {
-    /// Return the ROM address for the given header information, or None
+    /// Return the ROM address from the given header information, or None
     /// if the header information does not fit in a single byte and/or is
     /// unsupported.
-    pub fn address(header_info: CartridgeHeader) -> Option<usize> {
-        match header_info {
-            MBC_Type => Some(0x0147),
-            ROM_Size => Some(0x0148),
-            RAM_Size => Some(0x0149),
-            DestinationCode => Some(0x014A),
-            LicenseeCodeOld => Some(0x014B),
+    pub fn address(&self) -> usize {
+        match self{
+            MPC_TYPE => 0x0147,
+            ROM_Size => 0x0148,
+            RAM_Size => 0x0149,
+            DestinationCode => 0x014A,
+            LicenseeCodeOld => 0x014B,
         }
     }
 
-    /// Return the RAM size in the given ROM file.
-    pub fn ram_size(rom: &[u8]) -> usize {
-        match rom[CartridgeHeader::address(RAM_Size).unwrap()] {
+    /// Return the RAM size from the given cartridge data.
+    pub fn ram_size(data: &[u8]) -> usize {
+        match data[RAM_Size.address()] {
+            // No RAM
+            0x00 => 0,
             // 2 KB
             0x01 => 0x0800,
             // 8 KB
             0x02 => 0x2000,
             // 32 KB
             0x03 => 0x8000,
-            // None
-            _ => 0,
+            // Not possible (see Pandoc)
+            _ => unreachable!(),
         }
     }
 }
+
 use self::CartridgeHeader::*;
 
+/// Memory Bank Controller trait.
 pub trait MBC {
     fn rom_read(&self, address: u16) -> u8;
     fn ram_read(&self, address: u16) -> u8;
@@ -72,22 +78,24 @@ pub trait MBC {
 /// TODO: cartridge header checksum validation
 /// TODO: state saving with battery-backed RAM
 /// TODO: take an u8 array instead to move file loading into the actual application
-pub fn load_cartridge(filepath: &Path) -> crate::ResultStr<Box<dyn MBC + Send>> {
+pub fn load_cartridge(filepath: &Path) -> ResultStr<Box<dyn MBC + Send>> {
     let mut data = Vec::<u8>::new();
     File::open(filepath)
         .and_then(|mut f| f.read_to_end(&mut data))
-        .map_err(|_| "could not load the file as a gameboy ROM")?;
-    match data[CartridgeHeader::address(MBC_Type).unwrap()] {
-        // MBC0 : no MBC
+        .map_err(|_| "could not load the file as a GameBoy (Color) ROM")?;
+
+    match data[MPC_TYPE.address()] {
+        // MBC0: no MBC
         0x00 => {
-            info!("MBC used by the cartridge : none.");
-            mbc0::MBC0::new(data).map(|v| Box::new(v) as Box<dyn MBC + Send>)
+            info!("MBC used by the cartridge: none.");
+            mbc0::MBC0::from_data(data).map(|v| Box::new(v) as Box<dyn MBC + Send>)
         }
-        // MBC1
+        // MBC1, MBC1+RAM, MBC1+RAM+BATTERY
         0x01..=0x03 => {
-            info!("MBC used by the cartridge : MBC1.");
-            mbc1::MBC1::new(data).map(|v| Box::new(v) as Box<dyn MBC + Send>)
+            info!("MBC used by the cartridge: MBC1.");
+            mbc1::MBC1::from_data(data).map(|v| Box::new(v) as Box<dyn MBC + Send>)
         }
-        _ => Err("unsupported cartridge MBC"),
+        // MBCs not yet implemented
+        _ => Err("MBC not implemented yet."),
     }
 }
