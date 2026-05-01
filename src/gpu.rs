@@ -284,7 +284,7 @@ impl Gpu {
         let tileset_index = if LcdControl::BgWindowTileDataSelect.is_set(self.lcd_control) {
             tile_index as usize
         } else {
-            256 + (tile_index as usize)
+            (256i32 + (tile_index as i8) as i32) as usize
         };
         debug_assert!(
             tileset_index < self.tileset.len(),
