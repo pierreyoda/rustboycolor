@@ -7,7 +7,7 @@ use crate::ResultStr;
 
 use super::{CartridgeHeader, MBC};
 
-pub const ROM_SIZE: usize = 0x10000; // TODO: check size
+pub const ROM_SIZE: usize = 0x200000; // 2 MB: 128 banks × 16 KiB
 
 pub struct MBC1 {
     rom: Vec<u8>,
@@ -28,7 +28,7 @@ pub struct MBC1 {
 impl MBC1 {
     pub fn from_data(data: Vec<u8>) -> ResultStr<MBC1> {
         if data.len() > ROM_SIZE {
-            return Err("ROM size too big for MBC0");
+            return Err("ROM size too big for MBC1");
         }
 
         let ram_size = match data[CartridgeHeader::MPC_TYPE.address()] {
