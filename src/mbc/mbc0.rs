@@ -22,9 +22,12 @@ pub struct MBC0 {
 
 impl MBC0 {
     pub fn from_data(data: Vec<u8>) -> Result<MBC0, &'static str> {
-        if data.len() > ROM_SIZE {
-            return Err("ROM size too big for MBC0");
+        if data.is_empty() || data.len() > ROM_SIZE {
+            return Err("invalid ROM size for MBC0");
         }
+
+        let mut rom = [0x00; ROM_SIZE];
+        rom[..data.len()].clone_from_slice(&data);
 
         let eram = match CartridgeHeader::ram_size(&data) {
             0 => None,
@@ -53,59 +56,128 @@ impl MBC for MBC0 {
 
     fn rom_control(&mut self, _: u16, _: u8) {}
     fn ram_write(&mut self, address: u16, value: u8) {
-        if self.eram.is_some() {
-            self.eram.unwrap()[(address as usize) & 0x1FFF] = value;
+        if let Some(ref mut eram) = self.eram {
+            eram[(address as usize) & 0x1FFF] = value;
         }
     }
 }
 
 #[cfg(test)]
 mod test {
-    use crate::mbc::CartridgeHeader;
+    use crate::mbc::{CartridgeHeader, MBC};
 
     use super::{MBC0, ROM_SIZE};
 
-    #[test]
-    fn test_mbc0_init_success() {
+    fn make_rom(ram_size_byte: u8) -> Vec<u8> {
         let mut data = vec![0x00; ROM_SIZE];
-        data[CartridgeHeader::RAM_Size.address()] = 0x02; // 8 KB ERAM
-        assert!(MBC0::from_data(data).is_ok());
+        data[CartridgeHeader::RAM_Size.address()] = ram_size_byte;
+        data
     }
+
+    fn make_mbc0_no_eram() -> MBC0 {
+        MBC0::from_data(make_rom(0x00)).unwrap()
+    }
+
+    fn make_mbc0_with_eram() -> MBC0 {
+        MBC0::from_data(make_rom(0x02)).unwrap()
+    }
+
+    // from_data
 
     #[test]
     fn test_mbc0_init_success_ram_size_zero() {
-        let mut data = vec![0x00; ROM_SIZE];
-        data[CartridgeHeader::RAM_Size.address()] = 0x00;
-        assert!(MBC0::from_data(data).is_ok());
+        assert!(MBC0::from_data(make_rom(0x00)).is_ok());
     }
 
     #[test]
-    fn test_mbc0_init_error_data_size() {
-        for data_size in [ROM_SIZE + 1, ROM_SIZE + 2] {
-            let data = vec![0x00; data_size];
-            assert!(MBC0::from_data(data).is_err());
+    fn test_mbc0_init_success_ram_size_8kb() {
+        assert!(MBC0::from_data(make_rom(0x02)).is_ok());
+    }
+
+    #[test]
+    fn test_mbc0_init_error_empty_data() {
+        assert!(MBC0::from_data(vec![]).is_err());
+    }
+
+    #[test]
+    fn test_mbc0_init_error_data_too_large() {
+        for size in [ROM_SIZE + 1, ROM_SIZE + 2] {
+            assert!(MBC0::from_data(vec![0x00; size]).is_err());
         }
-    }
-
-    #[test]
-    fn test_mbc0_init_error_rom_size_overflow() {
-        let rom_data = MBC0::from_data([0x00; 0].to_vec());
-        assert!(rom_data.is_err());
-    }
-
-    #[test]
-    fn test_rom0_init_error_ram_size_0() {
-        let rom_data = MBC0::from_data([0x00; 0].to_vec());
-        assert!(rom_data.is_err());
     }
 
     #[test]
     fn test_mbc0_init_error_invalid_eram_size() {
         // 0x01 = 2 KB, 0x03 = 32 KB: valid Game Boy sizes but unsupported by MBC0
-        for invalid_ram_size_byte in [0x01, 0x03] {
-            let mut data = vec![0x00; ROM_SIZE];
-            data[CartridgeHeader::RAM_Size.address()] = invalid_ram_size_byte;
-            assert!(MBC0::from_data(data).is_err());
+        for invalid_ram_size_byte in [0x01u8, 0x03] {
+            assert!(MBC0::from_data(make_rom(invalid_ram_size_byte)).is_err());
         }
+    }
+
+    // rom_read
+
+    #[test]
+    fn test_mbc0_rom_read_returns_correct_byte() {
+        let mut data = make_rom(0x00);
+        data[0x0000] = 0xAB;
+        data[0x1234] = 0x42;
+        data[0x7FFF] = 0xCD;
+        let mbc = MBC0::from_data(data).unwrap();
+        assert_eq!(mbc.rom_read(0x0000), 0xAB);
+        assert_eq!(mbc.rom_read(0x1234), 0x42);
+        assert_eq!(mbc.rom_read(0x7FFF), 0xCD);
+    }
+
+    // ram_read
+
+    #[test]
+    fn test_mbc0_ram_read_no_eram_returns_zero() {
+        let mbc = make_mbc0_no_eram();
+        assert_eq!(mbc.ram_read(0xA000), 0x00);
+        assert_eq!(mbc.ram_read(0xBFFF), 0x00);
+    }
+
+    #[test]
+    fn test_mbc0_ram_read_with_eram_unwritten_returns_zero() {
+        let mbc = make_mbc0_with_eram();
+        assert_eq!(mbc.ram_read(0xA000), 0x00);
+        assert_eq!(mbc.ram_read(0xBFFF), 0x00);
+    }
+
+    // rom_control
+
+    #[test]
+    fn test_mbc0_rom_control_is_noop() {
+        let mut data = make_rom(0x00);
+        data[0x0000] = 0xAB;
+        let mut mbc = MBC0::from_data(data).unwrap();
+        mbc.rom_control(0x0000, 0xFF);
+        assert_eq!(mbc.rom_read(0x0000), 0xAB);
+    }
+
+    // ram_write
+
+    #[test]
+    fn test_mbc0_ram_write_no_eram_is_noop() {
+        let mut mbc = make_mbc0_no_eram();
+        mbc.ram_write(0xA000, 0x42);
+        assert_eq!(mbc.ram_read(0xA000), 0x00);
+    }
+
+    #[test]
+    fn test_mbc0_ram_write_with_eram_persists() {
+        let mut mbc = make_mbc0_with_eram();
+        mbc.ram_write(0xA000, 0x42);
+        assert_eq!(mbc.ram_read(0xA000), 0x42);
+    }
+
+    #[test]
+    fn test_mbc0_ram_write_address_masking() {
+        // 0xA000 & 0x1FFF == 0x0000 (first cell); 0xBFFF & 0x1FFF == 0x1FFF (last cell)
+        let mut mbc = make_mbc0_with_eram();
+        mbc.ram_write(0xA000, 0x11);
+        mbc.ram_write(0xBFFF, 0x22);
+        assert_eq!(mbc.ram_read(0xA000), 0x11);
+        assert_eq!(mbc.ram_read(0xBFFF), 0x22);
     }
 }

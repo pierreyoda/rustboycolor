@@ -46,12 +46,14 @@ impl CartridgeHeader {
     /// Return the RAM size from the given cartridge data.
     pub fn ram_size(data: &[u8]) -> usize {
         match data[RAM_Size.address()] {
+            // No RAM
+            0x00 => 0,
             // 2 KB
-            size if size == 0x01 => 0x0800,
+            0x01 => 0x0800,
             // 8 KB
-            size if size == 0x02 => 0x2000,
+            0x02 => 0x2000,
             // 32 KB
-            size if size == 0x03 => 0x8000,
+            0x03 => 0x8000,
             // Not possible (see Pandoc)
             _ => unreachable!(),
         }
@@ -82,25 +84,18 @@ pub fn load_cartridge(filepath: &Path) -> ResultStr<Box<dyn MBC + Send>> {
         .and_then(|mut f| f.read_to_end(&mut data))
         .map_err(|_| "could not load the file as a GameBoy (Color) ROM")?;
 
-    // TODO: // because WIP refactoring needed in CartridgeHeader
-    todo!();
-
-    // let cartridge_data = CartridgeHeader::ram_size(&data);
-    // let cartridge_header = // CartridgeHeader::address(cartridge_data).expect("error reading header address"); // TODO: avoid .expect
-    // match cartridge_header {
-    //     // MBC0: no MBC
-    //     n if n == 0x00 => {
-    //         info!("MBC used by the cartridge : none.");
-    //         mbc0::MBC0::from_data(data).map(|v| Box::new(v) as Box<dyn MBC + Send>)
-    //     }
-    //     // MBC1
-    //     n if n == 0x03 => {
-    //         info!("MBC used by the cartridge : MBC1.");
-    //         mbc1::MBC1::from_data(data).map(|v| Box::new(v) as Box<dyn MBC + Send>)
-    //     }
-    //     // MBs not yet implemented
-    //     n => Err("MBC not implemented yet."),
-    //     //
-    //     _ => unreachable!(),
-    // }
+    match data[MPC_TYPE.address()] {
+        // MBC0: no MBC
+        0x00 => {
+            info!("MBC used by the cartridge: none.");
+            mbc0::MBC0::from_data(data).map(|v| Box::new(v) as Box<dyn MBC + Send>)
+        }
+        // MBC1, MBC1+RAM, MBC1+RAM+BATTERY
+        0x01..=0x03 => {
+            info!("MBC used by the cartridge: MBC1.");
+            mbc1::MBC1::from_data(data).map(|v| Box::new(v) as Box<dyn MBC + Send>)
+        }
+        // MBCs not yet implemented
+        _ => Err("MBC not implemented yet."),
+    }
 }
